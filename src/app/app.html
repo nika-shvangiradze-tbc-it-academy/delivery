@@ -1,2 +1,11 @@
-<app-delivery-main></app-delivery-main>
+@if (isPageLoading()) {
+  <div class="page-loader" aria-live="polite" aria-label="Loading page">
+    <div class="page-loader__spinner"></div>
+    <p class="page-loader__text">Loading...</p>
+  </div>
+}
+
+<div class="app-content" [class.app-content--hidden]="isPageLoading()">
+  <app-delivery-main></app-delivery-main>
+</div>
 

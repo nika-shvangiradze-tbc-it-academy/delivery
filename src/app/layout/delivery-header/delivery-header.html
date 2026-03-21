@@ -1,17 +1,28 @@
 <header class="header">
-   <section class="header__container">
-   <div class="header__content">
-   
-     <h1 class="header__title">Location</h1>
-   </div >
-  
-     <nav class="header__navigation">
-       <a href="#">Home</a>
-       <a href="#">About</a>
-       <a href="#">Contact</a>
-       <a href="#">Pricing</a>
-       <a href="#">Cities</a>
+  <section class="header__container">
+    <div class="header__content">
+      <img src="/assets/header/location.svg" alt="logo" class="header__image" width="30" height="30"/>
+      <h1 class="header__title">Location</h1>
+    </div>
 
-     </nav>
-   </section> 
+    <button
+      class="header__burger"
+      type="button"
+      (click)="toggleMenu()"
+      [attr.aria-expanded]="isMenuOpen"
+      aria-label="Toggle navigation menu"
+    >
+      <span [class.is-open]="isMenuOpen"></span>
+      <span [class.is-open]="isMenuOpen"></span>
+      <span [class.is-open]="isMenuOpen"></span>
+    </button>
+
+    <nav class="header__navigation" [class.is-open]="isMenuOpen">
+      <a href="#" (click)="closeMenu()">Home</a>
+      <a href="#" (click)="closeMenu()">About</a>
+      <a href="#" (click)="closeMenu()">Contact</a>
+      <a href="#" (click)="closeMenu()">Pricing</a>
+      <a href="#" (click)="closeMenu()">Cities</a>
+    </nav>
+  </section>
 </header>

@@ -6,4 +6,14 @@ import { Component } from '@angular/core';
   templateUrl: './delivery-header.html',
   styleUrl: './delivery-header.scss',
 })
-export class DeliveryHeader {}
+export class DeliveryHeader {
+  isMenuOpen = false;
+
+  toggleMenu(): void {
+    this.isMenuOpen = !this.isMenuOpen;
+  }
+
+  closeMenu(): void {
+    this.isMenuOpen = false;
+  }
+}

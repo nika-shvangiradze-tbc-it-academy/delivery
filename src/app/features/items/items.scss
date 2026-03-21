@@ -1,0 +1,108 @@
+.items {
+  margin-top: 100px;
+  padding: 56px 0;
+  font-family: "Open Sans", sans-serif;
+
+  &__container {
+    width: min(2000px, 92%);
+    margin: 0 auto;
+  }
+
+  &__title {
+    margin-bottom: 40px;
+    text-align: center;
+    font-size: 24px;
+    font-weight: 600;
+    color: #3f3f3f;
+  }
+
+
+
+  &__heading {
+    margin: 0;
+    font-size: clamp(24px, 3vw, 34px);
+    text-transform: capitalize;
+  }
+
+  &__content {
+    overflow: hidden;
+    position: relative;
+    padding: 12px 0;
+    mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+
+    &:hover .items__track {
+      animation-play-state: paused;
+    }
+  }
+
+  &__track {
+    display: flex;
+    width: max-content;
+    gap: 18px;
+    animation: items-marquee 28s linear infinite;
+    will-change: transform;
+  }
+
+  &__group {
+    display: flex;
+    gap: 18px;
+  }
+
+  &__card {
+    min-width: 190px;
+    border-radius: 16px;
+    padding: 18px 16px;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    text-align: center;
+    transition: transform 0.28s ease, box-shadow 0.28s ease, background-color 0.28s ease;
+
+    &:hover {
+      transform: translateY(-8px) scale(1.02);
+      box-shadow: 0 14px 30px rgba(46, 110, 255, 0.2);
+      background-color: #f6f9ff;
+    }
+
+    &-image {
+      width: 76px;
+      height: 76px;
+      object-fit: contain;
+      margin-bottom: 12px;
+    }
+
+    &-title {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      text-transform: capitalize;
+    }
+  }
+}
+
+@keyframes items-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(-50% - 9px));
+  }
+}
+
+@media (max-width: 768px) {
+  .items {
+    &__track {
+      animation-duration: 22s;
+    }
+
+    &__card {
+      min-width: 160px;
+      padding: 14px 12px;
+
+      &-image {
+        width: 64px;
+        height: 64px;
+      }
+    }
+  }
+}
