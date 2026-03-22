@@ -6,14 +6,36 @@
   &__container {
     width: min(2000px, 92%);
     margin: 0 auto;
+  
   }
 
   &__title {
-    margin-bottom: 40px;
-    text-align: center;
+    max-width: 1600px;
+    margin: 0 auto;
+    margin-bottom: 80px;
+    padding: 30px;
+  
+    position: relative;
+  
+  
+    border-left: 3px solid #db7623;
+  
     font-size: 24px;
     font-weight: 600;
     color: #3f3f3f;
+  
+    
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+  
+      width: 100px;
+      height: 3px;
+  
+      background: #db7623;
+    }
   }
 
 
@@ -30,7 +52,7 @@
     padding: 12px 0;
     mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
     -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
-
+    padding-bottom: 50px;
     &:hover .items__track {
       animation-play-state: paused;
     }

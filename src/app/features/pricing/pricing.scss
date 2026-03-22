@@ -2,6 +2,35 @@
   padding: 2rem 1rem 3rem;
   background: transparent;
 
+  &__title {
+    max-width: 1600px;
+    margin: 0 auto;
+    margin-bottom: 80px;
+    padding: 30px;
+  
+    position: relative;
+  
+    /* მარცხენა ხაზი */
+    border-left: 3px solid #db7623;
+  
+    font-size: 24px;
+    font-weight: 600;
+    color: #3f3f3f;
+  
+    /* ზედა მოკლე ხაზი */
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+  
+      width: 100px;
+      height: 3px;
+  
+      background: #db7623;
+    }
+  }
+
   &__container {
     max-width: 1600px;
     margin: 0 auto;

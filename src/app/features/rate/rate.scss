@@ -1,0 +1,184 @@
+.rate {
+  margin-top: 88px;
+
+  &__title {
+    max-width: 1600px;
+    margin: 0 auto;
+    margin-bottom: 40px;
+    padding: 26px 30px;
+    position: relative;
+    border-left: 3px solid #db7623;
+    font-size: 24px;
+    font-weight: 600;
+    color: #131212;
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100px;
+      height: 3px;
+      background: #db7623;
+    }
+  }
+
+  &__content {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 0 30px 48px;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 28px;
+    align-items: stretch;
+  }
+
+  &__card {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+    border-radius: 18px;
+    background: #ffffff;
+    border: 1px solid #e5e9f2;
+    box-shadow: 0 6px 22px rgba(15, 35, 95, 0.08);
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+
+    &:hover {
+      border-color: #c8d4ea;
+      box-shadow: 0 10px 28px rgba(15, 35, 95, 0.11);
+
+      .rate__card-image {
+        transform: scale(1.04);
+      }
+    }
+  }
+
+  &__card-body {
+    flex: 1;
+    min-width: 0;
+    padding: 22px 26px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  &__card-heading {
+    margin: 0 0 16px;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #2d2d2d;
+    line-height: 1.35;
+    letter-spacing: 0.01em;
+  }
+
+  &__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+
+    li {
+      position: relative;
+      padding-left: 18px;
+      font-size: 1.0625rem;
+      color: #3a3a3a;
+      line-height: 1.55;
+
+      &::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0.55em;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #db7623;
+      }
+    }
+  }
+
+  &__media {
+    position: relative;
+    flex-shrink: 0;
+    width: clamp(220px, 36%, 340px);
+    min-width: 300px;
+    align-self: stretch;
+    min-height: 0;
+    overflow: hidden;
+    border-radius: 0 16px 16px 0;
+    background: #ffffff;
+  }
+
+  &__card-image {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    transform: scale(1);
+    transition: transform 0.45s ease;
+    border-radius:16px;
+ 
+  }
+}
+
+/* ყოველთვის მაქს. 2 სვეტი ჰორიზონტალურად */
+@media (min-width: 640px) {
+  .rate {
+    &__grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+}
+
+@media (max-width: 520px) {
+  .rate {
+    &__title {
+      padding: 22px 20px;
+      font-size: 1.25rem;
+      margin-bottom: 28px;
+    }
+
+    &__content {
+      padding: 0 20px 40px;
+    }
+
+    &__grid {
+      gap: 20px;
+    }
+
+    &__card-body {
+      padding: 18px 20px;
+    }
+
+    &__card-heading {
+      font-size: 1.0625rem;
+      margin-bottom: 12px;
+    }
+
+    &__list li {
+      font-size: 0.9375rem;
+    }
+
+    &__card {
+      flex-direction: column;
+    }
+
+    &__media {
+      width: 100%;
+      min-width: 0;
+      height: 200px;
+      border-radius: 0 0 16px 16px;
+    }
+  }
+}

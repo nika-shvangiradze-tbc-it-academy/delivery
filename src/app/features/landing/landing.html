@@ -7,7 +7,7 @@
                 Whether you need same-day delivery in Tbilisi or quick shipping between regions like 
                 Kutaisi, Gori, and Rustavi, we make sure your packages arrive on time and safely.
             </p>
-            <button>Start Now</button>
+            <button type="button" class="main__cta" (click)="openContactModal()">Contact Us</button>
         </div>
 
         <div class="main__circles">
@@ -20,3 +20,64 @@
         </div>
     </section>
 </div>
+
+@if (contactModalOpen()) {
+    <div
+        class="contact-modal"
+        role="presentation"
+        (click)="closeContactModal()"
+    >
+        <div
+            class="contact-modal__panel"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="contact-modal-title"
+            (click)="$event.stopPropagation()"
+        >
+            <button
+                type="button"
+                class="contact-modal__close"
+                (click)="closeContactModal()"
+                aria-label="Close contact dialog"
+            >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                    <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+            </button>
+            <div class="contact-modal__accent" aria-hidden="true"></div>
+            <h2 id="contact-modal-title" class="contact-modal__title">Let’s talk</h2>
+            <p class="contact-modal__lead">
+                Questions about routes, pricing, or partnerships? Reach us directly — we usually reply the same day.
+            </p>
+            <ul class="contact-modal__actions">
+                <li>
+                    <a class="contact-modal__link contact-modal__link--primary" [href]="phoneHref">
+                        <span class="contact-modal__link-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                            </svg>
+                        </span>
+                        <span class="contact-modal__link-text">
+                            <span class="contact-modal__link-label">Call</span>
+                            <span class="contact-modal__link-value">{{ phoneDisplay }}</span>
+                        </span>
+                    </a>
+                </li>
+                <li>
+                    <a class="contact-modal__link" [href]="emailHref">
+                        <span class="contact-modal__link-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                                <polyline points="22,6 12,13 2,6" />
+                            </svg>
+                        </span>
+                        <span class="contact-modal__link-text">
+                            <span class="contact-modal__link-label">Email</span>
+                            <span class="contact-modal__link-value">{{ email }}</span>
+                        </span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+}

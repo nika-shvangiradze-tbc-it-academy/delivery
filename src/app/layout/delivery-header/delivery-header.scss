@@ -1,9 +1,26 @@
+.header-fixed {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  padding: 10px max(12px, env(safe-area-inset-left)) 8px
+    max(12px, env(safe-area-inset-right));
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.header-fixed .header {
+  pointer-events: auto;
+  width: 100%;
+  max-width: 1600px;
+}
+
 .header{
 padding: 10px;
-max-width: 1600px;
-margin: 0 auto;
-background: #ffffff;
-border-radius: 30px;
+margin: 0;
+background: #ffffff;border-radius: 30px;
 box-shadow: 0 6px 20px rgba(15, 35, 95, 0.06);
 animation: header-pop-in 800ms cubic-bezier(0.2, 0.9, 0.25, 1) both;
 transform-origin: top center;
@@ -83,7 +100,36 @@ transform-origin: top center;
       &__navigation a:hover::after {
         width: 100%;
       }
+
+&__contact {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
+
+&__contact-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  color: #535353;
+  font-size: 16px;
+  transition: color 0.25s ease;
+
+  &:hover {
+    color: #db7623;
+  }
+}
+
+&__contact-link:hover &__contact-icon {
+  color: #db7623;
+}
+
+&__contact-icon {
+  flex-shrink: 0;
+  color: #535353;
+  transition: color 0.25s ease;
+}}
 
 @media (max-width: 768px) {
   .header {
