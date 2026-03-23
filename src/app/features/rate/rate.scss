@@ -1,6 +1,6 @@
 .rate {
   margin-top: 88px;
-
+  padding: 2rem 1rem 3rem;
   &__title {
     max-width: 1600px;
     margin: 0 auto;
@@ -107,9 +107,9 @@
 
   &__media {
     position: relative;
-    flex-shrink: 0;
-    width: clamp(220px, 36%, 340px);
-    min-width: 300px;
+    flex: 0 1 38%;
+    min-width: 0;
+    max-width: 320px;
     align-self: stretch;
     min-height: 0;
     overflow: hidden;
@@ -132,11 +132,38 @@
   }
 }
 
-/* ყოველთვის მაქს. 2 სვეტი ჰორიზონტალურად */
-@media (min-width: 640px) {
+/* ორ სვეტი 800px-იდან */
+@media (min-width: 800px) {
   .rate {
     &__grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+}
+
+/*
+ * ერთ სვეტიანი გრიდი (<800px): ბარათი სვეტში + სურათი სრული სიგანით.
+ * aspect-ratio სიგანესთან ერთად სიმაღლესაც აზრდის — ბოქსთან ერთად „იზრდება“.
+ */
+@media (max-width: 799px) {
+  .rate {
+    &__card {
+      flex-direction: column;
+    }
+
+    &__media {
+      width: 100%;
+      max-width: none;
+      min-width: 0;
+      flex: 0 0 auto;
+      align-self: stretch;
+      height: auto;
+      aspect-ratio: 16 / 9;
+      border-radius: 0 0 16px 16px;
+    }
+
+    &__card-image {
+      border-radius: 0 0 16px 16px;
     }
   }
 }
@@ -168,17 +195,6 @@
 
     &__list li {
       font-size: 0.9375rem;
-    }
-
-    &__card {
-      flex-direction: column;
-    }
-
-    &__media {
-      width: 100%;
-      min-width: 0;
-      height: 200px;
-      border-radius: 0 0 16px 16px;
     }
   }
 }
