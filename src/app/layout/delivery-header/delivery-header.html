@@ -20,11 +20,31 @@
 
     <nav class="header__navigation" [class.is-open]="isMenuOpen">
       <div class="header__nav-primary">
-        <a href="#" (click)="closeMenu()">Home</a>
-        <a href="#" (click)="closeMenu()">About</a>
-        <a href="#" (click)="closeMenu()">Contact</a>
-        <a href="#" (click)="closeMenu()">Pricing</a>
-        <a href="#" (click)="closeMenu()">Cities</a>
+        <a
+          href="#home"
+          [class.is-active]="activeSection === 'home'"
+          (click)="onNavClick('home', $event)"
+        >Home</a>
+        <a
+          href="#about"
+          [class.is-active]="activeSection === 'about'"
+          (click)="onNavClick('about', $event)"
+        >About</a>
+        <a
+          href="#contact"
+          [class.is-active]="activeSection === 'contact'"
+          (click)="onNavClick('contact', $event)"
+        >Contact</a>
+        <a
+          href="#pricing"
+          [class.is-active]="activeSection === 'cities'"
+          (click)="onNavClick('cities', $event)"
+        >Pricing</a>
+        <a
+          href="#cities"
+          [class.is-active]="activeSection === 'pricing'"
+          (click)="onNavClick('pricing', $event)"
+        >Cities</a>
       </div>
       <div class="header__contact header__contact--in-menu" aria-label="Contact">
         <a href="tel:+995551099081" class="header__contact-link" (click)="closeMenu()">
