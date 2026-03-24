@@ -29,6 +29,7 @@ export class ImageLoaderService {
 
     for (const image of images) {
       image.setAttribute('data-loader-bound', 'true');
+      this.applyNativeImageHints(image);
       image.classList.add('img-loading');
       image.classList.remove('img-loaded');
 
@@ -52,6 +53,18 @@ export class ImageLoaderService {
         image.removeEventListener('load', onLoad);
         image.removeEventListener('error', onError);
       });
+    }
+  }
+
+  private applyNativeImageHints(image: HTMLImageElement): void {
+    const hasHighPriority = image.getAttribute('fetchpriority') === 'high';
+
+    if (!hasHighPriority && !image.hasAttribute('loading')) {
+      image.loading = 'lazy';
+    }
+
+    if (!image.hasAttribute('decoding')) {
+      image.decoding = 'async';
     }
   }
 

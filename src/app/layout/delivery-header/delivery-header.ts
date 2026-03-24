@@ -1,21 +1,33 @@
 import { AfterViewInit, Component, OnDestroy } from '@angular/core';
+import { TranslatePipe } from '../../core/pipes/t.pipe';
+import { AppLanguage } from '../../core/i18n/translations';
+import { I18nService } from '../../core/services/i18n.service';
 
 type SectionId = 'home' | 'about' | 'pricing' | 'cities' | 'contact';
 
 @Component({
   selector: 'app-delivery-header',
-  imports: [],
+  imports: [TranslatePipe],
   templateUrl: './delivery-header.html',
   styleUrl: './delivery-header.scss',
 })
 export class DeliveryHeader implements AfterViewInit, OnDestroy {
   isMenuOpen = false;
   activeSection: SectionId = 'home';
+  readonly currentLanguage;
 
   private readonly sectionIds: SectionId[] = ['home', 'about', 'pricing', 'cities', 'contact'];
   private sectionElements: HTMLElement[] = [];
 
   private rafId = 0;
+  constructor(private readonly i18nService: I18nService) {
+    this.currentLanguage = this.i18nService.currentLanguage;
+  }
+
+  async onLanguageChange(language: AppLanguage): Promise<void> {
+    await this.i18nService.setLanguage(language);
+  }
+
   private readonly onScroll = (): void => {
    
     if (this.rafId) return;
@@ -53,8 +65,7 @@ export class DeliveryHeader implements AfterViewInit, OnDestroy {
 
   onNavClick(sectionId: SectionId, event: Event): void {
     event.preventDefault();
-    // Immediate feedback: underline switches right away,
-    // then will be corrected by scroll-based tracking.
+   
     this.activeSection = sectionId;
     this.scrollToSection(sectionId);
     this.closeMenu();
@@ -62,12 +73,11 @@ export class DeliveryHeader implements AfterViewInit, OnDestroy {
 
   private updateActiveSection(): void {
     const headerEl = document.querySelector<HTMLElement>('.header');
-    // `.header-fixed` adds extra padding above `.header`, so use `bottom` (absolute)
-    // instead of just `height` to place the marker under the real header.
+  
     const headerBottom = headerEl?.getBoundingClientRect().bottom;
     const headerHeight = headerEl?.getBoundingClientRect().height ?? 88;
 
-    // Marker წერტილი "header-ის ქვემოთ" (იმ სექციას ვირჩევთ, რომელიც ამ წერტილს მოიცავს).
+ 
     const markerY = window.scrollY + (headerBottom ?? headerHeight) + 8;
 
     let closestId: SectionId = 'home';

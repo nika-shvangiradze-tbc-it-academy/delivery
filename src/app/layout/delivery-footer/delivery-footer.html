@@ -4,7 +4,7 @@
   <div class="delivery-footer__inner">
     <div class="delivery-footer__grid">
       <div class="delivery-footer__brand">
-        <a class="delivery-footer__logo" href="#" aria-label="Location — home">
+        <a class="delivery-footer__logo" href="#" [attr.aria-label]="'footer.homeLabel' | t">
           <img
             src="/assets/header/location.svg"
             alt=""
@@ -15,23 +15,23 @@
           <span class="delivery-footer__logo-text">Location</span>
         </a>
         <p class="delivery-footer__tagline">
-          Fast, dependable delivery. Reach us anytime — we’re one message or call away.
+          {{ 'footer.tagline' | t }}
         </p>
       </div>
 
       <div class="delivery-footer__col">
-        <h2 class="delivery-footer__heading">Explore</h2>
+        <h2 class="delivery-footer__heading">{{ 'footer.explore' | t }}</h2>
         <ul class="delivery-footer__links">
-          <li><a href="#">Home</a></li>
-          <li><a href="#">Pricing</a></li>
-          <li><a href="#">About</a></li>
-          <li><a href="#">Cities</a></li>
-          <li><a href="#">Contact</a></li>
+          <li><a href="#home">{{ 'nav.home' | t }}</a></li>
+          <li><a href="#pricing">{{ 'nav.pricing' | t }}</a></li>
+          <li><a href="#about">{{ 'nav.about' | t }}</a></li>
+          <li><a href="#cities">{{ 'nav.cities' | t }}</a></li>
+          <li><a href="#contact">{{ 'nav.contact' | t }}</a></li>
         </ul>
       </div>
 
       <div class="delivery-footer__col">
-        <h2 class="delivery-footer__heading">Contact</h2>
+        <h2 class="delivery-footer__heading">{{ 'nav.contact' | t }}</h2>
         <address class="delivery-footer__address">
           <a class="delivery-footer__contact-link" [href]="phoneHref">
             <span class="delivery-footer__contact-icon" aria-hidden="true">
@@ -54,8 +54,8 @@
       </div>
 
       <div class="delivery-footer__col delivery-footer__col--social">
-        <h2 class="delivery-footer__heading">Follow us</h2>
-        <p class="delivery-footer__social-hint">Updates, promos, and behind the scenes.</p>
+        <h2 class="delivery-footer__heading">{{ 'footer.follow' | t }}</h2>
+        <p class="delivery-footer__social-hint">{{ 'footer.followHint' | t }}</p>
         <ul class="delivery-footer__social">
           <li>
             <a
@@ -96,12 +96,12 @@
 
     <div class="delivery-footer__bar">
       <p class="delivery-footer__copy">
-        © {{ currentYear }} Location. All rights reserved.
+        © {{ currentYear }} Location. {{ 'footer.allRightsReserved' | t }}
       </p>
       <nav class="delivery-footer__legal" aria-label="Legal">
-        <a href="#">Privacy</a>
+        <a href="#">{{ 'footer.privacy' | t }}</a>
         <span class="delivery-footer__dot" aria-hidden="true">·</span>
-        <a href="#">Terms</a>
+        <a href="#">{{ 'footer.terms' | t }}</a>
       </nav>
     </div>
   </div>

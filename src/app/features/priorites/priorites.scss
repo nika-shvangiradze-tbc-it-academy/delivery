@@ -20,14 +20,14 @@ margin-top: 100px;
       
         position: relative;
       
-        /* მარცხენა ხაზი */
+    
         border-left: 3px solid #db7623;
       
         font-size: 24px;
         font-weight: 600;
         color: #3f3f3f;
       
-        /* ზედა მოკლე ხაზი */
+       
         &::before {
           content: "";
           position: absolute;

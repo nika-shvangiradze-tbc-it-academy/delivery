@@ -21,24 +21,17 @@ img {
 }
 
 img.img-loading {
-    opacity: 0.25;
-    filter: blur(2px) grayscale(0.15);
-    background: linear-gradient(90deg, #f0f2f6 25%, #e3e8f3 40%, #f0f2f6 65%);
-    background-size: 220% 100%;
-    animation: image-skeleton 1.2s ease-in-out infinite;
+    opacity: 0.55;
+    filter: saturate(0.9);
 }
 
 img.img-loaded {
     opacity: 1;
     filter: none;
-    animation: none;
 }
 
-@keyframes image-skeleton {
-    0% {
-        background-position: 100% 0;
-    }
-    100% {
-        background-position: -100% 0;
+@media (prefers-reduced-motion: reduce) {
+    img {
+        transition: none;
     }
 }

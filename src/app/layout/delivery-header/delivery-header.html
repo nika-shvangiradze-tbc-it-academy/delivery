@@ -24,27 +24,45 @@
           href="#home"
           [class.is-active]="activeSection === 'home'"
           (click)="onNavClick('home', $event)"
-        >Home</a>
+        >{{ 'nav.home' | t }}</a>
         <a
           href="#about"
           [class.is-active]="activeSection === 'about'"
           (click)="onNavClick('about', $event)"
-        >About</a>
+        >{{ 'nav.about' | t }}</a>
         <a
           href="#contact"
           [class.is-active]="activeSection === 'contact'"
           (click)="onNavClick('contact', $event)"
-        >Contact</a>
+        >{{ 'nav.contact' | t }}</a>
         <a
           href="#pricing"
           [class.is-active]="activeSection === 'cities'"
           (click)="onNavClick('cities', $event)"
-        >Pricing</a>
+        >{{ 'nav.pricing' | t }}</a>
         <a
           href="#cities"
           [class.is-active]="activeSection === 'pricing'"
           (click)="onNavClick('pricing', $event)"
-        >Cities</a>
+        >{{ 'nav.cities' | t }}</a>
+      </div>
+      <div class="header__lang" [attr.aria-label]="'app.languageLabel' | t">
+        <button
+          type="button"
+          class="header__lang-btn"
+          [class.is-active]="currentLanguage() === 'ka'"
+          (click)="onLanguageChange('ka')"
+        >
+          KA
+        </button>
+        <button
+          type="button"
+          class="header__lang-btn"
+          [class.is-active]="currentLanguage() === 'en'"
+          (click)="onLanguageChange('en')"
+        >
+          EN
+        </button>
       </div>
       <div class="header__contact header__contact--in-menu" aria-label="Contact">
         <a href="tel:+995551099081" class="header__contact-link" (click)="closeMenu()">
@@ -85,6 +103,7 @@
         <span>shvangiradzze1010@gmail.com</span>
       </a>
     </div>
+
   </section>
 </header>
 </div>

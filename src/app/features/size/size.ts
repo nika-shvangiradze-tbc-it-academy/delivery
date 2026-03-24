@@ -2,12 +2,12 @@ import { Component, HostListener, signal } from '@angular/core';
 import { TranslatePipe } from '../../core/pipes/t.pipe';
 
 @Component({
-  selector: 'app-landing',
+  selector: 'app-size',
   imports: [TranslatePipe],
-  templateUrl: './landing.html',
-  styleUrl: './landing.scss',
+  templateUrl: './size.html',
+  styleUrl: './size.scss',
 })
-export class Landing {
+export class Size {
   readonly contactModalOpen = signal(false);
 
   readonly phoneDisplay = '551 099 081';

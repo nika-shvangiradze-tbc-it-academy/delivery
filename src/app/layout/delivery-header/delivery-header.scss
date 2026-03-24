@@ -166,6 +166,34 @@ transform-origin: top center;
   width: 14px;
   height: 14px;
   color: #db7623;
+}
+
+&__lang {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+&__lang--desktop {
+  display: inline-flex;
+}
+
+&__lang-btn {
+  border: 1px solid rgba(83, 83, 83, 0.2);
+  background: #fff;
+  color: #535353;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &.is-active {
+    background: #db7623;
+    border-color: #db7623;
+    color: #fff;
+  }
 }}
 
 @media (max-width: 1024px) {
@@ -208,11 +236,19 @@ transform-origin: top center;
       display: none;
     }
 
+    &__lang--desktop {
+      display: none;
+    }
+
     &__contact--in-menu {
       display: flex;
       padding-top: 8px;
       margin-top: 4px;
       border-top: 1px solid rgba(83, 83, 83, 0.12);
+    }
+
+    &__lang {
+      padding-top: 4px;
     }
   }
 }

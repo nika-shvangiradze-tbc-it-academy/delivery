@@ -1,35 +1,47 @@
-<div class="main">
-    <section id="home" class="main__hero">
-        <div class="main__content">
-            <h1>{{ 'landing.title' | t }}</h1>
-            <p>
-                {{ 'landing.description' | t }}
-            </p>
-            <button type="button" class="main__cta" (click)="openContactModal()">{{ 'landing.cta' | t }}</button>
+<section id="size" class="size">
+    <div class="size__container">
+        <div class="size__title">
+            <h3>{{ 'size.title' | t }}</h3>
         </div>
 
-        <div class="main__circles">
-            <img class="circle circle--lg circle--one" src="assets/main/landing/delivery-dog.webp" alt="Delivery dog" width="250" height="250" fetchpriority="high" decoding="async" />
-            <img class="circle circle--md circle--two" src="assets/main/landing/delivery-door.webp" alt="Courier at a door" width="200" height="200" decoding="async" />
-            <img class="circle circle--sm circle--three" src="assets/main/landing/delivery-package-2.webp" alt="Delivery package" width="160" height="160" loading="lazy" decoding="async" />
-            <img class="circle circle--md circle--four" src="assets/main/landing/delivery-package-3.webp" alt="Prepared delivery boxes" width="200" height="200" loading="lazy" decoding="async" />
+        <div class="size__content">
+            <article class="size__prices">
+                <div class="size__head">
+                    <span>{{ 'size.weight' | t }}</span>
+                    <span>{{ 'size.cost' | t }}</span>
+                </div>
+                <p class="size__note">{{ 'size.note' | t }}</p>
 
+                <ul class="size__list">
+                    <li class="size__row"><span class="size__weight">{{ 'size.range1' | t }}</span><strong>5.00 <small>₾</small></strong></li>
+                    <li class="size__row"><span class="size__weight">{{ 'size.range2' | t }}</span><strong>7.00 <small>₾</small></strong></li>
+                    <li class="size__row"><span class="size__weight">{{ 'size.range3' | t }}</span><strong>9.00 <small>₾</small></strong></li>
+                    <li class="size__row"><span class="size__weight">{{ 'size.range4' | t }}</span><strong>11.00 <small>₾</small></strong></li>
+                    <li class="size__row"><span class="size__weight">{{ 'size.range5' | t }}</span><strong>14.00 <small>₾</small></strong></li>
+                    <li class="size__row"><span class="size__weight">{{ 'size.range6' | t }}</span><strong>16.00 <small>₾</small></strong></li>
+                    <li class="size__row"><span class="size__weight">{{ 'size.range7' | t }}</span><strong>20.00 <small>₾</small></strong></li>
+                </ul>
+            </article>
 
+            <div class="size__media">
+                <img src="/assets/main/size/kg.svg" [alt]="'size.altImage' | t" class="size__image" />
+            </div>
         </div>
-    </section>
-</div>
+
+        <div class="size__contact-card">
+            <p class="size__contact-text">{{ 'size.contactPrompt' | t }}</p>
+            <button type="button" class="size__contact-button" (click)="openContactModal()">{{ 'landing.cta' | t }}</button>
+        </div>
+    </div>
+</section>
 
 @if (contactModalOpen()) {
-    <div
-        class="contact-modal"
-        role="presentation"
-        (click)="closeContactModal()"
-    >
+    <div class="contact-modal" role="presentation" (click)="closeContactModal()">
         <div
             class="contact-modal__panel"
             role="dialog"
             aria-modal="true"
-            aria-labelledby="contact-modal-title"
+            aria-labelledby="size-contact-modal-title"
             (click)="$event.stopPropagation()"
         >
             <button
@@ -43,7 +55,7 @@
                 </svg>
             </button>
             <div class="contact-modal__accent" aria-hidden="true"></div>
-            <h2 id="contact-modal-title" class="contact-modal__title">{{ 'landing.modalTitle' | t }}</h2>
+            <h2 id="size-contact-modal-title" class="contact-modal__title">{{ 'landing.modalTitle' | t }}</h2>
             <p class="contact-modal__lead">
                 {{ 'landing.modalLead' | t }}
             </p>

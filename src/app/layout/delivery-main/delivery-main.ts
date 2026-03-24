@@ -7,10 +7,11 @@ import { Priorites } from '../../features/priorites/priorites';
 import { About } from '../../features/about/about';
 import { Rate } from '../../features/rate/rate';
 import { DeliveryFooter } from '../delivery-footer/delivery-footer';
+import { Size } from '../../features/size/size';
 
 @Component({
   selector: 'app-delivery-main',
-  imports: [DeliveryHeader, Landing, Pricing, Items, Priorites, About, Rate, DeliveryFooter],
+  imports: [DeliveryHeader, Landing, Pricing, Items, Priorites, About, Rate, DeliveryFooter, Size],
   templateUrl: './delivery-main.html',
   styleUrl: './delivery-main.scss',
 })

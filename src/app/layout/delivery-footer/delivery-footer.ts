@@ -1,8 +1,9 @@
 import { Component } from '@angular/core';
+import { TranslatePipe } from '../../core/pipes/t.pipe';
 
 @Component({
   selector: 'app-delivery-footer',
-  imports: [],
+  imports: [TranslatePipe],
   templateUrl: './delivery-footer.html',
   styleUrl: './delivery-footer.scss',
 })
