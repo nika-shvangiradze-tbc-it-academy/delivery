@@ -10,10 +10,10 @@ import { TranslatePipe } from '../../core/pipes/t.pipe';
 export class Landing {
   readonly contactModalOpen = signal(false);
 
-  readonly phoneDisplay = '551 099 081';
-  readonly phoneHref = 'tel:+995551099081';
-  readonly email = 'shvangiradzze1010@gmail.com';
-  readonly emailHref = 'mailto:shvangiradzze1010@gmail.com';
+  readonly phoneDisplay = '551 000 000';
+  readonly phoneHref = 'tel:+995551000000';
+  readonly email = 'info@delivery.ge';
+  readonly emailHref = 'mailto:info@delivery.ge';
 
   openContactModal(): void {
     this.contactModalOpen.set(true);

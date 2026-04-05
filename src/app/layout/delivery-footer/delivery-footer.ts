@@ -10,11 +10,11 @@ import { TranslatePipe } from '../../core/pipes/t.pipe';
 export class DeliveryFooter {
   readonly currentYear = new Date().getFullYear();
 
-  readonly phoneDisplay = '551 099 081';
-  readonly phoneHref = 'tel:+995551099081';
+  readonly phoneDisplay = '551 000 000';
+  readonly phoneHref = 'tel:+995551000000';
 
-  readonly email = 'shvangiradzze1010@gmail.com';
-  readonly emailHref = 'mailto:shvangiradzze1010@gmail.com';
+  readonly email = 'info@delivery.ge';
+  readonly emailHref = 'mailto:info@delivery.ge';
 
 
   readonly social = {

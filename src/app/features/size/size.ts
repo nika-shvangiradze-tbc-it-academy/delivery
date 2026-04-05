@@ -12,8 +12,8 @@ export class Size {
 
   readonly phoneDisplay = '551 099 081';
   readonly phoneHref = 'tel:+995551099081';
-  readonly email = 'shvangiradzze1010@gmail.com';
-  readonly emailHref = 'mailto:shvangiradzze1010@gmail.com';
+  readonly email = 'location@gmail.com';
+  readonly emailHref = 'mailto:location@gmail.com';
 
   openContactModal(): void {
     this.contactModalOpen.set(true);
