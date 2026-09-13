@@ -18,6 +18,9 @@
       <p><strong>უბანი:</strong> {{ o.delivery_district || '—' }}</p>
       <p><strong>მისამართი:</strong> {{ o.delivery_address }}</p>
       <p><strong>ამანათები:</strong> {{ o.parcel_count }}</p>
+      @if (o.is_fragile) {
+        <p class="courier-detail__fragile" role="status">⚠ მსხვრევადი</p>
+      }
       <p><strong>ასაღები თანხა:</strong> {{ formatGel(o.amount_to_collect) }} ₾</p>
       <p>
         <strong>თარიღი:</strong>
@@ -36,9 +39,6 @@
     <div class="courier-detail__actions">
       <a class="courier-detail__btn call" [href]="telHref(o.recipient_phone)">
         📞 {{ formatPhone(o.recipient_phone) }}
-      </a>
-      <a class="courier-detail__btn maps" [href]="mapsUrl(o)" target="_blank" rel="noopener noreferrer">
-        რუკა
       </a>
     </div>
 

@@ -101,6 +101,7 @@ export class AdminOrders implements OnInit {
     delivery_date: ['', Validators.required],
     amount_to_collect: ['', [Validators.required, amountPositiveValidator]],
     notes: [''],
+    is_fragile: [false],
   });
 
   async ngOnInit(): Promise<void> {
@@ -157,6 +158,7 @@ export class AdminOrders implements OnInit {
       delivery_date: order.delivery_date,
       amount_to_collect: formatGel(order.amount_to_collect),
       notes: order.notes ?? '',
+      is_fragile: order.is_fragile,
     });
   }
 

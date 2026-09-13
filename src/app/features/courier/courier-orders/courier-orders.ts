@@ -20,7 +20,6 @@ import { Order, PaymentMethod } from '../../../core/models/order.model';
 import { CourierRealtimeService } from '../../../core/services/courier-realtime.service';
 import { CourierService } from '../../../core/services/courier.service';
 import {
-  buildMapsUrl,
   buildTelHref,
   courierStatusLabel,
   formatGel,
@@ -47,7 +46,6 @@ export class CourierOrders implements OnInit {
   readonly reordering = signal(false);
   readonly errorMessage = signal<string | null>(null);
   readonly successMessage = signal<string | null>(null);
-  readonly showSummary = signal(false);
   /** Only one order card details panel open at a time. */
   readonly expandedId = signal<number | null>(null);
   readonly confirmingCancelId = signal<number | null>(null);
@@ -67,6 +65,10 @@ export class CourierOrders implements OnInit {
   constructor() {
     this.realtime.changes$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       void this.refreshFromRealtime();
+    });
+
+    this.realtime.manualRefresh$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      void this.reload();
     });
   }
 
@@ -111,10 +113,6 @@ export class CourierOrders implements OnInit {
     }
   }
 
-  toggleSummary(): void {
-    this.showSummary.update((v) => !v);
-  }
-
   toggleDetails(orderId: number): void {
     this.expandedId.update((current) => (current === orderId ? null : orderId));
     if (this.confirmingCancelId() === orderId) {
@@ -136,10 +134,6 @@ export class CourierOrders implements OnInit {
 
   telHref(phone: string): string {
     return buildTelHref(phone);
-  }
-
-  mapsUrl(order: Order): string {
-    return buildMapsUrl(order);
   }
 
   selectedPayment(orderId: number): PaymentMethod | null {

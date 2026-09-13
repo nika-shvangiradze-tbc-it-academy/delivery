@@ -25,6 +25,7 @@ create table if not exists public.orders (
   parcel_count integer not null default 1 check (parcel_count > 0),
   delivery_date date not null,
   notes text,
+  is_fragile boolean not null default false,
   status text not null default 'pending'
     check (status in ('pending', 'accepted', 'picked_up', 'in_transit', 'delivered', 'cancelled')),
   payment_method text check (payment_method is null or payment_method in ('cash', 'card')),

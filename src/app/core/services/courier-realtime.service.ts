@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, NgZone, inject } from '@angular/core';
 import {
   RealtimeChannel,
   RealtimePostgresChangesPayload,
@@ -11,26 +11,33 @@ type OrderRealtimeRow = {
   id?: number;
   assigned_courier_id?: string | null;
   status?: string | null;
+  is_fragile?: boolean | null;
 };
 
 /**
  * One Realtime channel per logged-in courier session.
- * Listens to orders + courier_order_events, then asks pages to refetch.
+ * Listens to orders + courier_order_events, then asks pages to soft-refetch.
  */
 @Injectable({
   providedIn: 'root',
 })
 export class CourierRealtimeService {
   private readonly supabase = inject(SupabaseService);
+  private readonly zone = inject(NgZone);
 
   private channel: RealtimeChannel | null = null;
   private activeCourierId: string | null = null;
   private debounceHandle: ReturnType<typeof setTimeout> | null = null;
+  private connectGeneration = 0;
 
   private readonly changesSubject = new Subject<void>();
+  private readonly manualRefreshSubject = new Subject<void>();
 
   /** Debounced signal that courier order lists / summary should reload. */
   readonly changes$ = this.changesSubject.asObservable();
+
+  /** Immediate hard refresh (logo click) — bypasses realtime debounce. */
+  readonly manualRefresh$ = this.manualRefreshSubject.asObservable();
 
   /** Channel name for the current courier, or null when disconnected. */
   get channelName(): string | null {
@@ -49,10 +56,12 @@ export class CourierRealtimeService {
 
     this.disconnect();
     this.activeCourierId = courierId;
-    this.subscribe(courierId);
+    void this.subscribe(courierId);
   }
 
   disconnect(): void {
+    this.connectGeneration += 1;
+
     if (this.debounceHandle !== null) {
       clearTimeout(this.debounceHandle);
       this.debounceHandle = null;
@@ -66,13 +75,43 @@ export class CourierRealtimeService {
     this.activeCourierId = null;
   }
 
-  private subscribe(courierId: string): void {
+  /** Soft refresh (realtime path). */
+  requestRefresh(): void {
+    this.scheduleRefresh();
+  }
+
+  /** Hard refresh for logo click — immediate, no debounce. */
+  requestManualRefresh(): void {
+    this.log('manual refresh requested');
+    this.zone.run(() => {
+      this.manualRefreshSubject.next();
+    });
+  }
+
+  private async subscribe(courierId: string): Promise<void> {
+    const generation = this.connectGeneration;
     const channelName = `courier-orders:${courierId}`;
+
+    // Ensure Realtime uses the current JWT (RLS on private tables).
+    const {
+      data: { session },
+    } = await this.supabase.client.auth.getSession();
+
+    if (generation !== this.connectGeneration || this.activeCourierId !== courierId) {
+      return;
+    }
+
+    if (session?.access_token) {
+      await this.supabase.client.realtime.setAuth(session.access_token);
+    }
+
+    if (generation !== this.connectGeneration || this.activeCourierId !== courierId) {
+      return;
+    }
 
     const channel = this.supabase.client
       .channel(channelName)
-      // Filtered orders feed: assign-to-me + status/payment updates while assigned.
-      // Reassignment-away is covered by courier_order_events (RLS-safe).
+      // Assign-to-me + updates while assigned (status, payment, is_fragile, …).
       .on(
         'postgres_changes',
         {
@@ -85,7 +124,7 @@ export class CourierRealtimeService {
           this.onOrdersChange(courierId, payload);
         },
       )
-      // Assignment pings (including unassign / reassignment away).
+      // Unassign / reassignment-away (and other pings) under RLS.
       .on(
         'postgres_changes',
         {
@@ -111,6 +150,11 @@ export class CourierRealtimeService {
         }
       });
 
+    if (generation !== this.connectGeneration || this.activeCourierId !== courierId) {
+      void this.supabase.client.removeChannel(channel);
+      return;
+    }
+
     this.channel = channel;
   }
 
@@ -135,6 +179,7 @@ export class CourierRealtimeService {
       oldCourier: prev.assigned_courier_id ?? null,
       newCourier: next.assigned_courier_id ?? null,
       status: next.status ?? prev.status ?? null,
+      isFragile: next.is_fragile ?? prev.is_fragile ?? null,
     });
 
     this.scheduleRefresh();
@@ -148,7 +193,10 @@ export class CourierRealtimeService {
     this.debounceHandle = setTimeout(() => {
       this.debounceHandle = null;
       this.log('refreshing active orders');
-      this.changesSubject.next();
+      // Realtime callbacks run outside Angular; keep CD predictable.
+      this.zone.run(() => {
+        this.changesSubject.next();
+      });
     }, 200);
   }
 

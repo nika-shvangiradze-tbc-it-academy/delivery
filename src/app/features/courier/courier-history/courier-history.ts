@@ -60,6 +60,10 @@ export class CourierHistory implements OnInit {
     this.realtime.changes$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       void this.refreshFromRealtime();
     });
+
+    this.realtime.manualRefresh$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      void this.reload();
+    });
   }
 
   async ngOnInit(): Promise<void> {

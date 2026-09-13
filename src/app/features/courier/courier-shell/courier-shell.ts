@@ -43,6 +43,14 @@ export class CourierShell {
     });
   }
 
+  async onLogoClick(): Promise<void> {
+    const target = '/courier/orders';
+    if (!this.router.url.startsWith(target)) {
+      await this.router.navigateByUrl(target);
+    }
+    this.realtime.requestManualRefresh();
+  }
+
   async logout(): Promise<void> {
     this.realtime.disconnect();
     await this.auth.logout();

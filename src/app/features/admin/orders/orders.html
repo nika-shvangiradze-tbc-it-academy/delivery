@@ -110,7 +110,12 @@
                   />
                 </td>
                 <td>#{{ order.id }}</td>
-                <td>{{ order.recipient_name || '—' }}</td>
+                <td>
+                  {{ order.recipient_name || '—' }}
+                  @if (order.is_fragile) {
+                    <span class="admin-orders__fragile" title="მსხვრევადი ამანათი">⚠ მსხვრევადი</span>
+                  }
+                </td>
                 <td>{{ order.recipient_phone || '—' }}</td>
                 <td>{{ order.delivery_city || '—' }}</td>
                 <td>{{ formatGel(order.amount_to_collect) }} ₾</td>
@@ -162,6 +167,12 @@
         <div><dt>{{ 'orders.recipientPhone' | t }}</dt><dd>{{ order.recipient_phone || '—' }}</dd></div>
         <div><dt>{{ 'orders.deliveryCity' | t }}</dt><dd>{{ order.delivery_city || '—' }}</dd></div>
         <div><dt>{{ 'orders.deliveryAddress' | t }}</dt><dd>{{ order.delivery_address || '—' }}</dd></div>
+        @if (order.is_fragile) {
+          <div>
+            <dt>ამანათი</dt>
+            <dd><span class="admin-orders__fragile">⚠ მსხვრევადი</span></dd>
+          </div>
+        }
         <div><dt>ასაღები თანხა</dt><dd>{{ formatGel(order.amount_to_collect) }} ₾</dd></div>
         <div><dt>აღებული თანხა</dt><dd>{{ formatGel(order.collected_amount) }} ₾</dd></div>
         <div><dt>გადახდა</dt><dd>{{ paymentLabel(order.payment_method) }}</dd></div>
@@ -228,6 +239,10 @@
           <label>
             <span>ასაღები თანხა</span>
             <input type="text" inputmode="decimal" formControlName="amount_to_collect" />
+          </label>
+          <label class="full admin-orders__check">
+            <input type="checkbox" formControlName="is_fragile" />
+            <span>მსხვრევადი ამანათი</span>
           </label>
           <label class="full"><span>შენიშვნა</span><textarea rows="3" formControlName="notes"></textarea></label>
         </div>

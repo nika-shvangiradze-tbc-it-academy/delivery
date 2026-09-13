@@ -91,6 +91,10 @@
             <span>მომხმარებლისგან ასაღები თანხა (₾)</span>
             <input type="text" inputmode="decimal" formControlName="amount_to_collect" placeholder="25.00" />
           </label>
+          <label class="order-form-page__full order-form-page__check">
+            <input type="checkbox" formControlName="is_fragile" />
+            <span>მსხვრევადი ამანათი</span>
+          </label>
           <label class="order-form-page__full">
             <span>{{ 'orders.notes' | t }}</span>
             <textarea rows="3" formControlName="notes"></textarea>

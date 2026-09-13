@@ -48,6 +48,7 @@ export class OrdersService {
         parcel_count: payload.parcel_count,
         delivery_date: payload.delivery_date,
         amount_to_collect: amount,
+        is_fragile: Boolean(payload.is_fragile),
         user_id: user.id,
         status: 'pending' as OrderStatus,
         notes: payload.notes?.trim() ? payload.notes.trim() : null,
@@ -101,6 +102,7 @@ export class OrdersService {
         parcel_count: payload.parcel_count,
         delivery_date: payload.delivery_date,
         amount_to_collect: amount,
+        is_fragile: Boolean(payload.is_fragile),
         notes: payload.notes?.trim() ? payload.notes.trim() : null,
         updated_at: new Date().toISOString(),
       })

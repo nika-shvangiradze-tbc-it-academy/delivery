@@ -13,7 +13,6 @@ import { Order, PaymentMethod } from '../../../core/models/order.model';
 import { CourierRealtimeService } from '../../../core/services/courier-realtime.service';
 import { CourierService } from '../../../core/services/courier.service';
 import {
-  buildMapsUrl,
   buildTelHref,
   courierStatusLabel,
   formatGel,
@@ -101,10 +100,6 @@ export class CourierOrderDetail implements OnInit {
 
   telHref(phone: string): string {
     return buildTelHref(phone);
-  }
-
-  mapsUrl(order: Order): string {
-    return buildMapsUrl(order);
   }
 
   selectPayment(payment: PaymentMethod): void {

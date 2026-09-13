@@ -21,7 +21,7 @@ import {
 } from '../utils/order-status.util';
 
 const COURIER_ORDER_COLUMNS =
-  'id, user_id, assigned_courier_id, recipient_name, recipient_phone, delivery_city, delivery_district, delivery_address, parcel_count, delivery_date, notes, status, payment_method, amount_to_collect, collected_amount, delivered_at, cancelled_at, courier_sort_order, created_at, updated_at, sender_name, sender_phone, pickup_city, pickup_district, pickup_address';
+  'id, user_id, assigned_courier_id, recipient_name, recipient_phone, delivery_city, delivery_district, delivery_address, parcel_count, delivery_date, notes, is_fragile, status, payment_method, amount_to_collect, collected_amount, delivered_at, cancelled_at, courier_sort_order, created_at, updated_at, sender_name, sender_phone, pickup_city, pickup_district, pickup_address';
 
 @Injectable({
   providedIn: 'root',

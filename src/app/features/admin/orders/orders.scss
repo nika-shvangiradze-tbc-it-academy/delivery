@@ -142,6 +142,34 @@
     text-align: left;
   }
 
+  &__fragile {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 8px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #fff7ed;
+    color: #c2410c;
+    border: 1px solid rgba(194, 65, 12, 0.28);
+    font-size: 11px;
+    font-weight: 800;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+
+  &__check {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center;
+    gap: 10px !important;
+
+    input {
+      width: 18px;
+      height: 18px;
+      padding: 0;
+    }
+  }
+
   &__modal-panel--wide {
     max-width: 780px;
   }

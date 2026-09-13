@@ -158,6 +158,7 @@ export function normalizeOrder(
     parcel_count: Number(raw.parcel_count ?? 0),
     delivery_date: raw.delivery_date ?? '',
     notes: raw.notes ?? null,
+    is_fragile: Boolean(raw.is_fragile),
     status: (raw.status as OrderStatus) ?? 'pending',
     payment_method: parsePaymentMethod(raw.payment_method),
     amount_to_collect: centsToNumber(toCents(raw.amount_to_collect as number | string | null)),
@@ -180,13 +181,6 @@ export function normalizeOrders(rows: unknown[] | null | undefined): Order[] {
   return rows
     .map((row) => normalizeOrder(row as Partial<Order> & { id?: number | string }))
     .filter((order): order is Order => order !== null);
-}
-
-export function buildMapsUrl(order: Pick<Order, 'delivery_city' | 'delivery_district' | 'delivery_address'>): string {
-  const query = [order.delivery_address, order.delivery_district, order.delivery_city]
-    .filter((part) => Boolean(part?.trim()))
-    .join(', ');
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
 
 export function buildTelHref(phone: string): string {

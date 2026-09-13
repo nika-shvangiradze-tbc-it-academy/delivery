@@ -60,9 +60,19 @@
     color: #027a48;
   }
 
-  &__btn.maps {
-    background: #eef4ff;
-    color: #3538cd;
+  &__fragile {
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 8px;
+    background: #fff7ed;
+    color: #c2410c;
+    border: 1px solid rgba(194, 65, 12, 0.28);
+    font-size: 12px;
+    font-weight: 800;
+    width: fit-content;
   }
 
   &__complete {

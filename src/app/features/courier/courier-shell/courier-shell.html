@@ -1,7 +1,21 @@
 <div class="courier-shell">
   <header class="courier-shell__top">
-    <div>
-      <p class="courier-shell__eyebrow">Location Courier</p>
+    <div class="courier-shell__brand-block">
+      <button
+        type="button"
+        class="courier-shell__logo"
+        (click)="onLogoClick()"
+        aria-label="მიმდინარე შეკვეთების განახლება"
+      >
+        <img
+          src="/assets/header/location.svg"
+          alt=""
+          width="28"
+          height="28"
+          class="courier-shell__logo-img"
+        />
+        <span class="courier-shell__logo-text">Location</span>
+      </button>
       <h1>კურიერის პანელი</h1>
       <p class="courier-shell__name">{{ courierName() }}</p>
     </div>

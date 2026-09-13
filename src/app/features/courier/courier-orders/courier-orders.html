@@ -11,31 +11,26 @@
     }
   </div>
 
-  <section class="courier-active__summary">
-    <button type="button" class="courier-active__summary-toggle" (click)="toggleSummary()">
-      დღის შეჯამება
-    </button>
-
-    @if (showSummary()) {
-      <div class="courier-active__summary-card">
-        <div>
-          <span>ქეში</span>
-          <strong>{{ summary().cashTotal }} ₾</strong>
-        </div>
-        <div>
-          <span>ბარათი</span>
-          <strong>{{ summary().cardTotal }} ₾</strong>
-        </div>
-        <div>
-          <span>სულ</span>
-          <strong>{{ summary().grandTotal }} ₾</strong>
-        </div>
-        <div>
-          <span>მიტანილი</span>
-          <strong>{{ summary().deliveredCount }}</strong>
-        </div>
+  <section class="courier-active__summary" aria-label="დღის შეჯამება">
+    <h3 class="courier-active__summary-title">დღის შეჯამება</h3>
+    <div class="courier-active__summary-card">
+      <div>
+        <span>ქეში</span>
+        <strong>{{ summary().cashTotal }} ₾</strong>
       </div>
-    }
+      <div>
+        <span>ბარათი</span>
+        <strong>{{ summary().cardTotal }} ₾</strong>
+      </div>
+      <div>
+        <span>სულ</span>
+        <strong>{{ summary().grandTotal }} ₾</strong>
+      </div>
+      <div>
+        <span>ჩაბარებული</span>
+        <strong>{{ summary().deliveredCount }}</strong>
+      </div>
+    </div>
   </section>
 
   @if (errorMessage()) {
@@ -95,6 +90,10 @@
               }
             </div>
 
+            @if (order.is_fragile) {
+              <p class="courier-card__fragile" role="status">⚠ მსხვრევადი</p>
+            }
+
             <div class="courier-card__body">
               <div class="courier-card__who">
                 <h3 class="courier-card__name">{{ order.recipient_name }}</h3>
@@ -125,14 +124,6 @@
             </div>
 
             <div class="courier-card__actions" (click)="$event.stopPropagation()">
-              <a
-                class="courier-card__btn courier-card__btn--maps"
-                [href]="mapsUrl(order)"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                🧭 რუკაზე
-              </a>
               @if (!isExpanded(order.id)) {
                 <button
                   type="button"

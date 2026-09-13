@@ -28,6 +28,10 @@
             <span [class]="statusClass(order.status)">{{ statusLabel(order.status) }}</span>
           </div>
 
+          @if (order.is_fragile) {
+            <p class="history-card__fragile" role="status">⚠ მსხვრევადი</p>
+          }
+
           <p class="history-card__phone">📞 {{ formatPhone(order.recipient_phone) }}</p>
           <p class="history-card__address">{{ order.delivery_address }}</p>
 

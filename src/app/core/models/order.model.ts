@@ -59,6 +59,8 @@ export interface Order {
   parcel_count: number;
   delivery_date: string;
   notes: string | null;
+  /** Fragile / breakable package — show courier warning when true */
+  is_fragile: boolean;
   status: OrderStatus;
   payment_method: PaymentMethod | null;
   /** Expected amount to collect from recipient */
@@ -95,14 +97,13 @@ export interface CreateOrderPayload {
   parcel_count: number;
   delivery_date: string;
   amount_to_collect: number;
+  is_fragile?: boolean;
   notes?: string | null;
 }
 
-export type AdminOrderEditPayload = Omit<
-  CreateOrderPayload,
-  never
-> & {
+export type AdminOrderEditPayload = Omit<CreateOrderPayload, never> & {
   notes?: string | null;
+  is_fragile: boolean;
 };
 
 export interface OrderFilters {

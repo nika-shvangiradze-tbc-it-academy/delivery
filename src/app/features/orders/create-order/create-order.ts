@@ -62,6 +62,7 @@ export class CreateOrder implements OnInit {
     delivery_date: ['', [Validators.required, futureDeliveryDateValidator]],
     amount_to_collect: ['', [Validators.required, amountPositiveValidator]],
     notes: [''],
+    is_fragile: [false],
     remember_sender: [true],
   });
 
@@ -107,6 +108,7 @@ export class CreateOrder implements OnInit {
       parcel_count: value.parcel_count,
       delivery_date: value.delivery_date,
       amount_to_collect: amount,
+      is_fragile: value.is_fragile,
       notes: value.notes || null,
     });
 
