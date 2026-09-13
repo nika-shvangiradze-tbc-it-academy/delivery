@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   OnInit,
   inject,
   signal,
@@ -13,8 +14,10 @@ import {
   CdkDropList,
   moveItemInArray,
 } from '@angular/cdk/drag-drop';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { Order, PaymentMethod } from '../../../core/models/order.model';
+import { CourierRealtimeService } from '../../../core/services/courier-realtime.service';
 import { CourierService } from '../../../core/services/courier.service';
 import {
   buildMapsUrl,
@@ -34,7 +37,9 @@ import {
 })
 export class CourierOrders implements OnInit {
   private readonly courierService = inject(CourierService);
+  private readonly realtime = inject(CourierRealtimeService);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly orders = signal<Order[]>([]);
   readonly loading = signal(true);
@@ -59,6 +64,12 @@ export class CourierOrders implements OnInit {
   readonly formatPhone = formatPhoneDisplay;
   readonly statusLabel = courierStatusLabel;
 
+  constructor() {
+    this.realtime.changes$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      void this.refreshFromRealtime();
+    });
+  }
+
   async ngOnInit(): Promise<void> {
     await this.reload();
   }
@@ -66,7 +77,19 @@ export class CourierOrders implements OnInit {
   async reload(): Promise<void> {
     this.loading.set(true);
     this.errorMessage.set(null);
+    await this.fetchOrdersAndSummary();
+    this.loading.set(false);
+  }
 
+  /** Soft refresh from Realtime — no full-page loading flash. */
+  private async refreshFromRealtime(): Promise<void> {
+    if (this.savingId() !== null || this.reordering()) {
+      return;
+    }
+    await this.fetchOrdersAndSummary();
+  }
+
+  private async fetchOrdersAndSummary(): Promise<void> {
     const [ordersResult, summaryResult] = await Promise.all([
       this.courierService.getMyActiveOrders(),
       this.courierService.getTodayDeliveredSummary(),
@@ -76,8 +99,16 @@ export class CourierOrders implements OnInit {
     this.summary.set(summaryResult.data);
     this.syncPaymentDrafts(ordersResult.data);
 
-    this.errorMessage.set(ordersResult.error ?? summaryResult.error);
-    this.loading.set(false);
+    const expanded = this.expandedId();
+    if (expanded !== null && !ordersResult.data.some((o) => o.id === expanded)) {
+      this.expandedId.set(null);
+      this.confirmingCancelId.set(null);
+    }
+
+    const nextError = ordersResult.error ?? summaryResult.error;
+    if (nextError) {
+      this.errorMessage.set(nextError);
+    }
   }
 
   toggleSummary(): void {

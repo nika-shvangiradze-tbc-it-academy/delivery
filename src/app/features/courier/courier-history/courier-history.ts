@@ -1,5 +1,13 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  OnInit,
+  inject,
+  signal,
+} from '@angular/core';
 import { DatePipe } from '@angular/common';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import {
   COURIER_CORRECTION_STATUSES,
@@ -7,6 +15,7 @@ import {
   Order,
   PaymentMethod,
 } from '../../../core/models/order.model';
+import { CourierRealtimeService } from '../../../core/services/courier-realtime.service';
 import { CourierService } from '../../../core/services/courier.service';
 import {
   courierStatusLabel,
@@ -26,7 +35,9 @@ import {
 })
 export class CourierHistory implements OnInit {
   private readonly courierService = inject(CourierService);
+  private readonly realtime = inject(CourierRealtimeService);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly orders = signal<Order[]>([]);
   readonly loading = signal(true);
@@ -45,6 +56,12 @@ export class CourierHistory implements OnInit {
   readonly paymentLabel = paymentMethodLabel;
   readonly completedAt = historyCompletedAt;
 
+  constructor() {
+    this.realtime.changes$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      void this.refreshFromRealtime();
+    });
+  }
+
   async ngOnInit(): Promise<void> {
     await this.reload();
   }
@@ -52,11 +69,31 @@ export class CourierHistory implements OnInit {
   async reload(): Promise<void> {
     this.loading.set(true);
     this.errorMessage.set(null);
+    await this.fetchHistory();
+    this.loading.set(false);
+  }
 
+  /** Soft refresh from Realtime — no full-page loading flash. */
+  private async refreshFromRealtime(): Promise<void> {
+    if (this.savingId() !== null) {
+      return;
+    }
+    await this.fetchHistory();
+  }
+
+  private async fetchHistory(): Promise<void> {
     const { data, error } = await this.courierService.getMyHistoryOrders();
     this.orders.set(data);
-    this.errorMessage.set(error);
-    this.loading.set(false);
+
+    const editing = this.editingId();
+    if (editing !== null && !data.some((o) => o.id === editing)) {
+      this.editingId.set(null);
+      this.draftPayment.set(null);
+    }
+
+    if (error) {
+      this.errorMessage.set(error);
+    }
   }
 
   openCorrection(order: Order): void {
