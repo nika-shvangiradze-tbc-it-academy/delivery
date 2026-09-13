@@ -24,6 +24,7 @@ import {
   formatGel,
   orderStatusClass,
   orderStatusLabelKey,
+  paymentMethodLabel,
   centsToNumber,
   toCents,
 } from '../../../core/utils/order-status.util';
@@ -68,6 +69,7 @@ export class AdminOrders implements OnInit {
   readonly statusClass = orderStatusClass;
   readonly statusLabelKey = orderStatusLabelKey;
   readonly formatGel = formatGel;
+  readonly paymentLabel = paymentMethodLabel;
 
   readonly selectedCount = computed(() => this.selectedIds().size);
   readonly allSelected = computed(

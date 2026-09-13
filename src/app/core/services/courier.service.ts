@@ -3,7 +3,6 @@ import {
   COURIER_ACTIVE_STATUSES,
   COURIER_HISTORY_STATUSES,
   CourierDailySummary,
-  CourierOrderUpdate,
   CourierStatus,
   Order,
   OrderStatus,
@@ -12,7 +11,6 @@ import {
 import { AuthService } from './auth.service';
 import { SupabaseService } from './supabase.service';
 import {
-  centsToNumber,
   formatGel,
   historyCompletedAt,
   normalizeOrder,
@@ -20,7 +18,6 @@ import {
   parseCourierStatus,
   parsePaymentMethod,
   summarizeCourierDay,
-  toCents,
 } from '../utils/order-status.util';
 
 const COURIER_ORDER_COLUMNS =
@@ -66,102 +63,102 @@ export class CourierService {
     return { data: data ? normalizeOrder(data as Order) : null, error: null };
   }
 
-  async updateAssignedOrder(
+  async completeOrder(
     orderId: number,
-    update: CourierOrderUpdate,
+    paymentMethod: PaymentMethod,
     assignedCourierId?: string | null,
   ): Promise<{ data: Order | null; error: string | null }> {
-    try {
-      const {
-        data: { session },
-        error: sessionError,
-      } = await this.supabase.client.auth.getSession();
-
-      if (sessionError) {
-        console.error('Courier order save session check failed:', sessionError);
-        return { data: null, error: sessionError.message || 'Session check failed' };
-      }
-
-      if (!session?.user) {
-        console.warn('Courier order save aborted: no active session');
-        return { data: null, error: 'სესია არ არის აქტიური. გთხოვთ თავიდან შეხვიდეთ.' };
-      }
-
-      const userId = session.user.id;
-
-      if (assignedCourierId && assignedCourierId !== userId) {
-        console.warn('Courier order save aborted: order not assigned to current user', {
-          orderId,
-          assignedCourierId,
-          userId,
-        });
-        return {
-          data: null,
-          error: 'ეს შეკვეთა არ არის მინიჭებული მიმდინარე კურიერზე',
-        };
-      }
-
-      if (!assignedCourierId) {
-        console.warn('Courier order save: assigned_courier_id missing on local order', {
-          orderId,
-          userId,
-        });
-      }
-
-      const status = parseCourierStatus(update.status);
-      if (!status) {
-        console.error('Courier order save invalid status:', update.status);
-        return { data: null, error: `არასწორი სტატუსი: ${String(update.status)}` };
-      }
-
-      const paymentMethod = this.normalizePaymentMethod(update.payment_method);
-      const collectedAmount = this.normalizeCollectedAmount(update.collected_amount);
-
-      const rpcArgs: {
-        p_order_id: number;
-        p_status: CourierStatus;
-        p_payment_method: PaymentMethod | null;
-        p_collected_amount: number;
-      } = {
-        p_order_id: orderId,
-        p_status: status,
-        p_payment_method: paymentMethod,
-        p_collected_amount: collectedAmount,
-      };
-
-      console.info('Courier order save RPC courier_update_order', rpcArgs);
-
-      const { data, error } = await this.supabase.client.rpc('courier_update_order', rpcArgs);
-
-      if (error) {
-        console.error('Courier order save failed:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code,
-          rpcArgs,
-        });
-        return { data: null, error: error.message || 'Unknown Supabase error' };
-      }
-
-      const row = Array.isArray(data) ? data[0] : data;
-      const normalized = normalizeOrder(row as Order);
-
-      if (!normalized) {
-        console.error('Courier order save returned empty data', { data, rpcArgs });
-        return {
-          data: null,
-          error:
-            'RPC returned empty result (check courier_update_order SECURITY DEFINER / assignment)',
-        };
-      }
-
-      return { data: normalized, error: null };
-    } catch (err) {
-      console.error('Courier order save unexpected error:', err);
-      const message = err instanceof Error ? err.message : 'Unexpected save error';
-      return { data: null, error: message };
+    const sessionCheck = await this.requireCourierSession(orderId, assignedCourierId);
+    if (sessionCheck.error) {
+      return { data: null, error: sessionCheck.error };
     }
+
+    if (paymentMethod !== 'cash' && paymentMethod !== 'card') {
+      return { data: null, error: 'აირჩიეთ გადახდის მეთოდი — ქეში ან ბარათი.' };
+    }
+
+    const rpcArgs = {
+      p_order_id: orderId,
+      p_payment_method: paymentMethod,
+    };
+
+    console.info('Courier complete RPC courier_complete_order', rpcArgs);
+
+    const { data, error } = await this.supabase.client.rpc('courier_complete_order', rpcArgs);
+
+    if (error) {
+      this.logRpcError('courier_complete_order', error, rpcArgs);
+      return { data: null, error: this.mapCourierRpcError(error.message) };
+    }
+
+    return this.normalizeRpcRow(data, 'courier_complete_order');
+  }
+
+  async cancelOrder(
+    orderId: number,
+    assignedCourierId?: string | null,
+  ): Promise<{ data: Order | null; error: string | null }> {
+    const sessionCheck = await this.requireCourierSession(orderId, assignedCourierId);
+    if (sessionCheck.error) {
+      return { data: null, error: sessionCheck.error };
+    }
+
+    const rpcArgs = { p_order_id: orderId };
+    console.info('Courier cancel RPC courier_cancel_order', rpcArgs);
+
+    const { data, error } = await this.supabase.client.rpc('courier_cancel_order', rpcArgs);
+
+    if (error) {
+      this.logRpcError('courier_cancel_order', error, rpcArgs);
+      return { data: null, error: this.mapCourierRpcError(error.message) };
+    }
+
+    return this.normalizeRpcRow(data, 'courier_cancel_order');
+  }
+
+  async changeOrderStatus(
+    orderId: number,
+    newStatus: CourierStatus,
+    paymentMethod: PaymentMethod | null = null,
+    assignedCourierId?: string | null,
+  ): Promise<{ data: Order | null; error: string | null }> {
+    const sessionCheck = await this.requireCourierSession(orderId, assignedCourierId);
+    if (sessionCheck.error) {
+      return { data: null, error: sessionCheck.error };
+    }
+
+    const status = parseCourierStatus(newStatus);
+    if (!status) {
+      return { data: null, error: `არასწორი სტატუსი: ${String(newStatus)}` };
+    }
+
+    if (status === 'delivered') {
+      const payment = parsePaymentMethod(paymentMethod);
+      if (!payment) {
+        return { data: null, error: 'აირჩიეთ გადახდის მეთოდი — ქეში ან ბარათი.' };
+      }
+    }
+
+    const rpcArgs: {
+      p_order_id: number;
+      p_status: CourierStatus;
+      p_payment_method: PaymentMethod | null;
+    } = {
+      p_order_id: orderId,
+      p_status: status,
+      p_payment_method: status === 'delivered' ? parsePaymentMethod(paymentMethod) : null,
+    };
+
+    console.info('Courier change status RPC courier_change_order_status', rpcArgs);
+
+    const { data, error } = await this.supabase.client.rpc('courier_change_order_status', rpcArgs);
+
+    if (error) {
+      this.logRpcError('courier_change_order_status', error, rpcArgs);
+      return { data: null, error: this.mapCourierRpcError(error.message) };
+    }
+
+    return this.normalizeRpcRow(data, 'courier_change_order_status');
   }
 
   async reorderActiveOrders(orderIds: number[]): Promise<{ error: string | null }> {
@@ -170,6 +167,7 @@ export class CourierService {
     });
 
     if (error) {
+      this.logRpcError('courier_reorder_orders', error, { order_ids: orderIds });
       return { error: error.message };
     }
 
@@ -216,20 +214,97 @@ export class CourierService {
     return (COURIER_ACTIVE_STATUSES as OrderStatus[]).includes(status);
   }
 
-  private normalizePaymentMethod(value: unknown): PaymentMethod | null {
-    if (value === null || value === undefined || value === '') {
-      return null;
-    }
-    const parsed = parsePaymentMethod(value);
-    if (!parsed) {
-      console.warn('Courier order save: dropping non-English payment label', value);
-    }
-    return parsed;
+  isHistoryStatus(status: OrderStatus): boolean {
+    return (COURIER_HISTORY_STATUSES as OrderStatus[]).includes(status);
   }
 
-  private normalizeCollectedAmount(value: string | number | null | undefined): number {
-    const amount = centsToNumber(toCents(value));
-    return Number.isFinite(amount) ? amount : 0;
+  private async requireCourierSession(
+    orderId: number,
+    assignedCourierId?: string | null,
+  ): Promise<{ error: string | null }> {
+    try {
+      const {
+        data: { session },
+        error: sessionError,
+      } = await this.supabase.client.auth.getSession();
+
+      if (sessionError) {
+        console.error('Courier session check failed:', sessionError);
+        return { error: sessionError.message || 'Session check failed' };
+      }
+
+      if (!session?.user) {
+        console.warn('Courier action aborted: no active session');
+        return { error: 'სესია არ არის აქტიური. გთხოვთ თავიდან შეხვიდეთ.' };
+      }
+
+      const userId = session.user.id;
+
+      if (assignedCourierId && assignedCourierId !== userId) {
+        console.warn('Courier action aborted: order not assigned to current user', {
+          orderId,
+          assignedCourierId,
+          userId,
+        });
+        return { error: 'ამ შეკვეთის შეცვლის უფლება არ გაქვთ.' };
+      }
+
+      return { error: null };
+    } catch (err) {
+      console.error('Courier session check unexpected error:', err);
+      const message = err instanceof Error ? err.message : 'Unexpected session error';
+      return { error: message };
+    }
+  }
+
+  private normalizeRpcRow(
+    data: unknown,
+    rpcName: string,
+  ): { data: Order | null; error: string | null } {
+    const row = Array.isArray(data) ? data[0] : data;
+    const normalized = normalizeOrder(row as Order);
+
+    if (!normalized) {
+      console.error(`${rpcName} returned empty data`, { data });
+      return {
+        data: null,
+        error: 'შეკვეთის განახლება ვერ მოხერხდა. სცადეთ თავიდან.',
+      };
+    }
+
+    return { data: normalized, error: null };
+  }
+
+  private mapCourierRpcError(message: string): string {
+    const lower = message.toLowerCase();
+    if (lower.includes('payment method required') || lower.includes('invalid payment')) {
+      return 'აირჩიეთ გადახდის მეთოდი — ქეში ან ბარათი.';
+    }
+    if (
+      lower.includes('not found') ||
+      lower.includes('not assigned') ||
+      lower.includes('only couriers')
+    ) {
+      return 'ამ შეკვეთის შეცვლის უფლება არ გაქვთ.';
+    }
+    if (lower.includes('not authenticated')) {
+      return 'სესია არ არის აქტიური. გთხოვთ თავიდან შეხვიდეთ.';
+    }
+    return message || 'შეცდომა მოხდა';
+  }
+
+  private logRpcError(
+    rpcName: string,
+    error: { message?: string; details?: string; hint?: string; code?: string },
+    rpcArgs: unknown,
+  ): void {
+    console.error(`${rpcName} failed:`, {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+      rpcArgs,
+    });
   }
 
   private async getMyOrdersByStatuses(

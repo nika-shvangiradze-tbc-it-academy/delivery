@@ -65,42 +65,123 @@
     color: #3538cd;
   }
 
-  &__form {
+  &__complete {
     display: grid;
-    gap: 8px;
+    gap: 10px;
     background: #fff;
     border-radius: 12px;
     padding: 12px;
     box-shadow: 0 4px 14px rgba(15, 35, 95, 0.06);
+  }
 
-    label {
-      display: grid;
-      gap: 4px;
-      font-size: 12px;
-      font-weight: 700;
-      color: #575757;
+  &__complete-label {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 800;
+    color: #374151;
+  }
+
+  &__pay-toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  &__pay-btn {
+    border: 2px solid #e5e7eb;
+    background: #fff;
+    color: #374151;
+    border-radius: 12px;
+    padding: 12px 10px;
+    font: inherit;
+    font-size: 16px;
+    font-weight: 800;
+    min-height: 48px;
+    cursor: pointer;
+
+    &--active {
+      border-color: #16a34a;
+      background: #ecfdf3;
+      color: #15803d;
     }
 
-    select,
-    input {
-      border: 1px solid rgba(83, 83, 83, 0.18);
-      border-radius: 10px;
-      padding: 10px 12px;
-      font: inherit;
-      font-size: 16px;
-      min-height: 44px;
+    &:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
     }
   }
 
-  &__save {
+  &__delivered {
     border: none;
-    background: #db7623;
+    background: #16a34a;
     color: #fff;
-    border-radius: 10px;
+    border-radius: 12px;
+    padding: 14px;
+    font: inherit;
+    font-size: 16px;
+    font-weight: 800;
+    min-height: 52px;
+    cursor: pointer;
+
+    &:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+  }
+
+  &__danger {
+    border: 2px solid #fecaca;
+    background: #fff;
+    color: #dc2626;
+    border-radius: 12px;
+    padding: 14px;
+    font: inherit;
+    font-size: 16px;
+    font-weight: 800;
+    min-height: 52px;
+    cursor: pointer;
+    width: 100%;
+
+    &:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+  }
+
+  &__secondary {
+    border: 1px solid #e5e7eb;
+    background: #f3f4f6;
+    color: #374151;
+    border-radius: 12px;
     padding: 12px;
-    font-size: 15px;
+    font: inherit;
+    font-size: 14px;
     font-weight: 700;
-    min-height: 46px;
+    min-height: 48px;
+    cursor: pointer;
+    width: 100%;
+  }
+
+  &__cancel-confirm {
+    display: grid;
+    gap: 8px;
+    padding: 12px;
+    background: #fef2f2;
+    border-radius: 12px;
+
+    p {
+      margin: 0;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: #991b1b;
+    }
+  }
+
+  &__cancel-actions {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 8px;
   }
 
   &__error {

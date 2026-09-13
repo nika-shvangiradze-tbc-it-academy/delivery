@@ -6,7 +6,6 @@ import {
   signal,
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import {
   CdkDrag,
   CdkDragDrop,
@@ -15,13 +14,7 @@ import {
   moveItemInArray,
 } from '@angular/cdk/drag-drop';
 import { Router } from '@angular/router';
-import {
-  COURIER_ALLOWED_STATUSES,
-  CourierDailySummary,
-  CourierStatus,
-  Order,
-  PaymentMethod,
-} from '../../../core/models/order.model';
+import { Order, PaymentMethod } from '../../../core/models/order.model';
 import { CourierService } from '../../../core/services/courier.service';
 import {
   buildMapsUrl,
@@ -30,12 +23,11 @@ import {
   formatGel,
   formatPhoneDisplay,
   orderStatusClass,
-  paymentMethodLabel,
 } from '../../../core/utils/order-status.util';
 
 @Component({
   selector: 'app-courier-orders',
-  imports: [FormsModule, DatePipe, CdkDropList, CdkDrag, CdkDragHandle],
+  imports: [DatePipe, CdkDropList, CdkDrag, CdkDragHandle],
   templateUrl: './courier-orders.html',
   styleUrl: './courier-orders.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -52,26 +44,19 @@ export class CourierOrders implements OnInit {
   readonly successMessage = signal<string | null>(null);
   readonly showSummary = signal(false);
   readonly expandedIds = signal<ReadonlySet<number>>(new Set());
-  readonly summary = signal<CourierDailySummary>({
+  readonly confirmingCancelId = signal<number | null>(null);
+  readonly paymentDrafts = signal<Record<number, PaymentMethod | null>>({});
+  readonly summary = signal({
     cashTotal: '0.00',
     cardTotal: '0.00',
     grandTotal: '0.00',
     deliveredCount: 0,
   });
 
-  readonly drafts = signal<
-    Record<
-      number,
-      { status: CourierStatus; payment_method: PaymentMethod | null; collected_amount: string }
-    >
-  >({});
-
-  readonly allowedStatuses = COURIER_ALLOWED_STATUSES;
   readonly statusClass = orderStatusClass;
   readonly formatGel = formatGel;
   readonly formatPhone = formatPhoneDisplay;
   readonly statusLabel = courierStatusLabel;
-  readonly paymentLabel = paymentMethodLabel;
 
   async ngOnInit(): Promise<void> {
     await this.reload();
@@ -88,7 +73,7 @@ export class CourierOrders implements OnInit {
 
     this.orders.set(ordersResult.data);
     this.summary.set(summaryResult.data);
-    this.syncDrafts(ordersResult.data);
+    this.syncPaymentDrafts(ordersResult.data);
 
     this.errorMessage.set(ordersResult.error ?? summaryResult.error);
     this.loading.set(false);
@@ -108,6 +93,9 @@ export class CourierOrders implements OnInit {
       }
       return next;
     });
+    if (this.confirmingCancelId() === orderId) {
+      this.confirmingCancelId.set(null);
+    }
   }
 
   isExpanded(orderId: number): boolean {
@@ -122,28 +110,16 @@ export class CourierOrders implements OnInit {
     return buildMapsUrl(order);
   }
 
-  onDraftStatus(orderId: number, status: CourierStatus): void {
-    this.drafts.update((current) => ({
-      ...current,
-      [orderId]: { ...current[orderId], status },
-    }));
+  selectedPayment(orderId: number): PaymentMethod | null {
+    return this.paymentDrafts()[orderId] ?? null;
   }
 
-  onDraftPayment(orderId: number, payment: PaymentMethod | null): void {
-    this.drafts.update((current) => ({
+  selectPayment(orderId: number, payment: PaymentMethod): void {
+    this.paymentDrafts.update((current) => ({
       ...current,
-      [orderId]: {
-        ...current[orderId],
-        payment_method: payment,
-      },
+      [orderId]: payment,
     }));
-  }
-
-  onDraftAmount(orderId: number, amount: string): void {
-    this.drafts.update((current) => ({
-      ...current,
-      [orderId]: { ...current[orderId], collected_amount: amount },
-    }));
+    this.errorMessage.set(null);
   }
 
   async onDrop(event: CdkDragDrop<Order[]>): Promise<void> {
@@ -177,108 +153,117 @@ export class CourierOrders implements OnInit {
   }
 
   async markDelivered(order: Order): Promise<void> {
-    this.onDraftStatus(order.id, 'delivered');
-    await this.saveOrder(order);
-  }
-
-  async saveOrder(order: Order): Promise<void> {
-    const draft = this.drafts()[order.id];
-    if (!draft) {
+    const payment = this.selectedPayment(order.id);
+    if (!payment) {
+      this.errorMessage.set('აირჩიეთ გადახდის მეთოდი — ქეში ან ბარათი.');
+      this.successMessage.set(null);
+      if (!this.isExpanded(order.id)) {
+        this.toggleDetails(order.id);
+      }
       return;
     }
 
     this.savingId.set(order.id);
     this.errorMessage.set(null);
     this.successMessage.set(null);
+    this.confirmingCancelId.set(null);
 
     try {
-      const { data, error } = await this.courierService.updateAssignedOrder(
+      const { data, error } = await this.courierService.completeOrder(
         order.id,
-        {
-          status: draft.status,
-          payment_method: draft.payment_method,
-          collected_amount: draft.collected_amount,
-        },
+        payment,
         order.assigned_courier_id,
       );
 
       if (error || !data) {
-        console.error('CourierOrders.saveOrder failed:', error);
-        this.errorMessage.set(`შენახვა ვერ მოხერხდა: ${error ?? 'Unknown error'}`);
+        console.error('CourierOrders.markDelivered failed:', error);
+        this.errorMessage.set(error ?? 'ჩაბარება ვერ მოხერხდა');
         if (error?.includes('სესია არ არის აქტიური')) {
           await this.router.navigateByUrl('/login');
         }
         return;
       }
 
-      this.errorMessage.set(null);
-      this.successMessage.set('შეინახა');
-
-      if (!this.courierService.isActiveStatus(data.status)) {
-        this.orders.update((list) => list.filter((item) => item.id !== order.id));
-        this.drafts.update((current) => {
-          const next = { ...current };
-          delete next[order.id];
-          return next;
-        });
-        this.expandedIds.update((current) => {
-          const next = new Set(current);
-          next.delete(order.id);
-          return next;
-        });
-      } else {
-        this.orders.update((list) =>
-          list.map((item) =>
-            item.id === order.id
-              ? {
-                  ...item,
-                  ...data,
-                  status: data.status,
-                  payment_method: data.payment_method,
-                  collected_amount: data.collected_amount,
-                }
-              : item,
-          ),
-        );
-        this.drafts.update((current) => ({
-          ...current,
-          [order.id]: {
-            status: data.status as CourierStatus,
-            payment_method: data.payment_method,
-            collected_amount: formatGel(data.collected_amount),
-          },
-        }));
-      }
-
-      const summaryResult = await this.courierService.getTodayDeliveredSummary();
-      if (!summaryResult.error) {
-        this.summary.set(summaryResult.data);
-      }
+      this.removeFromActive(order.id);
+      this.successMessage.set('შეკვეთა ჩაბარდა');
+      await this.refreshSummary();
     } catch (err) {
       console.error(err);
       const message = err instanceof Error ? err.message : 'Unknown error';
-      this.errorMessage.set(`შენახვა ვერ მოხერხდა: ${message}`);
+      this.errorMessage.set(`ჩაბარება ვერ მოხერხდა: ${message}`);
     } finally {
       this.savingId.set(null);
     }
   }
 
-  private syncDrafts(orders: Order[]): void {
-    const nextDrafts: Record<
-      number,
-      { status: CourierStatus; payment_method: PaymentMethod | null; collected_amount: string }
-    > = {};
-    for (const order of orders) {
-      const status: CourierStatus =
-        order.status === 'pending' || !(COURIER_ALLOWED_STATUSES as string[]).includes(order.status)
-          ? 'accepted'
-          : (order.status as CourierStatus);
-      nextDrafts[order.id] = {
-        status,
-        payment_method: order.payment_method,
-        collected_amount: formatGel(order.collected_amount),
-      };
+  requestCancel(order: Order): void {
+    this.confirmingCancelId.set(order.id);
+    this.errorMessage.set(null);
+  }
+
+  dismissCancel(): void {
+    this.confirmingCancelId.set(null);
+  }
+
+  async confirmCancel(order: Order): Promise<void> {
+    this.savingId.set(order.id);
+    this.errorMessage.set(null);
+    this.successMessage.set(null);
+
+    try {
+      const { data, error } = await this.courierService.cancelOrder(
+        order.id,
+        order.assigned_courier_id,
+      );
+
+      if (error || !data) {
+        console.error('CourierOrders.confirmCancel failed:', error);
+        this.errorMessage.set(error ?? 'გაუქმება ვერ მოხერხდა');
+        if (error?.includes('სესია არ არის აქტიური')) {
+          await this.router.navigateByUrl('/login');
+        }
+        return;
+      }
+
+      this.confirmingCancelId.set(null);
+      this.removeFromActive(order.id);
+      this.successMessage.set('შეკვეთა გაუქმდა');
+      await this.refreshSummary();
+    } catch (err) {
+      console.error(err);
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      this.errorMessage.set(`გაუქმება ვერ მოხერხდა: ${message}`);
+    } finally {
+      this.savingId.set(null);
     }
-    this.drafts.set(nextDrafts);
+  }
+
+  private removeFromActive(orderId: number): void {
+    this.orders.update((list) => list.filter((item) => item.id !== orderId));
+    this.paymentDrafts.update((current) => {
+      const next = { ...current };
+      delete next[orderId];
+      return next;
+    });
+    this.expandedIds.update((current) => {
+      const next = new Set(current);
+      next.delete(orderId);
+      return next;
+    });
+  }
+
+  private async refreshSummary(): Promise<void> {
+    const summaryResult = await this.courierService.getTodayDeliveredSummary();
+    if (!summaryResult.error) {
+      this.summary.set(summaryResult.data);
+    }
+  }
+
+  private syncPaymentDrafts(orders: Order[]): void {
+    const next: Record<number, PaymentMethod | null> = {};
+    for (const order of orders) {
+      next[order.id] = order.payment_method;
+    }
+    this.paymentDrafts.set(next);
   }
 }

@@ -51,33 +51,70 @@
     }
 
     @if (isActiveStatus(o.status)) {
-      <div class="courier-detail__form">
-        <label>
-          <span>სტატუსი</span>
-          <select [ngModel]="status()" (ngModelChange)="status.set($event)">
-            @for (s of allowedStatuses; track s) {
-              <option [ngValue]="s">{{ statusLabel(s) }}</option>
-            }
-          </select>
-        </label>
+      <div class="courier-detail__complete">
+        <p class="courier-detail__complete-label">გადახდა:</p>
+        <div class="courier-detail__pay-toggle">
+          <button
+            type="button"
+            class="courier-detail__pay-btn"
+            [class.courier-detail__pay-btn--active]="paymentMethod() === 'cash'"
+            [disabled]="saving()"
+            (click)="selectPayment('cash')"
+          >
+            ქეში
+          </button>
+          <button
+            type="button"
+            class="courier-detail__pay-btn"
+            [class.courier-detail__pay-btn--active]="paymentMethod() === 'card'"
+            [disabled]="saving()"
+            (click)="selectPayment('card')"
+          >
+            ბარათი
+          </button>
+        </div>
 
-        <label>
-          <span>გადახდა</span>
-          <select [ngModel]="paymentMethod()" (ngModelChange)="onPaymentChange($event)">
-            <option [ngValue]="null">არ არის მითითებული</option>
-            <option ngValue="cash">ქეში</option>
-            <option ngValue="card">ბარათი</option>
-          </select>
-        </label>
-
-        <label>
-          <span>თანხა (₾)</span>
-          <input type="text" inputmode="decimal" [ngModel]="amount()" (ngModelChange)="amount.set($event)" />
-        </label>
-
-        <button type="button" class="courier-detail__save" [disabled]="saving()" (click)="save()">
-          {{ saving() ? 'ინახება...' : 'შენახვა' }}
+        <button
+          type="button"
+          class="courier-detail__delivered"
+          [disabled]="saving()"
+          (click)="markDelivered()"
+        >
+          {{ saving() ? 'ინახება...' : 'ჩაბარებულია' }}
         </button>
+
+        @if (confirmingCancel()) {
+          <div class="courier-detail__cancel-confirm">
+            <p>ნამდვილად გსურთ შეკვეთის გაუქმება?</p>
+            <div class="courier-detail__cancel-actions">
+              <button
+                type="button"
+                class="courier-detail__danger"
+                [disabled]="saving()"
+                (click)="confirmCancel()"
+              >
+                დიახ, გაუქმება
+              </button>
+              <button
+                type="button"
+                class="courier-detail__secondary"
+                [disabled]="saving()"
+                (click)="dismissCancel()"
+              >
+                არა
+              </button>
+            </div>
+          </div>
+        } @else {
+          <button
+            type="button"
+            class="courier-detail__danger"
+            [disabled]="saving()"
+            (click)="requestCancel()"
+          >
+            გაუქმება
+          </button>
+        }
       </div>
     }
   }

@@ -419,7 +419,7 @@
 
   &__tiles {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: 1fr 1.4fr;
     gap: 8px;
   }
 
@@ -432,6 +432,10 @@
     justify-items: center;
     text-align: center;
     min-width: 0;
+
+    &--wide {
+      grid-column: span 1;
+    }
   }
 
   &__tile-value {
@@ -483,43 +487,57 @@
     }
   }
 
-  &__form {
+  &__complete {
     display: grid;
     gap: 10px;
+    padding-top: 4px;
+  }
 
-    label {
-      display: grid;
-      gap: 6px;
-      font-size: 13px;
-      font-weight: 700;
-      color: #374151;
+  &__complete-label {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 800;
+    color: #374151;
+  }
+
+  &__pay-toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  &__pay-btn {
+    border: 2px solid #e5e7eb;
+    background: #fff;
+    color: #374151;
+    border-radius: 14px;
+    padding: 12px 10px;
+    font: inherit;
+    font-size: 16px;
+    font-weight: 800;
+    min-height: 52px;
+    cursor: pointer;
+
+    &:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
     }
 
-    select,
-    input {
-      border: 1px solid #e5e7eb;
-      border-radius: 12px;
-      padding: 12px 14px;
-      font: inherit;
-      font-size: 16px;
-      min-height: 48px;
-      background: #fff;
-      color: #111827;
-      width: 100%;
-      box-sizing: border-box;
+    &--active {
+      border-color: #16a34a;
+      background: #ecfdf3;
+      color: #15803d;
     }
   }
 
-  &__save {
-    border: none;
-    background: #111827;
-    color: #fff;
-    border-radius: 14px;
-    padding: 12px;
-    font-size: 15px;
-    font-weight: 700;
-    min-height: 48px;
-    cursor: pointer;
+  &__btn--danger {
+    width: 100%;
+    background: #fff;
+    color: #dc2626;
+    border: 2px solid #fecaca;
+    font-size: 16px;
+    font-weight: 800;
+    min-height: 52px;
 
     &:disabled {
       opacity: 0.65;
@@ -527,8 +545,25 @@
     }
   }
 
-  &__primary-actions {
+  &__cancel-confirm {
     display: grid;
+    gap: 8px;
+    padding: 12px;
+    background: #fef2f2;
+    border-radius: 14px;
+
+    p {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 700;
+      color: #991b1b;
+      text-align: center;
+    }
+  }
+
+  &__cancel-actions {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
     gap: 8px;
   }
 }

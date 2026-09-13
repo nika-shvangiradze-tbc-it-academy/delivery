@@ -1,13 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import {
-  COURIER_ALLOWED_STATUSES,
-  CourierStatus,
-  Order,
-  PaymentMethod,
-} from '../../../core/models/order.model';
+import { Order, PaymentMethod } from '../../../core/models/order.model';
 import { CourierService } from '../../../core/services/courier.service';
 import {
   buildMapsUrl,
@@ -21,7 +15,7 @@ import {
 
 @Component({
   selector: 'app-courier-order-detail',
-  imports: [FormsModule, DatePipe, RouterLink],
+  imports: [DatePipe, RouterLink],
   templateUrl: './courier-order-detail.html',
   styleUrl: './courier-order-detail.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -36,12 +30,9 @@ export class CourierOrderDetail implements OnInit {
   readonly saving = signal(false);
   readonly errorMessage = signal<string | null>(null);
   readonly successMessage = signal<string | null>(null);
-
-  readonly status = signal<CourierStatus>('accepted');
   readonly paymentMethod = signal<PaymentMethod | null>(null);
-  readonly amount = signal('0.00');
+  readonly confirmingCancel = signal(false);
 
-  readonly allowedStatuses = COURIER_ALLOWED_STATUSES;
   readonly statusClass = orderStatusClass;
   readonly formatGel = formatGel;
   readonly formatPhone = formatPhoneDisplay;
@@ -68,13 +59,7 @@ export class CourierOrderDetail implements OnInit {
     }
 
     this.order.set(data);
-    this.status.set(
-      data.status === 'pending' || !(COURIER_ALLOWED_STATUSES as string[]).includes(data.status)
-        ? 'accepted'
-        : (data.status as CourierStatus),
-    );
     this.paymentMethod.set(data.payment_method);
-    this.amount.set(formatGel(data.collected_amount));
     this.loading.set(false);
   }
 
@@ -86,11 +71,63 @@ export class CourierOrderDetail implements OnInit {
     return buildMapsUrl(order);
   }
 
-  onPaymentChange(value: PaymentMethod | null): void {
-    this.paymentMethod.set(value);
+  selectPayment(payment: PaymentMethod): void {
+    this.paymentMethod.set(payment);
+    this.errorMessage.set(null);
   }
 
-  async save(): Promise<void> {
+  async markDelivered(): Promise<void> {
+    const current = this.order();
+    if (!current) return;
+
+    const payment = this.paymentMethod();
+    if (!payment) {
+      this.errorMessage.set('აირჩიეთ გადახდის მეთოდი — ქეში ან ბარათი.');
+      return;
+    }
+
+    this.saving.set(true);
+    this.errorMessage.set(null);
+    this.successMessage.set(null);
+    this.confirmingCancel.set(false);
+
+    try {
+      const { data, error } = await this.courierService.completeOrder(
+        current.id,
+        payment,
+        current.assigned_courier_id,
+      );
+
+      if (error || !data) {
+        console.error('CourierOrderDetail.markDelivered failed:', error);
+        this.errorMessage.set(error ?? 'ჩაბარება ვერ მოხერხდა');
+        if (error?.includes('სესია არ არის აქტიური')) {
+          await this.router.navigateByUrl('/login');
+        }
+        return;
+      }
+
+      this.order.set({ ...current, ...data });
+      this.successMessage.set('შეკვეთა ჩაბარდა');
+      await this.router.navigateByUrl('/courier/history');
+    } catch (err) {
+      console.error(err);
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      this.errorMessage.set(`ჩაბარება ვერ მოხერხდა: ${message}`);
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
+  requestCancel(): void {
+    this.confirmingCancel.set(true);
+  }
+
+  dismissCancel(): void {
+    this.confirmingCancel.set(false);
+  }
+
+  async confirmCancel(): Promise<void> {
     const current = this.order();
     if (!current) return;
 
@@ -99,49 +136,27 @@ export class CourierOrderDetail implements OnInit {
     this.successMessage.set(null);
 
     try {
-      const { data, error } = await this.courierService.updateAssignedOrder(
+      const { data, error } = await this.courierService.cancelOrder(
         current.id,
-        {
-          status: this.status(),
-          payment_method: this.paymentMethod(),
-          collected_amount: this.amount(),
-        },
         current.assigned_courier_id,
       );
 
       if (error || !data) {
-        console.error('CourierOrderDetail.save failed:', error);
-        this.errorMessage.set(`შენახვა ვერ მოხერხდა: ${error ?? 'Unknown error'}`);
+        console.error('CourierOrderDetail.confirmCancel failed:', error);
+        this.errorMessage.set(error ?? 'გაუქმება ვერ მოხერხდა');
         if (error?.includes('სესია არ არის აქტიური')) {
           await this.router.navigateByUrl('/login');
         }
         return;
       }
 
-      this.order.set({
-        ...current,
-        ...data,
-        status: data.status,
-        payment_method: data.payment_method,
-        collected_amount: data.collected_amount,
-      });
-      this.status.set(
-        (COURIER_ALLOWED_STATUSES as string[]).includes(data.status)
-          ? (data.status as CourierStatus)
-          : this.status(),
-      );
-      this.paymentMethod.set(data.payment_method);
-      this.amount.set(formatGel(data.collected_amount));
-      this.errorMessage.set(null);
-      this.successMessage.set('შეინახა');
-
-      if (!this.courierService.isActiveStatus(data.status)) {
-        await this.router.navigateByUrl('/courier/history');
-      }
+      this.order.set({ ...current, ...data });
+      this.successMessage.set('შეკვეთა გაუქმდა');
+      await this.router.navigateByUrl('/courier/history');
     } catch (err) {
       console.error(err);
       const message = err instanceof Error ? err.message : 'Unknown error';
-      this.errorMessage.set(`შენახვა ვერ მოხერხდა: ${message}`);
+      this.errorMessage.set(`გაუქმება ვერ მოხერხდა: ${message}`);
     } finally {
       this.saving.set(false);
     }

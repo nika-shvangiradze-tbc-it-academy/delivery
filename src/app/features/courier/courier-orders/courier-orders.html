@@ -188,17 +188,11 @@
                   <span class="courier-card__tile-value">📦 {{ order.parcel_count }}</span>
                   <span class="courier-card__tile-label">ამანათი</span>
                 </div>
-                <div class="courier-card__tile">
+                <div class="courier-card__tile courier-card__tile--wide">
                   <span class="courier-card__tile-value courier-card__tile-value--money">
                     {{ formatGel(order.amount_to_collect) }} ₾
                   </span>
-                  <span class="courier-card__tile-label">ასაღები</span>
-                </div>
-                <div class="courier-card__tile">
-                  <span class="courier-card__tile-value">
-                    {{ formatGel(order.collected_amount) }} ₾
-                  </span>
-                  <span class="courier-card__tile-label">აღებული</span>
+                  <span class="courier-card__tile-label">ასაღები თანხა</span>
                 </div>
               </div>
 
@@ -218,69 +212,75 @@
                   <dd>{{ order.delivery_district || '—' }}</dd>
                 </div>
                 <div>
-                  <dt>გადახდა</dt>
-                  <dd>{{ paymentLabel(order.payment_method) }}</dd>
-                </div>
-                <div>
                   <dt>შენიშვნა</dt>
                   <dd>{{ order.notes || '—' }}</dd>
                 </div>
               </dl>
 
-              <div class="courier-card__form">
-                <label>
-                  <span>სტატუსი</span>
-                  <select
-                    [ngModel]="drafts()[order.id]?.status"
-                    (ngModelChange)="onDraftStatus(order.id, $event)"
+              <div class="courier-card__complete">
+                <p class="courier-card__complete-label">გადახდა:</p>
+                <div class="courier-card__pay-toggle" role="group" aria-label="გადახდის მეთოდი">
+                  <button
+                    type="button"
+                    class="courier-card__pay-btn"
+                    [class.courier-card__pay-btn--active]="selectedPayment(order.id) === 'cash'"
+                    [disabled]="savingId() === order.id"
+                    (click)="selectPayment(order.id, 'cash')"
                   >
-                    @for (status of allowedStatuses; track status) {
-                      <option [ngValue]="status">{{ statusLabel(status) }}</option>
-                    }
-                  </select>
-                </label>
-
-                <label>
-                  <span>გადახდა</span>
-                  <select
-                    [ngModel]="drafts()[order.id]?.payment_method"
-                    (ngModelChange)="onDraftPayment(order.id, $event)"
+                    ქეში
+                  </button>
+                  <button
+                    type="button"
+                    class="courier-card__pay-btn"
+                    [class.courier-card__pay-btn--active]="selectedPayment(order.id) === 'card'"
+                    [disabled]="savingId() === order.id"
+                    (click)="selectPayment(order.id, 'card')"
                   >
-                    <option [ngValue]="null">არ არის მითითებული</option>
-                    <option ngValue="cash">ქეში</option>
-                    <option ngValue="card">ბარათი</option>
-                  </select>
-                </label>
+                    ბარათი
+                  </button>
+                </div>
 
-                <label>
-                  <span>აღებული თანხა (₾)</span>
-                  <input
-                    type="text"
-                    inputmode="decimal"
-                    [ngModel]="drafts()[order.id]?.collected_amount"
-                    (ngModelChange)="onDraftAmount(order.id, $event)"
-                  />
-                </label>
-
-                <button
-                  type="button"
-                  class="courier-card__save"
-                  [disabled]="savingId() === order.id"
-                  (click)="saveOrder(order)"
-                >
-                  {{ savingId() === order.id ? 'ინახება...' : 'შენახვა' }}
-                </button>
-              </div>
-
-              <div class="courier-card__primary-actions">
                 <button
                   type="button"
                   class="courier-card__btn courier-card__btn--delivered"
                   [disabled]="savingId() === order.id"
                   (click)="markDelivered(order)"
                 >
-                  ✓ ჩაბარებული
+                  {{ savingId() === order.id ? 'ინახება...' : 'ჩაბარებულია' }}
                 </button>
+
+                @if (confirmingCancelId() === order.id) {
+                  <div class="courier-card__cancel-confirm">
+                    <p>ნამდვილად გსურთ შეკვეთის გაუქმება?</p>
+                    <div class="courier-card__cancel-actions">
+                      <button
+                        type="button"
+                        class="courier-card__btn courier-card__btn--danger"
+                        [disabled]="savingId() === order.id"
+                        (click)="confirmCancel(order)"
+                      >
+                        დიახ, გაუქმება
+                      </button>
+                      <button
+                        type="button"
+                        class="courier-card__btn courier-card__btn--details"
+                        [disabled]="savingId() === order.id"
+                        (click)="dismissCancel()"
+                      >
+                        არა
+                      </button>
+                    </div>
+                  </div>
+                } @else {
+                  <button
+                    type="button"
+                    class="courier-card__btn courier-card__btn--danger"
+                    [disabled]="savingId() === order.id"
+                    (click)="requestCancel(order)"
+                  >
+                    გაუქმება
+                  </button>
+                }
               </div>
             </div>
           }

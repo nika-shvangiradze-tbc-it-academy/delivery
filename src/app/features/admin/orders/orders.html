@@ -91,6 +91,8 @@
               <th>{{ 'orders.recipientPhone' | t }}</th>
               <th>{{ 'orders.deliveryCity' | t }}</th>
               <th>ასაღები</th>
+              <th>აღებული</th>
+              <th>გადახდა</th>
               <th>{{ 'orders.deliveryDate' | t }}</th>
               <th>{{ 'orders.statusLabel' | t }}</th>
               <th>{{ 'admin.courier' | t }}</th>
@@ -112,6 +114,8 @@
                 <td>{{ order.recipient_phone || '—' }}</td>
                 <td>{{ order.delivery_city || '—' }}</td>
                 <td>{{ formatGel(order.amount_to_collect) }} ₾</td>
+                <td>{{ formatGel(order.collected_amount) }} ₾</td>
+                <td>{{ paymentLabel(order.payment_method) }}</td>
                 <td>{{ order.delivery_date ? (order.delivery_date | date: 'mediumDate') : '—' }}</td>
                 <td>
                   <select
@@ -158,11 +162,21 @@
         <div><dt>{{ 'orders.deliveryCity' | t }}</dt><dd>{{ order.delivery_city || '—' }}</dd></div>
         <div><dt>{{ 'orders.deliveryAddress' | t }}</dt><dd>{{ order.delivery_address || '—' }}</dd></div>
         <div><dt>ასაღები თანხა</dt><dd>{{ formatGel(order.amount_to_collect) }} ₾</dd></div>
+        <div><dt>აღებული თანხა</dt><dd>{{ formatGel(order.collected_amount) }} ₾</dd></div>
+        <div><dt>გადახდა</dt><dd>{{ paymentLabel(order.payment_method) }}</dd></div>
         <div>
           <dt>{{ 'orders.statusLabel' | t }}</dt>
           <dd>
             <span [class]="statusClass(order.status)">{{ statusLabelKey(order.status) | t }}</span>
           </dd>
+        </div>
+        <div>
+          <dt>ჩაბარების დრო</dt>
+          <dd>{{ order.delivered_at ? (order.delivered_at | date: 'd MMM y, HH:mm') : '—' }}</dd>
+        </div>
+        <div>
+          <dt>გაუქმების დრო</dt>
+          <dd>{{ order.cancelled_at ? (order.cancelled_at | date: 'd MMM y, HH:mm') : '—' }}</dd>
         </div>
       </dl>
     </div>

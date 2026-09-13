@@ -7,7 +7,12 @@ export type OrderStatus =
   | 'cancelled';
 
 /** Status values couriers may set (English DB values only — not UI labels). */
-export type CourierStatus = 'accepted' | 'picked_up' | 'in_transit' | 'delivered';
+export type CourierStatus =
+  | 'accepted'
+  | 'picked_up'
+  | 'in_transit'
+  | 'delivered'
+  | 'cancelled';
 
 export type PaymentMethod = 'cash' | 'card';
 
@@ -20,13 +25,23 @@ export const ORDER_STATUSES: OrderStatus[] = [
   'cancelled',
 ];
 
+/** @deprecated Prefer complete/cancel RPCs; kept for correction UI labels. */
 export const COURIER_ALLOWED_STATUSES: CourierStatus[] = [
   'accepted',
   'picked_up',
   'in_transit',
   'delivered',
+  'cancelled',
 ];
 
+/** Statuses a courier may restore/correct to from history. */
+export const COURIER_CORRECTION_STATUSES: CourierStatus[] = [
+  'accepted',
+  'picked_up',
+  'in_transit',
+  'delivered',
+  'cancelled',
+];
 export interface Order {
   id: number;
   user_id: string;
@@ -116,6 +131,7 @@ export interface CourierDailySummary {
   deliveredCount: number;
 }
 
+/** @deprecated Prefer completeOrder / cancelOrder / changeOrderStatus. */
 export interface CourierOrderUpdate {
   status: CourierStatus;
   payment_method: PaymentMethod | null;

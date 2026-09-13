@@ -74,7 +74,8 @@ export function parseCourierStatus(value: unknown): CourierStatus | null {
     value === 'accepted' ||
     value === 'picked_up' ||
     value === 'in_transit' ||
-    value === 'delivered'
+    value === 'delivered' ||
+    value === 'cancelled'
   ) {
     return value;
   }

@@ -8,6 +8,10 @@
     <p class="courier-history__error" role="alert">{{ errorMessage() }}</p>
   }
 
+  @if (successMessage()) {
+    <p class="courier-history__success" role="status">{{ successMessage() }}</p>
+  }
+
   @if (loading()) {
     <p class="courier-history__muted">იტვირთება...</p>
   } @else if (orders().length === 0) {
@@ -24,11 +28,16 @@
             <span [class]="statusClass(order.status)">{{ statusLabel(order.status) }}</span>
           </div>
 
+          <p class="history-card__phone">📞 {{ formatPhone(order.recipient_phone) }}</p>
           <p class="history-card__address">{{ order.delivery_address }}</p>
 
           <div class="history-card__meta">
             <p>
-              <span>თანხა</span>
+              <span>ასაღები</span>
+              {{ formatGel(order.amount_to_collect) }} ₾
+            </p>
+            <p>
+              <span>აღებული</span>
               {{ formatGel(order.collected_amount) }} ₾
             </p>
             <p>
@@ -44,6 +53,77 @@
               }}
             </p>
           </div>
+
+          @if (editingId() === order.id) {
+            <div class="history-card__correct">
+              <p class="history-card__correct-label">ახალი სტატუსი</p>
+              <div class="history-card__status-grid">
+                @for (status of correctionStatuses; track status) {
+                  <button
+                    type="button"
+                    class="history-card__status-btn"
+                    [class.history-card__status-btn--active]="draftStatus() === status"
+                    [disabled]="savingId() === order.id"
+                    (click)="selectDraftStatus(status)"
+                  >
+                    {{ statusLabel(status) }}
+                  </button>
+                }
+              </div>
+
+              @if (needsPayment()) {
+                <p class="history-card__correct-label">გადახდა</p>
+                <div class="history-card__pay-toggle">
+                  <button
+                    type="button"
+                    class="history-card__pay-btn"
+                    [class.history-card__pay-btn--active]="draftPayment() === 'cash'"
+                    [disabled]="savingId() === order.id"
+                    (click)="selectDraftPayment('cash')"
+                  >
+                    ქეში
+                  </button>
+                  <button
+                    type="button"
+                    class="history-card__pay-btn"
+                    [class.history-card__pay-btn--active]="draftPayment() === 'card'"
+                    [disabled]="savingId() === order.id"
+                    (click)="selectDraftPayment('card')"
+                  >
+                    ბარათი
+                  </button>
+                </div>
+              }
+
+              <div class="history-card__correct-actions">
+                <button
+                  type="button"
+                  class="history-card__save"
+                  [disabled]="savingId() === order.id"
+                  (click)="saveCorrection(order)"
+                >
+                  {{ savingId() === order.id ? 'ინახება...' : 'შენახვა' }}
+                </button>
+                <button
+                  type="button"
+                  class="history-card__cancel-edit"
+                  [disabled]="savingId() === order.id"
+                  (click)="closeCorrection()"
+                >
+                  დახურვა
+                </button>
+              </div>
+            </div>
+          } @else {
+            <button
+              type="button"
+              class="history-card__change"
+              [disabled]="savingId() !== null"
+              (click)="openCorrection(order)"
+            >
+              სტატუსის შეცვლა
+            </button>
+          }
         </article>
       }
     </div>
