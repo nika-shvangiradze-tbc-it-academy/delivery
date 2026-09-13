@@ -70,11 +70,12 @@
                 <td>
                   <select
                     [disabled]="updating()"
-                    [value]="order.status"
-                    (change)="onStatusChange(order.id, $event)"
+                    [ngModel]="order.status"
+                    [ngModelOptions]="{ standalone: true }"
+                    (ngModelChange)="updateOrderStatus(order, $event)"
                   >
                     @for (status of statuses; track status) {
-                      <option [value]="status">{{ statusLabelKey(status) | t }}</option>
+                      <option [ngValue]="status">{{ statusLabelKey(status) | t }}</option>
                     }
                   </select>
                 </td>

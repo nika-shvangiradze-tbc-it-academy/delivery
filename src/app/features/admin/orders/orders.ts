@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { TranslatePipe } from '../../../core/pipes/t.pipe';
 import { ORDER_STATUSES, Order, OrderStatus } from '../../../core/models/order.model';
 import { AdminService } from '../../../core/services/admin.service';
@@ -9,7 +9,7 @@ import { DeliveryHeader } from '../../../layout/delivery-header/delivery-header'
 
 @Component({
   selector: 'app-admin-orders',
-  imports: [DeliveryHeader, TranslatePipe, ReactiveFormsModule, DatePipe],
+  imports: [DeliveryHeader, TranslatePipe, ReactiveFormsModule, FormsModule, DatePipe],
   templateUrl: './orders.html',
   styleUrl: './orders.scss',
 })
@@ -62,25 +62,46 @@ export class AdminOrders implements OnInit {
     this.selectedOrder.set(null);
   }
 
-  async onStatusChange(orderId: number, event: Event): Promise<void> {
-    const select = event.target as HTMLSelectElement | null;
-    const status = select?.value as OrderStatus | undefined;
-    if (!status || !ORDER_STATUSES.includes(status)) {
+  async updateOrderStatus(order: Order, status: OrderStatus): Promise<void> {
+    if (!ORDER_STATUSES.includes(status) || status === order.status) {
       return;
     }
 
+    const previousStatus = order.status;
     this.updating.set(true);
-    const { data, error } = await this.adminService.updateOrderStatus(orderId, status);
+    this.errorMessage.set(null);
+
+    // Optimistic local update for this row only
+    this.orders.update((list) =>
+      list.map((item) => (item.id === order.id ? { ...item, status } : item)),
+    );
+    if (this.selectedOrder()?.id === order.id) {
+      this.selectedOrder.update((current) => (current ? { ...current, status } : current));
+    }
+
+    const { data, error } = await this.adminService.updateOrderStatus(order.id, status);
     this.updating.set(false);
 
     if (error || !data) {
+      // Revert only this row
+      this.orders.update((list) =>
+        list.map((item) =>
+          item.id === order.id ? { ...item, status: previousStatus } : item,
+        ),
+      );
+      if (this.selectedOrder()?.id === order.id) {
+        this.selectedOrder.update((current) =>
+          current ? { ...current, status: previousStatus } : current,
+        );
+      }
       this.errorMessage.set(error ?? 'Failed to update status');
-      await this.loadOrders();
       return;
     }
 
-    this.orders.update((list) => list.map((order) => (order.id === orderId ? data : order)));
-    if (this.selectedOrder()?.id === orderId) {
+    this.orders.update((list) =>
+      list.map((item) => (item.id === order.id ? data : item)),
+    );
+    if (this.selectedOrder()?.id === order.id) {
       this.selectedOrder.set(data);
     }
   }
