@@ -17,7 +17,7 @@ async function waitForAuthReady(auth: AuthService): Promise<void> {
   });
 }
 
-export const adminGuard: CanActivateFn = async () => {
+export const courierGuard: CanActivateFn = async () => {
   const auth = inject(AuthService);
   const router = inject(Router);
 
@@ -30,12 +30,12 @@ export const adminGuard: CanActivateFn = async () => {
 
   const profile = auth.profile() ?? (await auth.loadProfile(user.id));
 
-  if (profile?.role === 'admin') {
+  if (profile?.role === 'courier') {
     return true;
   }
 
-  if (profile?.role === 'courier') {
-    return router.createUrlTree(['/courier']);
+  if (profile?.role === 'admin') {
+    return router.createUrlTree(['/admin']);
   }
 
   return router.createUrlTree(['/']);

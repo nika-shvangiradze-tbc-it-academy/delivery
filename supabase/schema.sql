@@ -1,17 +1,17 @@
--- Suggested Supabase schema for Location delivery auth/orders.
--- Apply in the Supabase SQL editor. Enable RLS and adjust policies as needed.
+-- Base reference schema (see also migrations/20260913_courier_role.sql for upgrades).
 
 create table if not exists public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   full_name text not null,
   phone text not null,
-  role text not null default 'user' check (role in ('user', 'admin')),
+  role text not null default 'user' check (role in ('user', 'admin', 'courier')),
   created_at timestamptz not null default now()
 );
 
 create table if not exists public.orders (
-  id uuid primary key default gen_random_uuid(),
+  id bigserial primary key,
   user_id uuid not null references auth.users (id) on delete cascade,
+  assigned_courier_id uuid references public.profiles (id) on delete set null,
   sender_name text not null,
   sender_phone text not null,
   pickup_city text not null,
@@ -27,50 +27,9 @@ create table if not exists public.orders (
   notes text,
   status text not null default 'pending'
     check (status in ('pending', 'accepted', 'picked_up', 'in_transit', 'delivered', 'cancelled')),
-  created_at timestamptz not null default now()
+  payment_method text check (payment_method is null or payment_method in ('cash', 'card')),
+  collected_amount numeric(12, 2) not null default 0,
+  delivered_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
-
-alter table public.profiles enable row level security;
-alter table public.orders enable row level security;
-
--- Helper: current user is admin
-create or replace function public.is_admin()
-returns boolean
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select exists (
-    select 1 from public.profiles p
-    where p.id = auth.uid() and p.role = 'admin'
-  );
-$$;
-
--- Profiles policies
-create policy "Users can read own profile"
-  on public.profiles for select
-  using (auth.uid() = id or public.is_admin());
-
-create policy "Users can insert own profile"
-  on public.profiles for insert
-  with check (auth.uid() = id);
-
-create policy "Users can update own profile"
-  on public.profiles for update
-  using (auth.uid() = id or public.is_admin())
-  with check (auth.uid() = id or public.is_admin());
-
--- Orders policies
-create policy "Users can read own orders"
-  on public.orders for select
-  using (auth.uid() = user_id or public.is_admin());
-
-create policy "Users can create own orders"
-  on public.orders for insert
-  with check (auth.uid() = user_id);
-
-create policy "Users can update own pending orders or admins all"
-  on public.orders for update
-  using (auth.uid() = user_id or public.is_admin())
-  with check (auth.uid() = user_id or public.is_admin());

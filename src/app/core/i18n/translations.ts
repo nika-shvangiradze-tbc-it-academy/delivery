@@ -19,6 +19,7 @@ export const translationResources = {
         createOrder: 'Create Order',
         logout: 'Logout',
         adminPanel: 'Admin Panel',
+        courierPanel: 'Courier Panel',
       },
       common: {
         loading: 'Loading...',
@@ -78,7 +79,7 @@ export const translationResources = {
         created: 'Created',
         status: {
           pending: 'Pending',
-          accepted: 'Accepted',
+          accepted: 'Assigned',
           picked_up: 'Picked up',
           in_transit: 'In transit',
           delivered: 'Delivered',
@@ -92,7 +93,7 @@ export const translationResources = {
         totalUsers: 'Total users',
         totalOrders: 'Total orders',
         pendingOrders: 'Pending orders',
-        acceptedOrders: 'Accepted orders',
+        acceptedOrders: 'Assigned orders',
         pickedUpOrders: 'Picked up orders',
         inTransitOrders: 'In transit orders',
         deliveredOrders: 'Delivered orders',
@@ -107,6 +108,10 @@ export const translationResources = {
         actions: 'Actions',
         viewDetails: 'View',
         orderDetails: 'Order details',
+        courier: 'Courier',
+        assignCourier: 'Assign courier',
+        unassignCourier: 'Unassign',
+        unassigned: 'Unassigned',
       },
       landing: {
         title: 'Reliable Delivery Across Georgia',
@@ -262,6 +267,7 @@ export const translationResources = {
         createOrder: 'შეკვეთის შექმნა',
         logout: 'გასვლა',
         adminPanel: 'ადმინ პანელი',
+        courierPanel: 'კურიერის პანელი',
       },
       common: {
         loading: 'იტვირთება...',
@@ -321,7 +327,7 @@ export const translationResources = {
         created: 'შექმნილია',
         status: {
           pending: 'მოლოდინში',
-          accepted: 'მიღებული',
+          accepted: 'მინიჭებული',
           picked_up: 'აღებული',
           in_transit: 'გზაში',
           delivered: 'მიწოდებული',
@@ -335,7 +341,7 @@ export const translationResources = {
         totalUsers: 'სულ მომხმარებლები',
         totalOrders: 'სულ შეკვეთები',
         pendingOrders: 'მოლოდინში',
-        acceptedOrders: 'მიღებული',
+        acceptedOrders: 'მინიჭებული',
         pickedUpOrders: 'აღებული',
         inTransitOrders: 'გზაში',
         deliveredOrders: 'მიწოდებული',
@@ -350,6 +356,10 @@ export const translationResources = {
         actions: 'მოქმედებები',
         viewDetails: 'ნახვა',
         orderDetails: 'შეკვეთის დეტალები',
+        courier: 'კურიერი',
+        assignCourier: 'კურიერის მინიჭება',
+        unassignCourier: 'მოხსნა',
+        unassigned: 'არ არის მინიჭებული',
       },
       landing: {
         title: 'საიმედო მიწოდება საქართველოს მასშტაბით',

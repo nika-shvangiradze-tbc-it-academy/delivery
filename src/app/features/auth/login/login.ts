@@ -43,7 +43,6 @@ export class Login {
       return;
     }
 
-    const redirect = this.auth.isAdmin() ? '/admin' : '/profile';
-    await this.router.navigateByUrl(redirect);
+    await this.router.navigateByUrl(this.auth.homePathForRole());
   }
 }

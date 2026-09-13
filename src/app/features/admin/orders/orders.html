@@ -30,8 +30,42 @@
       <button type="submit">{{ 'admin.applyFilters' | t }}</button>
     </form>
 
+    <div class="admin-orders__bulk">
+      <p class="admin-orders__bulk-count">მონიშნული: {{ selectedCount() }}</p>
+      <select
+        [ngModel]="bulkCourierId()"
+        [ngModelOptions]="{ standalone: true }"
+        (ngModelChange)="bulkCourierId.set($event)"
+        [disabled]="updating() || couriers().length === 0"
+      >
+        <option [ngValue]="null">აირჩიე კურიერი</option>
+        @for (courier of couriers(); track courier.id) {
+          <option [ngValue]="courier.id">{{ courier.full_name }}</option>
+        }
+      </select>
+      <button
+        type="button"
+        class="admin-orders__assign-btn"
+        [disabled]="updating() || selectedCount() === 0"
+        (click)="assignSelected()"
+      >
+        მინიჭება
+      </button>
+      <button
+        type="button"
+        class="admin-orders__unassign-btn"
+        [disabled]="updating() || selectedCount() === 0"
+        (click)="unassignSelected()"
+      >
+        მოხსნა
+      </button>
+    </div>
+
     @if (errorMessage()) {
       <p class="admin-orders__error" role="alert">{{ errorMessage() }}</p>
+    }
+    @if (successMessage()) {
+      <p class="admin-orders__success" role="status">{{ successMessage() }}</p>
     }
 
     @if (loading()) {
@@ -43,29 +77,39 @@
         <table>
           <thead>
             <tr>
+              <th>
+                <input
+                  type="checkbox"
+                  [checked]="allSelected()"
+                  (change)="toggleSelectAll($any($event.target).checked)"
+                />
+              </th>
               <th>{{ 'orders.id' | t }}</th>
               <th>{{ 'orders.recipient' | t }}</th>
               <th>{{ 'orders.recipientPhone' | t }}</th>
-              <th>{{ 'orders.pickupCity' | t }}</th>
               <th>{{ 'orders.deliveryCity' | t }}</th>
-              <th>{{ 'orders.deliveryDistrict' | t }}</th>
-              <th>{{ 'orders.parcelCount' | t }}</th>
+              <th>{{ 'orders.deliveryAddress' | t }}</th>
               <th>{{ 'orders.deliveryDate' | t }}</th>
               <th>{{ 'orders.statusLabel' | t }}</th>
-              <th>{{ 'orders.created' | t }}</th>
+              <th>{{ 'admin.courier' | t }}</th>
               <th>{{ 'admin.actions' | t }}</th>
             </tr>
           </thead>
           <tbody>
             @for (order of orders(); track order.id) {
-              <tr>
+              <tr [class.is-selected]="isSelected(order.id)">
+                <td>
+                  <input
+                    type="checkbox"
+                    [checked]="isSelected(order.id)"
+                    (change)="toggleOrder(order.id, $any($event.target).checked)"
+                  />
+                </td>
                 <td>#{{ order.id }}</td>
                 <td>{{ order.recipient_name || '—' }}</td>
                 <td>{{ order.recipient_phone || '—' }}</td>
-                <td>{{ order.pickup_city || '—' }}</td>
                 <td>{{ order.delivery_city || '—' }}</td>
-                <td>{{ order.delivery_district || '—' }}</td>
-                <td>{{ order.parcel_count }}</td>
+                <td>{{ order.delivery_address || '—' }}</td>
                 <td>{{ order.delivery_date ? (order.delivery_date | date: 'mediumDate') : '—' }}</td>
                 <td>
                   <select
@@ -79,7 +123,7 @@
                     }
                   </select>
                 </td>
-                <td>{{ order.created_at ? (order.created_at | date: 'mediumDate') : '—' }}</td>
+                <td>{{ courierName(order.assigned_courier_id) }}</td>
                 <td>
                   <button type="button" class="admin-orders__link-btn" (click)="openDetails(order)">
                     {{ 'admin.viewDetails' | t }}
@@ -104,31 +148,16 @@
 
       <dl>
         <div><dt>{{ 'orders.id' | t }}</dt><dd>#{{ order.id }}</dd></div>
-        <div><dt>{{ 'orders.senderName' | t }}</dt><dd>{{ order.sender_name || '—' }}</dd></div>
-        <div><dt>{{ 'orders.senderPhone' | t }}</dt><dd>{{ order.sender_phone || '—' }}</dd></div>
-        <div><dt>{{ 'orders.pickupCity' | t }}</dt><dd>{{ order.pickup_city || '—' }}</dd></div>
-        <div><dt>{{ 'orders.pickupDistrict' | t }}</dt><dd>{{ order.pickup_district || '—' }}</dd></div>
-        <div><dt>{{ 'orders.pickupAddress' | t }}</dt><dd>{{ order.pickup_address || '—' }}</dd></div>
+        <div><dt>{{ 'admin.courier' | t }}</dt><dd>{{ courierName(order.assigned_courier_id) }}</dd></div>
         <div><dt>{{ 'orders.recipientName' | t }}</dt><dd>{{ order.recipient_name || '—' }}</dd></div>
         <div><dt>{{ 'orders.recipientPhone' | t }}</dt><dd>{{ order.recipient_phone || '—' }}</dd></div>
         <div><dt>{{ 'orders.deliveryCity' | t }}</dt><dd>{{ order.delivery_city || '—' }}</dd></div>
-        <div><dt>{{ 'orders.deliveryDistrict' | t }}</dt><dd>{{ order.delivery_district || '—' }}</dd></div>
         <div><dt>{{ 'orders.deliveryAddress' | t }}</dt><dd>{{ order.delivery_address || '—' }}</dd></div>
-        <div><dt>{{ 'orders.parcelCount' | t }}</dt><dd>{{ order.parcel_count }}</dd></div>
-        <div>
-          <dt>{{ 'orders.deliveryDate' | t }}</dt>
-          <dd>{{ order.delivery_date ? (order.delivery_date | date: 'mediumDate') : '—' }}</dd>
-        </div>
         <div>
           <dt>{{ 'orders.statusLabel' | t }}</dt>
           <dd>
             <span [class]="statusClass(order.status)">{{ statusLabelKey(order.status) | t }}</span>
           </dd>
-        </div>
-        <div><dt>{{ 'orders.notes' | t }}</dt><dd>{{ order.notes || '—' }}</dd></div>
-        <div>
-          <dt>{{ 'orders.created' | t }}</dt>
-          <dd>{{ order.created_at ? (order.created_at | date: 'medium') : '—' }}</dd>
         </div>
       </dl>
     </div>

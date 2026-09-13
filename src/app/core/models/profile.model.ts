@@ -1,4 +1,4 @@
-export type UserRole = 'user' | 'admin';
+export type UserRole = 'user' | 'admin' | 'courier';
 
 export interface Profile {
   id: string;
@@ -21,4 +21,10 @@ export interface ProfileRow {
 export interface ProfileUpdate {
   full_name?: string;
   phone?: string;
+}
+
+export interface CourierOption {
+  id: string;
+  full_name: string;
+  phone: string;
 }

@@ -1,0 +1,138 @@
+<div class="courier-shell">
+  <header class="courier-shell__top">
+    <div>
+      <p class="courier-shell__eyebrow">Location Courier</p>
+      <h1>ჩემი შეკვეთები</h1>
+      <p class="courier-shell__name">{{ courierName() }}</p>
+    </div>
+    <button type="button" class="courier-shell__logout" (click)="logout()">გასვლა</button>
+  </header>
+
+  <section class="courier-shell__summary">
+    <button type="button" class="courier-shell__summary-toggle" (click)="toggleSummary()">
+      დღის შეჯამება
+    </button>
+
+    @if (showSummary()) {
+      <div class="courier-shell__summary-card">
+        <div>
+          <span>ქეში</span>
+          <strong>{{ summary().cashTotal }} ₾</strong>
+        </div>
+        <div>
+          <span>ბარათი</span>
+          <strong>{{ summary().cardTotal }} ₾</strong>
+        </div>
+        <div>
+          <span>სულ</span>
+          <strong>{{ summary().grandTotal }} ₾</strong>
+        </div>
+        <div>
+          <span>მიტანილი</span>
+          <strong>{{ summary().deliveredCount }}</strong>
+        </div>
+      </div>
+    }
+  </section>
+
+  @if (errorMessage()) {
+    <p class="courier-shell__error" role="alert">{{ errorMessage() }}</p>
+  }
+
+  @if (loading()) {
+    <p class="courier-shell__muted">იტვირთება...</p>
+  } @else if (orders().length === 0) {
+    <p class="courier-shell__muted">მინიჭებული შეკვეთები არ არის.</p>
+  } @else {
+    <div class="courier-shell__list">
+      @for (order of orders(); track order.id) {
+        <article class="courier-card">
+          <div class="courier-card__head">
+            <div>
+              <p class="courier-card__id">#{{ order.id }}</p>
+              <h2>{{ order.recipient_name }}</h2>
+            </div>
+            <span [class]="statusClass(order.status)">{{ statusLabel(order.status) }}</span>
+          </div>
+
+          <div class="courier-card__meta">
+            <p><strong>ქალაქი:</strong> {{ order.delivery_city }}</p>
+            <p><strong>უბანი:</strong> {{ order.delivery_district || '—' }}</p>
+            <p><strong>მისამართი:</strong> {{ order.delivery_address }}</p>
+            <p><strong>ამანათები:</strong> {{ order.parcel_count }}</p>
+            <p>
+              <strong>თარიღი:</strong>
+              {{ order.delivery_date ? (order.delivery_date | date: 'mediumDate') : '—' }}
+            </p>
+            @if (order.notes) {
+              <p><strong>შენიშვნა:</strong> {{ order.notes }}</p>
+            }
+          </div>
+
+          <div class="courier-card__actions">
+            <a class="courier-card__btn courier-card__btn--call" [href]="telHref(order.recipient_phone)">
+              დარეკვა · {{ order.recipient_phone }}
+            </a>
+            <a
+              class="courier-card__btn courier-card__btn--maps"
+              [href]="mapsUrl(order)"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              რუკაზე გახსნა
+            </a>
+          </div>
+
+          <div class="courier-card__form">
+            <label>
+              <span>სტატუსი</span>
+              <select
+                [ngModel]="drafts()[order.id]?.status"
+                (ngModelChange)="onDraftStatus(order.id, $event)"
+              >
+                @for (status of allowedStatuses; track status) {
+                  <option [ngValue]="status">{{ statusLabel(status) }}</option>
+                }
+              </select>
+            </label>
+
+            <label>
+              <span>გადახდა</span>
+              <select
+                [ngModel]="drafts()[order.id]?.payment_method"
+                (ngModelChange)="onDraftPayment(order.id, $event)"
+              >
+                <option [ngValue]="null">არ არის მითითებული</option>
+                <option ngValue="cash">ქეში</option>
+                <option ngValue="card">ბარათი</option>
+              </select>
+            </label>
+
+            <label>
+              <span>თანხა (₾)</span>
+              <input
+                type="text"
+                inputmode="decimal"
+                [ngModel]="drafts()[order.id]?.collected_amount"
+                (ngModelChange)="onDraftAmount(order.id, $event)"
+              />
+            </label>
+
+            <button
+              type="button"
+              class="courier-card__save"
+              [disabled]="savingId() === order.id"
+              (click)="saveOrder(order)"
+            >
+              {{ savingId() === order.id ? 'ინახება...' : 'შენახვა' }}
+            </button>
+
+            <a class="courier-card__detail-link" [routerLink]="['/courier/order', order.id]">
+              დეტალები
+            </a>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</div>

@@ -23,6 +23,7 @@ export class DeliveryHeader implements AfterViewInit, OnDestroy {
   readonly currentLanguage = this.i18nService.currentLanguage;
   readonly isAuthenticated = this.auth.isAuthenticated;
   readonly isAdmin = this.auth.isAdmin;
+  readonly isCourier = this.auth.isCourier;
   readonly isReady = this.auth.isReady;
 
   private readonly sectionIds: SectionId[] = ['home', 'about', 'pricing', 'cities', 'contact'];

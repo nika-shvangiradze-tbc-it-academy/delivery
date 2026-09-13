@@ -1,6 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Session, User } from '@supabase/supabase-js';
 import { Profile, ProfileRow } from '../models/profile.model';
+import { parseRole } from '../utils/order-status.util';
 import { SupabaseService } from './supabase.service';
 
 export interface RegisterPayload {
@@ -27,6 +28,7 @@ export class AuthService {
   readonly isReady = this.readySignal.asReadonly();
   readonly isAuthenticated = computed(() => Boolean(this.userSignal()));
   readonly isAdmin = computed(() => this.profileSignal()?.role === 'admin');
+  readonly isCourier = computed(() => this.profileSignal()?.role === 'courier');
 
   constructor() {
     void this.init();
@@ -60,7 +62,7 @@ export class AuthService {
       full_name: row.full_name ?? '',
       phone: row.phone ?? '',
       email,
-      role: row.role === 'admin' ? 'admin' : 'user',
+      role: parseRole(row.role),
       created_at: row.created_at ?? '',
     };
   }
@@ -110,7 +112,6 @@ export class AuthService {
       return { error: 'Registration succeeded but user was not returned.' };
     }
 
-    // Do not write email into profiles — it lives in auth.users
     const { error: profileError } = await this.supabase.client.from('profiles').upsert(
       {
         id: userId,
@@ -158,5 +159,12 @@ export class AuthService {
 
   setProfile(profile: Profile | null): void {
     this.profileSignal.set(profile);
+  }
+
+  homePathForRole(): string {
+    const role = this.profileSignal()?.role;
+    if (role === 'admin') return '/admin';
+    if (role === 'courier') return '/courier';
+    return '/profile';
   }
 }

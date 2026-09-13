@@ -5,6 +5,7 @@ import {
   OrderFilters,
   OrderStatus,
 } from '../models/order.model';
+import { CourierOption } from '../models/profile.model';
 import { SupabaseService } from './supabase.service';
 import { normalizeOrder, normalizeOrders } from '../utils/order-status.util';
 
@@ -41,6 +42,27 @@ export class AdminService {
         deliveredOrders: orders.filter((o) => o.status === 'delivered').length,
         cancelledOrders: orders.filter((o) => o.status === 'cancelled').length,
       },
+      error: null,
+    };
+  }
+
+  async getCouriers(): Promise<{ data: CourierOption[]; error: string | null }> {
+    const { data, error } = await this.supabase.client
+      .from('profiles')
+      .select('id, full_name, phone')
+      .eq('role', 'courier')
+      .order('full_name', { ascending: true });
+
+    if (error) {
+      return { data: [], error: error.message };
+    }
+
+    return {
+      data: ((data ?? []) as CourierOption[]).map((c) => ({
+        id: c.id,
+        full_name: c.full_name ?? '',
+        phone: c.phone ?? '',
+      })),
       error: null,
     };
   }
@@ -110,9 +132,20 @@ export class AdminService {
     orderId: number,
     status: OrderStatus,
   ): Promise<{ data: Order | null; error: string | null }> {
+    const payload: Record<string, unknown> = {
+      status,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (status === 'delivered') {
+      payload['delivered_at'] = new Date().toISOString();
+    } else {
+      payload['delivered_at'] = null;
+    }
+
     const { data, error } = await this.supabase.client
       .from('orders')
-      .update({ status })
+      .update(payload)
       .eq('id', orderId)
       .select('*')
       .single();
@@ -122,6 +155,45 @@ export class AdminService {
     }
 
     return { data: normalizeOrder(data as Order), error: null };
+  }
+
+  async assignCourier(
+    orderId: number,
+    courierId: string | null,
+  ): Promise<{ data: Order | null; error: string | null }> {
+    const result = await this.assignCouriersBulk([orderId], courierId);
+    if (result.error) {
+      return { data: null, error: result.error };
+    }
+    return { data: result.data[0] ?? null, error: null };
+  }
+
+  async assignCouriersBulk(
+    orderIds: number[],
+    courierId: string | null,
+  ): Promise<{ data: Order[]; error: string | null }> {
+    const uniqueIds = [...new Set(orderIds)].filter((id) => Number.isFinite(id));
+    if (uniqueIds.length === 0) {
+      return { data: [], error: 'შეკვეთები არ არის მონიშნული' };
+    }
+
+    const payload: Record<string, unknown> = {
+      assigned_courier_id: courierId,
+      updated_at: new Date().toISOString(),
+      status: courierId ? 'accepted' : 'pending',
+    };
+
+    const { data, error } = await this.supabase.client
+      .from('orders')
+      .update(payload)
+      .in('id', uniqueIds)
+      .select('*');
+
+    if (error) {
+      return { data: [], error: error.message };
+    }
+
+    return { data: normalizeOrders(data), error: null };
   }
 
   private emptyStats(): AdminDashboardStats {

@@ -20,7 +20,7 @@
     display: grid;
     grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr auto;
     gap: 10px;
-    margin-bottom: 20px;
+    margin-bottom: 14px;
 
     input,
     select,
@@ -40,6 +40,55 @@
       font-weight: 600;
       cursor: pointer;
     }
+  }
+
+  &__bulk {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 16px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: rgba(219, 118, 35, 0.08);
+
+    select {
+      min-width: 180px;
+      border: 1px solid rgba(83, 83, 83, 0.18);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font: inherit;
+      background: #fff;
+    }
+  }
+
+  &__bulk-count {
+    font-weight: 700;
+    color: #535353;
+    margin-right: 4px;
+  }
+
+  &__success {
+    background: #ecfdf3;
+    color: #027a48;
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+  }
+
+  &__unassign-btn {
+    border: 1px solid #db7623;
+    background: #fff;
+    color: #db7623;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  tr.is-selected {
+    background: rgba(219, 118, 35, 0.06);
   }
 
   &__table-wrap {
@@ -85,6 +134,35 @@
     font-weight: 700;
     cursor: pointer;
     padding: 0;
+  }
+
+  &__assign {
+    min-width: 220px;
+    display: grid;
+    gap: 8px;
+  }
+
+  &__assigned {
+    color: #8a8a8a;
+    font-size: 12px;
+  }
+
+  &__assign-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+
+  &__assign-btn {
+    border: none;
+    background: #db7623;
+    color: #fff;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
   }
 
   &__muted {

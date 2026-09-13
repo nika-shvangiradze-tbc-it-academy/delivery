@@ -63,6 +63,13 @@
             <button type="button" class="header__auth-btn" (click)="onLogout()">
               {{ 'nav.logout' | t }}
             </button>
+          } @else if (isCourier()) {
+            <a routerLink="/courier" routerLinkActive="is-active" (click)="closeMenu()">
+              {{ 'nav.courierPanel' | t }}
+            </a>
+            <button type="button" class="header__auth-btn" (click)="onLogout()">
+              {{ 'nav.logout' | t }}
+            </button>
           } @else {
             <a routerLink="/profile" routerLinkActive="is-active" (click)="closeMenu()">
               {{ 'nav.profile' | t }}

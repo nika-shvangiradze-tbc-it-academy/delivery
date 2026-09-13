@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { adminGuard } from './core/guards/admin.guard';
+import { courierGuard } from './core/guards/courier.guard';
 import { DeliveryMain } from './layout/delivery-main/delivery-main';
 
 export const routes: Routes = [
@@ -47,6 +48,25 @@ export const routes: Routes = [
     path: 'admin/orders',
     canActivate: [adminGuard],
     loadComponent: () => import('./features/admin/orders/orders').then((m) => m.AdminOrders),
+  },
+  {
+    path: 'courier',
+    redirectTo: 'courier/orders',
+    pathMatch: 'full',
+  },
+  {
+    path: 'courier/orders',
+    canActivate: [courierGuard],
+    loadComponent: () =>
+      import('./features/courier/courier-orders/courier-orders').then((m) => m.CourierOrders),
+  },
+  {
+    path: 'courier/order/:id',
+    canActivate: [courierGuard],
+    loadComponent: () =>
+      import('./features/courier/courier-order-detail/courier-order-detail').then(
+        (m) => m.CourierOrderDetail,
+      ),
   },
   {
     path: '**',

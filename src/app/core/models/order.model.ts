@@ -6,6 +6,8 @@ export type OrderStatus =
   | 'delivered'
   | 'cancelled';
 
+export type PaymentMethod = 'cash' | 'card';
+
 export const ORDER_STATUSES: OrderStatus[] = [
   'pending',
   'accepted',
@@ -15,9 +17,17 @@ export const ORDER_STATUSES: OrderStatus[] = [
   'cancelled',
 ];
 
+export const COURIER_ALLOWED_STATUSES: OrderStatus[] = [
+  'accepted',
+  'picked_up',
+  'in_transit',
+  'delivered',
+];
+
 export interface Order {
   id: number;
   user_id: string;
+  assigned_courier_id: string | null;
   sender_name: string;
   sender_phone: string;
   pickup_city: string;
@@ -32,7 +42,12 @@ export interface Order {
   delivery_date: string;
   notes: string | null;
   status: OrderStatus;
+  payment_method: PaymentMethod | null;
+  /** Amount in GEL as decimal number from Postgres numeric */
+  collected_amount: number;
+  delivered_at: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 export interface CreateOrderPayload {
@@ -68,4 +83,17 @@ export interface AdminDashboardStats {
   inTransitOrders: number;
   deliveredOrders: number;
   cancelledOrders: number;
+}
+
+export interface CourierDailySummary {
+  cashTotal: string;
+  cardTotal: string;
+  grandTotal: string;
+  deliveredCount: number;
+}
+
+export interface CourierOrderUpdate {
+  status: OrderStatus;
+  payment_method: PaymentMethod | null;
+  collected_amount: string;
 }

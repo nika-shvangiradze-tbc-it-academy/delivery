@@ -1,0 +1,71 @@
+<div class="courier-detail">
+  <a routerLink="/courier/orders" class="courier-detail__back">← უკან</a>
+
+  @if (loading()) {
+    <p class="courier-detail__muted">იტვირთება...</p>
+  } @else if (errorMessage() && !order()) {
+    <p class="courier-detail__error">{{ errorMessage() }}</p>
+  } @else if (order(); as o) {
+    <h1>შეკვეთა #{{ o.id }}</h1>
+    <p class="courier-detail__recipient">{{ o.recipient_name }}</p>
+
+    <div class="courier-detail__meta">
+      <p><strong>ტელეფონი:</strong> {{ o.recipient_phone }}</p>
+      <p><strong>ქალაქი:</strong> {{ o.delivery_city }}</p>
+      <p><strong>უბანი:</strong> {{ o.delivery_district || '—' }}</p>
+      <p><strong>მისამართი:</strong> {{ o.delivery_address }}</p>
+      <p><strong>ამანათები:</strong> {{ o.parcel_count }}</p>
+      <p>
+        <strong>თარიღი:</strong>
+        {{ o.delivery_date ? (o.delivery_date | date: 'mediumDate') : '—' }}
+      </p>
+      @if (o.notes) {
+        <p><strong>შენიშვნა:</strong> {{ o.notes }}</p>
+      }
+      <p>
+        <strong>სტატუსი:</strong>
+        <span [class]="statusClass(o.status)">{{ statusLabel(o.status) }}</span>
+      </p>
+    </div>
+
+    <div class="courier-detail__actions">
+      <a class="courier-detail__btn call" [href]="telHref(o.recipient_phone)">დარეკვა</a>
+      <a class="courier-detail__btn maps" [href]="mapsUrl(o)" target="_blank" rel="noopener noreferrer">
+        რუკაზე გახსნა
+      </a>
+    </div>
+
+    @if (errorMessage()) {
+      <p class="courier-detail__error">{{ errorMessage() }}</p>
+    }
+
+    <div class="courier-detail__form">
+      <label>
+        <span>სტატუსი</span>
+        <select [ngModel]="status()" (ngModelChange)="status.set($event)">
+          @for (s of allowedStatuses; track s) {
+            <option [ngValue]="s">{{ statusLabel(s) }}</option>
+          }
+        </select>
+      </label>
+
+      <label>
+        <span>გადახდა</span>
+        <select [ngModel]="paymentMethod()" (ngModelChange)="paymentMethod.set($event)">
+          <option [ngValue]="null">არ არის მითითებული</option>
+          <option ngValue="cash">ქეში</option>
+          <option ngValue="card">ბარათი</option>
+        </select>
+      </label>
+
+      <label>
+        <span>თანხა (₾)</span>
+        <input type="text" inputmode="decimal" [ngModel]="amount()" (ngModelChange)="amount.set($event)" />
+      </label>
+
+      <button type="button" class="courier-detail__save" [disabled]="saving()" (click)="save()">
+        {{ saving() ? 'ინახება...' : 'შენახვა' }}
+      </button>
+    </div>
+  }
+</div>
