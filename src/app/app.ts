@@ -1,16 +1,14 @@
 import { Component, OnDestroy, OnInit, Signal } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
 import { ImageLoaderService } from './core/services/image-loader.service';
 import { I18nService } from './core/services/i18n.service';
 import { PageLoaderService } from './core/services/page-loader.service';
-import { DeliveryMain } from './layout/delivery-main/delivery-main';
-
-
 
 @Component({
   selector: 'app-root',
-  imports: [DeliveryMain],
+  imports: [RouterOutlet],
   templateUrl: './app.html',
-  styleUrl: './app.scss'
+  styleUrl: './app.scss',
 })
 export class App implements OnInit, OnDestroy {
   readonly isPageLoading: Signal<boolean>;
@@ -18,7 +16,7 @@ export class App implements OnInit, OnDestroy {
   constructor(
     private readonly pageLoaderService: PageLoaderService,
     private readonly imageLoaderService: ImageLoaderService,
-    private readonly i18nService: I18nService
+    private readonly i18nService: I18nService,
   ) {
     this.isPageLoading = this.pageLoaderService.isLoading;
   }

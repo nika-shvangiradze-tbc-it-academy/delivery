@@ -1,0 +1,88 @@
+<app-delivery-header />
+
+<section class="order-form-page">
+  <div class="order-form-page__container">
+    <h1 class="order-form-page__title">{{ 'orders.createTitle' | t }}</h1>
+    <p class="order-form-page__lead">{{ 'orders.createLead' | t }}</p>
+
+    @if (errorMessage()) {
+      <p class="order-form-page__error" role="alert">{{ errorMessage() }}</p>
+    }
+
+    <form class="order-form-page__form" [formGroup]="form" (ngSubmit)="onSubmit()">
+      <fieldset>
+        <legend>{{ 'orders.senderInfo' | t }}</legend>
+        <div class="order-form-page__grid">
+          <label>
+            <span>{{ 'orders.senderName' | t }}</span>
+            <input type="text" formControlName="sender_name" />
+          </label>
+          <label>
+            <span>{{ 'orders.senderPhone' | t }}</span>
+            <input type="tel" formControlName="sender_phone" />
+          </label>
+          <label>
+            <span>{{ 'orders.pickupCity' | t }}</span>
+            <input type="text" formControlName="pickup_city" />
+          </label>
+          <label>
+            <span>{{ 'orders.pickupDistrict' | t }}</span>
+            <input type="text" formControlName="pickup_district" />
+          </label>
+          <label class="order-form-page__full">
+            <span>{{ 'orders.pickupAddress' | t }}</span>
+            <input type="text" formControlName="pickup_address" />
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>{{ 'orders.recipientInfo' | t }}</legend>
+        <div class="order-form-page__grid">
+          <label>
+            <span>{{ 'orders.recipientName' | t }}</span>
+            <input type="text" formControlName="recipient_name" />
+          </label>
+          <label>
+            <span>{{ 'orders.recipientPhone' | t }}</span>
+            <input type="tel" formControlName="recipient_phone" />
+          </label>
+          <label>
+            <span>{{ 'orders.deliveryCity' | t }}</span>
+            <input type="text" formControlName="delivery_city" />
+          </label>
+          <label>
+            <span>{{ 'orders.deliveryDistrict' | t }}</span>
+            <input type="text" formControlName="delivery_district" />
+          </label>
+          <label class="order-form-page__full">
+            <span>{{ 'orders.deliveryAddress' | t }}</span>
+            <input type="text" formControlName="delivery_address" />
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>{{ 'orders.orderInfo' | t }}</legend>
+        <div class="order-form-page__grid">
+          <label>
+            <span>{{ 'orders.parcelCount' | t }}</span>
+            <input type="number" min="1" formControlName="parcel_count" />
+          </label>
+          <label>
+            <span>{{ 'orders.deliveryDate' | t }}</span>
+            <input type="date" formControlName="delivery_date" />
+          </label>
+          <label class="order-form-page__full">
+            <span>{{ 'orders.notes' | t }}</span>
+            <textarea rows="3" formControlName="notes"></textarea>
+          </label>
+        </div>
+      </fieldset>
+
+      <button class="order-form-page__submit" type="submit" [disabled]="loading()">
+        {{ loading() ? ('common.loading' | t) : ('orders.submit' | t) }}
+      </button>
+    </form>
+  </div>
+</section>

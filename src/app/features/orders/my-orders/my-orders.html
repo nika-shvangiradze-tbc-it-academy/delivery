@@ -1,0 +1,95 @@
+<app-delivery-header />
+
+<section class="my-orders-page">
+  <div class="my-orders-page__container">
+    <div class="my-orders-page__header">
+      <h1 class="my-orders-page__title">{{ 'orders.myOrdersTitle' | t }}</h1>
+      <a routerLink="/create-order" class="my-orders-page__cta">{{ 'nav.createOrder' | t }}</a>
+    </div>
+
+    @if (loading()) {
+      <p class="my-orders-page__muted">{{ 'common.loading' | t }}</p>
+    } @else if (errorMessage()) {
+      <p class="my-orders-page__error" role="alert">{{ errorMessage() }}</p>
+    } @else if (orders().length === 0) {
+      <p class="my-orders-page__muted">{{ 'orders.empty' | t }}</p>
+    } @else {
+      <div class="my-orders-page__list">
+        @for (order of orders(); track order.id) {
+          <article class="my-orders-page__card">
+            <div class="my-orders-page__card-top">
+              <div>
+                <p class="my-orders-page__id">#{{ order.id }}</p>
+                <h2>{{ order.recipient_name || '—' }}</h2>
+              </div>
+              <span [class]="statusClass(order.status)">
+                {{ statusLabelKey(order.status) | t }}
+              </span>
+            </div>
+
+            <dl class="my-orders-page__meta">
+              <div>
+                <dt>{{ 'orders.senderName' | t }}</dt>
+                <dd>{{ order.sender_name || '—' }}</dd>
+              </div>
+              <div>
+                <dt>{{ 'orders.senderPhone' | t }}</dt>
+                <dd>{{ order.sender_phone || '—' }}</dd>
+              </div>
+              <div>
+                <dt>{{ 'orders.recipientName' | t }}</dt>
+                <dd>{{ order.recipient_name || '—' }}</dd>
+              </div>
+              <div>
+                <dt>{{ 'orders.recipientPhone' | t }}</dt>
+                <dd>{{ order.recipient_phone || '—' }}</dd>
+              </div>
+              <div>
+                <dt>{{ 'orders.pickupCity' | t }}</dt>
+                <dd>{{ order.pickup_city || '—' }}</dd>
+              </div>
+              <div>
+                <dt>{{ 'orders.pickupDistrict' | t }}</dt>
+                <dd>{{ order.pickup_district || '—' }}</dd>
+              </div>
+              <div>
+                <dt>{{ 'orders.pickupAddress' | t }}</dt>
+                <dd>{{ order.pickup_address || '—' }}</dd>
+              </div>
+              <div>
+                <dt>{{ 'orders.deliveryCity' | t }}</dt>
+                <dd>{{ order.delivery_city || '—' }}</dd>
+              </div>
+              <div>
+                <dt>{{ 'orders.deliveryDistrict' | t }}</dt>
+                <dd>{{ order.delivery_district || '—' }}</dd>
+              </div>
+              <div>
+                <dt>{{ 'orders.deliveryAddress' | t }}</dt>
+                <dd>{{ order.delivery_address || '—' }}</dd>
+              </div>
+              <div>
+                <dt>{{ 'orders.parcelCount' | t }}</dt>
+                <dd>{{ order.parcel_count }}</dd>
+              </div>
+              <div>
+                <dt>{{ 'orders.deliveryDate' | t }}</dt>
+                <dd>{{ order.delivery_date ? (order.delivery_date | date: 'mediumDate') : '—' }}</dd>
+              </div>
+              <div>
+                <dt>{{ 'orders.created' | t }}</dt>
+                <dd>{{ order.created_at ? (order.created_at | date: 'medium') : '—' }}</dd>
+              </div>
+              @if (order.notes) {
+                <div class="my-orders-page__notes">
+                  <dt>{{ 'orders.notes' | t }}</dt>
+                  <dd>{{ order.notes }}</dd>
+                </div>
+              }
+            </dl>
+          </article>
+        }
+      </div>
+    }
+  </div>
+</section>

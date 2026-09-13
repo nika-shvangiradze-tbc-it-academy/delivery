@@ -1,10 +1,10 @@
 <div class="header-fixed">
 <header class="header">
   <section class="header__container">
-    <div class="header__content">
+    <a class="header__content" routerLink="/" (click)="closeMenu()">
       <img src="/assets/header/location.svg" alt="logo" class="header__image" width="30" height="30"/>
       <h1 class="header__title">Location</h1>
-    </div>
+    </a>
 
     <button
       class="header__burger"
@@ -46,6 +46,40 @@
           (click)="onNavClick('pricing', $event)"
         >{{ 'nav.cities' | t }}</a>
       </div>
+
+      <div class="header__auth" aria-label="Account">
+        @if (isReady()) {
+          @if (!isAuthenticated()) {
+            <a routerLink="/login" routerLinkActive="is-active" (click)="closeMenu()">
+              {{ 'nav.login' | t }}
+            </a>
+            <a routerLink="/register" routerLinkActive="is-active" (click)="closeMenu()">
+              {{ 'nav.register' | t }}
+            </a>
+          } @else if (isAdmin()) {
+            <a routerLink="/admin" routerLinkActive="is-active" (click)="closeMenu()">
+              {{ 'nav.adminPanel' | t }}
+            </a>
+            <button type="button" class="header__auth-btn" (click)="onLogout()">
+              {{ 'nav.logout' | t }}
+            </button>
+          } @else {
+            <a routerLink="/profile" routerLinkActive="is-active" (click)="closeMenu()">
+              {{ 'nav.profile' | t }}
+            </a>
+            <a routerLink="/my-orders" routerLinkActive="is-active" (click)="closeMenu()">
+              {{ 'nav.myOrders' | t }}
+            </a>
+            <a routerLink="/create-order" routerLinkActive="is-active" (click)="closeMenu()">
+              {{ 'nav.createOrder' | t }}
+            </a>
+            <button type="button" class="header__auth-btn" (click)="onLogout()">
+              {{ 'nav.logout' | t }}
+            </button>
+          }
+        }
+      </div>
+
       <div class="header__lang" [attr.aria-label]="'app.languageLabel' | t">
         <button
           type="button"

@@ -1,0 +1,95 @@
+<app-delivery-header />
+
+<section class="profile-page">
+  <div class="profile-page__container">
+    <div class="profile-page__header">
+      <h1 class="profile-page__title">{{ 'profile.title' | t }}</h1>
+      <a routerLink="/create-order" class="profile-page__cta">{{ 'nav.createOrder' | t }}</a>
+    </div>
+
+    @if (loading()) {
+      <p class="profile-page__muted">{{ 'common.loading' | t }}</p>
+    } @else if (errorMessage()) {
+      <p class="profile-page__error" role="alert">{{ errorMessage() }}</p>
+    } @else if (profile(); as p) {
+      <div class="profile-page__grid">
+        <article class="profile-page__card">
+          <h2>{{ 'profile.details' | t }}</h2>
+          <dl>
+            <div>
+              <dt>{{ 'auth.fullName' | t }}</dt>
+              <dd>{{ p.full_name }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'auth.phone' | t }}</dt>
+              <dd>{{ p.phone }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'auth.email' | t }}</dt>
+              <dd>{{ p.email }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'profile.registeredAt' | t }}</dt>
+              <dd>{{ p.created_at | date: 'mediumDate' }}</dd>
+            </div>
+          </dl>
+        </article>
+
+        <div class="profile-page__stats">
+          <article class="profile-page__stat">
+            <span>{{ 'profile.totalOrders' | t }}</span>
+            <strong>{{ stats().total }}</strong>
+          </article>
+          <article class="profile-page__stat">
+            <span>{{ 'profile.activeOrders' | t }}</span>
+            <strong>{{ stats().active }}</strong>
+          </article>
+          <article class="profile-page__stat">
+            <span>{{ 'profile.completedOrders' | t }}</span>
+            <strong>{{ stats().completed }}</strong>
+          </article>
+        </div>
+      </div>
+
+      <section class="profile-page__orders">
+        <div class="profile-page__orders-head">
+          <h2>{{ 'profile.recentOrders' | t }}</h2>
+          <a routerLink="/my-orders">{{ 'profile.viewAll' | t }}</a>
+        </div>
+
+        @if (recentOrders().length === 0) {
+          <p class="profile-page__muted">{{ 'orders.empty' | t }}</p>
+        } @else {
+          <div class="profile-page__table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>{{ 'orders.id' | t }}</th>
+                  <th>{{ 'orders.recipient' | t }}</th>
+                  <th>{{ 'orders.city' | t }}</th>
+                  <th>{{ 'orders.statusLabel' | t }}</th>
+                  <th>{{ 'orders.created' | t }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (order of recentOrders(); track order.id) {
+                  <tr>
+                    <td>#{{ order.id }}</td>
+                    <td>{{ order.recipient_name }}</td>
+                    <td>{{ order.delivery_city }}</td>
+                    <td>
+                      <span [class]="statusClass(order.status)">
+                        {{ statusLabelKey(order.status) | t }}
+                      </span>
+                    </td>
+                    <td>{{ order.created_at | date: 'mediumDate' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
+    }
+  </div>
+</section>

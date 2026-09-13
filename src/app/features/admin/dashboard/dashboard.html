@@ -1,0 +1,91 @@
+<app-delivery-header />
+
+<section class="admin-dashboard">
+  <div class="admin-dashboard__container">
+    <div class="admin-dashboard__header">
+      <h1 class="admin-dashboard__title">{{ 'admin.dashboardTitle' | t }}</h1>
+      <a routerLink="/admin/orders" class="admin-dashboard__cta">{{ 'admin.manageOrders' | t }}</a>
+    </div>
+
+    @if (loading()) {
+      <p class="admin-dashboard__muted">{{ 'common.loading' | t }}</p>
+    } @else if (errorMessage()) {
+      <p class="admin-dashboard__error" role="alert">{{ errorMessage() }}</p>
+    } @else {
+      <div class="admin-dashboard__grid">
+        <article>
+          <span>{{ 'admin.totalUsers' | t }}</span>
+          <strong>{{ stats().totalUsers }}</strong>
+        </article>
+        <article>
+          <span>{{ 'admin.totalOrders' | t }}</span>
+          <strong>{{ stats().totalOrders }}</strong>
+        </article>
+        <article>
+          <span>{{ 'admin.pendingOrders' | t }}</span>
+          <strong>{{ stats().pendingOrders }}</strong>
+        </article>
+        <article>
+          <span>{{ 'admin.acceptedOrders' | t }}</span>
+          <strong>{{ stats().acceptedOrders }}</strong>
+        </article>
+        <article>
+          <span>{{ 'admin.pickedUpOrders' | t }}</span>
+          <strong>{{ stats().pickedUpOrders }}</strong>
+        </article>
+        <article>
+          <span>{{ 'admin.inTransitOrders' | t }}</span>
+          <strong>{{ stats().inTransitOrders }}</strong>
+        </article>
+        <article>
+          <span>{{ 'admin.deliveredOrders' | t }}</span>
+          <strong>{{ stats().deliveredOrders }}</strong>
+        </article>
+        <article>
+          <span>{{ 'admin.cancelledOrders' | t }}</span>
+          <strong>{{ stats().cancelledOrders }}</strong>
+        </article>
+      </div>
+
+      <section class="admin-dashboard__recent">
+        <div class="admin-dashboard__recent-head">
+          <h2>{{ 'admin.recentOrders' | t }}</h2>
+          <a routerLink="/admin/orders">{{ 'profile.viewAll' | t }}</a>
+        </div>
+
+        @if (recentOrders().length === 0) {
+          <p class="admin-dashboard__muted">{{ 'orders.empty' | t }}</p>
+        } @else {
+          <div class="admin-dashboard__table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>{{ 'orders.id' | t }}</th>
+                  <th>{{ 'orders.recipient' | t }}</th>
+                  <th>{{ 'orders.deliveryCity' | t }}</th>
+                  <th>{{ 'orders.statusLabel' | t }}</th>
+                  <th>{{ 'orders.created' | t }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (order of recentOrders(); track order.id) {
+                  <tr>
+                    <td>#{{ order.id }}</td>
+                    <td>{{ order.recipient_name || '—' }}</td>
+                    <td>{{ order.delivery_city || '—' }}</td>
+                    <td>
+                      <span [class]="statusClass(order.status)">
+                        {{ statusLabelKey(order.status) | t }}
+                      </span>
+                    </td>
+                    <td>{{ order.created_at ? (order.created_at | date: 'mediumDate') : '—' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
+    }
+  </div>
+</section>

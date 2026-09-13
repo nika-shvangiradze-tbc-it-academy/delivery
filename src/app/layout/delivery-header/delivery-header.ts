@@ -1,35 +1,39 @@
-import { AfterViewInit, Component, OnDestroy } from '@angular/core';
+import { AfterViewInit, Component, OnDestroy, inject } from '@angular/core';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { TranslatePipe } from '../../core/pipes/t.pipe';
 import { AppLanguage } from '../../core/i18n/translations';
+import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 
 type SectionId = 'home' | 'about' | 'pricing' | 'cities' | 'contact';
 
 @Component({
   selector: 'app-delivery-header',
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, RouterLink, RouterLinkActive],
   templateUrl: './delivery-header.html',
   styleUrl: './delivery-header.scss',
 })
 export class DeliveryHeader implements AfterViewInit, OnDestroy {
+  private readonly i18nService = inject(I18nService);
+  private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
+
   isMenuOpen = false;
   activeSection: SectionId = 'home';
-  readonly currentLanguage;
+  readonly currentLanguage = this.i18nService.currentLanguage;
+  readonly isAuthenticated = this.auth.isAuthenticated;
+  readonly isAdmin = this.auth.isAdmin;
+  readonly isReady = this.auth.isReady;
 
   private readonly sectionIds: SectionId[] = ['home', 'about', 'pricing', 'cities', 'contact'];
   private sectionElements: HTMLElement[] = [];
-
   private rafId = 0;
-  constructor(private readonly i18nService: I18nService) {
-    this.currentLanguage = this.i18nService.currentLanguage;
-  }
 
   async onLanguageChange(language: AppLanguage): Promise<void> {
     await this.i18nService.setLanguage(language);
   }
 
   private readonly onScroll = (): void => {
-   
     if (this.rafId) return;
     this.rafId = window.requestAnimationFrame(() => {
       this.rafId = 0;
@@ -38,10 +42,7 @@ export class DeliveryHeader implements AfterViewInit, OnDestroy {
   };
 
   ngAfterViewInit(): void {
-    this.sectionElements = this.sectionIds
-      .map((id) => document.getElementById(id))
-      .filter((el): el is HTMLElement => Boolean(el));
-
+    this.refreshSections();
     if (this.sectionElements.length === 0) return;
 
     this.updateActiveSection();
@@ -63,21 +64,41 @@ export class DeliveryHeader implements AfterViewInit, OnDestroy {
     this.isMenuOpen = false;
   }
 
-  onNavClick(sectionId: SectionId, event: Event): void {
+  async onNavClick(sectionId: SectionId, event: Event): Promise<void> {
     event.preventDefault();
-   
     this.activeSection = sectionId;
-    this.scrollToSection(sectionId);
     this.closeMenu();
+
+    if (this.router.url.split('#')[0] !== '/') {
+      await this.router.navigateByUrl(`/#${sectionId}`);
+      setTimeout(() => {
+        this.refreshSections();
+        this.scrollToSection(sectionId);
+      }, 80);
+      return;
+    }
+
+    this.scrollToSection(sectionId);
+  }
+
+  async onLogout(): Promise<void> {
+    this.closeMenu();
+    await this.auth.logout();
+    await this.router.navigateByUrl('/');
+  }
+
+  private refreshSections(): void {
+    this.sectionElements = this.sectionIds
+      .map((id) => document.getElementById(id))
+      .filter((el): el is HTMLElement => Boolean(el));
   }
 
   private updateActiveSection(): void {
+    if (this.sectionElements.length === 0) return;
+
     const headerEl = document.querySelector<HTMLElement>('.header');
-  
     const headerBottom = headerEl?.getBoundingClientRect().bottom;
     const headerHeight = headerEl?.getBoundingClientRect().height ?? 88;
-
- 
     const markerY = window.scrollY + (headerBottom ?? headerHeight) + 8;
 
     let closestId: SectionId = 'home';
@@ -107,7 +128,7 @@ export class DeliveryHeader implements AfterViewInit, OnDestroy {
     const el = document.getElementById(sectionId);
     if (!el) return;
 
-    history.replaceState(null, '', `#${sectionId}`);
+    history.replaceState(null, '', `/#${sectionId}`);
 
     const headerEl = document.querySelector<HTMLElement>('.header');
     const headerBottom = headerEl?.getBoundingClientRect().bottom;
