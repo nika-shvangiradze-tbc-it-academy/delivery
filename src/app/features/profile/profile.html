@@ -9,30 +9,56 @@
 
     @if (loading()) {
       <p class="profile-page__muted">{{ 'common.loading' | t }}</p>
-    } @else if (errorMessage()) {
+    } @else if (errorMessage() && !profile()) {
       <p class="profile-page__error" role="alert">{{ errorMessage() }}</p>
     } @else if (profile(); as p) {
+      @if (errorMessage()) {
+        <p class="profile-page__error" role="alert">{{ errorMessage() }}</p>
+      }
+      @if (successMessage()) {
+        <p class="profile-page__success">{{ successMessage() }}</p>
+      }
+
       <div class="profile-page__grid">
         <article class="profile-page__card">
-          <h2>{{ 'profile.details' | t }}</h2>
-          <dl>
-            <div>
-              <dt>{{ 'auth.fullName' | t }}</dt>
-              <dd>{{ p.full_name }}</dd>
-            </div>
-            <div>
-              <dt>{{ 'auth.phone' | t }}</dt>
-              <dd>{{ p.phone }}</dd>
-            </div>
-            <div>
-              <dt>{{ 'auth.email' | t }}</dt>
-              <dd>{{ p.email }}</dd>
-            </div>
-            <div>
-              <dt>{{ 'profile.registeredAt' | t }}</dt>
-              <dd>{{ p.created_at | date: 'mediumDate' }}</dd>
-            </div>
-          </dl>
+          <h2>ჩემი მონაცემები</h2>
+          <form class="profile-page__form" [formGroup]="defaultsForm" (ngSubmit)="saveDefaults()">
+            <label>
+              <span>{{ 'auth.fullName' | t }}</span>
+              <input formControlName="full_name" />
+            </label>
+            <label>
+              <span>{{ 'auth.phone' | t }}</span>
+              <input formControlName="phone" />
+            </label>
+            <label>
+              <span>{{ 'auth.email' | t }}</span>
+              <input [value]="p.email" disabled />
+            </label>
+            <label>
+              <span>ნაგულისხმევი ქალაქი</span>
+              <select formControlName="default_city">
+                <option value="">აირჩიე ქალაქი</option>
+                @for (city of cities; track city) {
+                  <option [value]="city">{{ city }}</option>
+                }
+              </select>
+            </label>
+            <label>
+              <span>ნაგულისხმევი უბანი</span>
+              <input formControlName="default_district" />
+            </label>
+            <label>
+              <span>ნაგულისხმევი მისამართი</span>
+              <input formControlName="default_address" />
+            </label>
+            <p class="profile-page__hint">
+              რეგისტრაცია: {{ p.created_at | date: 'mediumDate' }}
+            </p>
+            <button type="submit" class="profile-page__cta" [disabled]="saving()">
+              {{ saving() ? 'ინახება...' : 'შენახვა' }}
+            </button>
+          </form>
         </article>
 
         <div class="profile-page__stats">

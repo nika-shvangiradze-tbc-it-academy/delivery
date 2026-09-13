@@ -57,6 +57,48 @@
     margin-bottom: 16px;
   }
 
+  &__form {
+    display: grid;
+    gap: 12px;
+
+    label {
+      display: grid;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #575757;
+    }
+
+    input,
+    select {
+      border: 1px solid rgba(83, 83, 83, 0.18);
+      border-radius: 12px;
+      padding: 11px 12px;
+      font: inherit;
+      background: #fff;
+    }
+
+    button {
+      border: none;
+      justify-content: center;
+      cursor: pointer;
+      margin-top: 4px;
+    }
+  }
+
+  &__hint {
+    color: #8a8a8a;
+    font-size: 13px;
+  }
+
+  &__success {
+    background: #ecfdf3;
+    color: #027a48;
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+  }
+
   &__card dl {
     display: grid;
     gap: 14px;

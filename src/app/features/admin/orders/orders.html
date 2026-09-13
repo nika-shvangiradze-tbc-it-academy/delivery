@@ -16,16 +16,18 @@
           <option [value]="status">{{ statusLabelKey(status) | t }}</option>
         }
       </select>
-      <input
-        type="text"
-        formControlName="pickupCity"
-        [placeholder]="'admin.pickupCityPlaceholder' | t"
-      />
-      <input
-        type="text"
-        formControlName="deliveryCity"
-        [placeholder]="'admin.deliveryCityPlaceholder' | t"
-      />
+      <select formControlName="pickupCity">
+        <option value="">ყველა ქალაქი (აღება)</option>
+        @for (city of cities; track city) {
+          <option [value]="city">{{ city }}</option>
+        }
+      </select>
+      <select formControlName="deliveryCity">
+        <option value="">ყველა ქალაქი (მიწოდება)</option>
+        @for (city of cities; track city) {
+          <option [value]="city">{{ city }}</option>
+        }
+      </select>
       <input type="date" formControlName="deliveryDate" />
       <button type="submit">{{ 'admin.applyFilters' | t }}</button>
     </form>
@@ -88,7 +90,7 @@
               <th>{{ 'orders.recipient' | t }}</th>
               <th>{{ 'orders.recipientPhone' | t }}</th>
               <th>{{ 'orders.deliveryCity' | t }}</th>
-              <th>{{ 'orders.deliveryAddress' | t }}</th>
+              <th>ასაღები</th>
               <th>{{ 'orders.deliveryDate' | t }}</th>
               <th>{{ 'orders.statusLabel' | t }}</th>
               <th>{{ 'admin.courier' | t }}</th>
@@ -109,7 +111,7 @@
                 <td>{{ order.recipient_name || '—' }}</td>
                 <td>{{ order.recipient_phone || '—' }}</td>
                 <td>{{ order.delivery_city || '—' }}</td>
-                <td>{{ order.delivery_address || '—' }}</td>
+                <td>{{ formatGel(order.amount_to_collect) }} ₾</td>
                 <td>{{ order.delivery_date ? (order.delivery_date | date: 'mediumDate') : '—' }}</td>
                 <td>
                   <select
@@ -124,7 +126,10 @@
                   </select>
                 </td>
                 <td>{{ courierName(order.assigned_courier_id) }}</td>
-                <td>
+                <td class="admin-orders__row-actions">
+                  <button type="button" class="admin-orders__link-btn" (click)="openEdit(order)">
+                    რედაქტირება
+                  </button>
                   <button type="button" class="admin-orders__link-btn" (click)="openDetails(order)">
                     {{ 'admin.viewDetails' | t }}
                   </button>
@@ -145,7 +150,6 @@
         <h2>{{ 'admin.orderDetails' | t }}</h2>
         <button type="button" (click)="closeDetails()">×</button>
       </div>
-
       <dl>
         <div><dt>{{ 'orders.id' | t }}</dt><dd>#{{ order.id }}</dd></div>
         <div><dt>{{ 'admin.courier' | t }}</dt><dd>{{ courierName(order.assigned_courier_id) }}</dd></div>
@@ -153,6 +157,7 @@
         <div><dt>{{ 'orders.recipientPhone' | t }}</dt><dd>{{ order.recipient_phone || '—' }}</dd></div>
         <div><dt>{{ 'orders.deliveryCity' | t }}</dt><dd>{{ order.delivery_city || '—' }}</dd></div>
         <div><dt>{{ 'orders.deliveryAddress' | t }}</dt><dd>{{ order.delivery_address || '—' }}</dd></div>
+        <div><dt>ასაღები თანხა</dt><dd>{{ formatGel(order.amount_to_collect) }} ₾</dd></div>
         <div>
           <dt>{{ 'orders.statusLabel' | t }}</dt>
           <dd>
@@ -160,6 +165,62 @@
           </dd>
         </div>
       </dl>
+    </div>
+  </div>
+}
+
+@if (editingOrder(); as order) {
+  <div class="admin-orders__modal" (click)="closeEdit()">
+    <div class="admin-orders__modal-panel admin-orders__modal-panel--wide" (click)="$event.stopPropagation()">
+      <div class="admin-orders__modal-head">
+        <h2>შეკვეთის რედაქტირება #{{ order.id }}</h2>
+        <button type="button" (click)="closeEdit()">×</button>
+      </div>
+
+      <form class="admin-orders__edit-form" [formGroup]="editForm" (ngSubmit)="saveEdit()">
+        <div class="admin-orders__edit-grid">
+          <label><span>გამგზავნი</span><input formControlName="sender_name" /></label>
+          <label><span>გამგზავნის ტელ.</span><input formControlName="sender_phone" /></label>
+          <label>
+            <span>აღების ქალაქი</span>
+            <select formControlName="pickup_city">
+              @for (city of cities; track city) {
+                <option [value]="city">{{ city }}</option>
+              }
+            </select>
+          </label>
+          <label><span>აღების უბანი</span><input formControlName="pickup_district" /></label>
+          <label class="full"><span>აღების მისამართი</span><input formControlName="pickup_address" /></label>
+
+          <label><span>მიმღები</span><input formControlName="recipient_name" /></label>
+          <label><span>მიმღების ტელ.</span><input formControlName="recipient_phone" /></label>
+          <label>
+            <span>მიწოდების ქალაქი</span>
+            <select formControlName="delivery_city">
+              @for (city of cities; track city) {
+                <option [value]="city">{{ city }}</option>
+              }
+            </select>
+          </label>
+          <label><span>მიწოდების უბანი</span><input formControlName="delivery_district" /></label>
+          <label class="full"><span>მიწოდების მისამართი</span><input formControlName="delivery_address" /></label>
+
+          <label><span>ამანათები</span><input type="number" min="1" formControlName="parcel_count" /></label>
+          <label>
+            <span>მიწოდების თარიღი</span>
+            <input type="date" [attr.min]="minDeliveryDate" formControlName="delivery_date" />
+          </label>
+          <label>
+            <span>ასაღები თანხა</span>
+            <input type="text" inputmode="decimal" formControlName="amount_to_collect" />
+          </label>
+          <label class="full"><span>შენიშვნა</span><textarea rows="3" formControlName="notes"></textarea></label>
+        </div>
+
+        <button type="submit" class="admin-orders__assign-btn" [disabled]="updating()">
+          {{ updating() ? 'ინახება...' : 'შენახვა' }}
+        </button>
+      </form>
     </div>
   </div>
 }

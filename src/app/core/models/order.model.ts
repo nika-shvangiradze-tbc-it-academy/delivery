@@ -6,6 +6,9 @@ export type OrderStatus =
   | 'delivered'
   | 'cancelled';
 
+/** Status values couriers may set (English DB values only — not UI labels). */
+export type CourierStatus = 'accepted' | 'picked_up' | 'in_transit' | 'delivered';
+
 export type PaymentMethod = 'cash' | 'card';
 
 export const ORDER_STATUSES: OrderStatus[] = [
@@ -17,7 +20,7 @@ export const ORDER_STATUSES: OrderStatus[] = [
   'cancelled',
 ];
 
-export const COURIER_ALLOWED_STATUSES: OrderStatus[] = [
+export const COURIER_ALLOWED_STATUSES: CourierStatus[] = [
   'accepted',
   'picked_up',
   'in_transit',
@@ -43,12 +46,25 @@ export interface Order {
   notes: string | null;
   status: OrderStatus;
   payment_method: PaymentMethod | null;
-  /** Amount in GEL as decimal number from Postgres numeric */
+  /** Expected amount to collect from recipient */
+  amount_to_collect: number;
+  /** Amount courier actually collected */
   collected_amount: number;
   delivered_at: string | null;
+  cancelled_at: string | null;
+  /** Persistent manual route order for the assigned courier */
+  courier_sort_order: number | null;
   created_at: string;
   updated_at: string;
 }
+
+export const COURIER_ACTIVE_STATUSES: OrderStatus[] = [
+  'accepted',
+  'picked_up',
+  'in_transit',
+];
+
+export const COURIER_HISTORY_STATUSES: OrderStatus[] = ['delivered', 'cancelled'];
 
 export interface CreateOrderPayload {
   sender_name: string;
@@ -63,8 +79,16 @@ export interface CreateOrderPayload {
   delivery_address: string;
   parcel_count: number;
   delivery_date: string;
+  amount_to_collect: number;
   notes?: string | null;
 }
+
+export type AdminOrderEditPayload = Omit<
+  CreateOrderPayload,
+  never
+> & {
+  notes?: string | null;
+};
 
 export interface OrderFilters {
   search?: string;
@@ -93,7 +117,7 @@ export interface CourierDailySummary {
 }
 
 export interface CourierOrderUpdate {
-  status: OrderStatus;
+  status: CourierStatus;
   payment_method: PaymentMethod | null;
-  collected_amount: string;
+  collected_amount: string | number;
 }

@@ -89,11 +89,11 @@ export class AdminService {
     }
 
     if (filters.pickupCity?.trim()) {
-      query = query.ilike('pickup_city', `%${filters.pickupCity.trim()}%`);
+      query = query.eq('pickup_city', filters.pickupCity.trim());
     }
 
     if (filters.deliveryCity?.trim()) {
-      query = query.ilike('delivery_city', `%${filters.deliveryCity.trim()}%`);
+      query = query.eq('delivery_city', filters.deliveryCity.trim());
     }
 
     if (filters.deliveryDate) {

@@ -1,8 +1,14 @@
 import { Injectable, inject } from '@angular/core';
-import { CreateOrderPayload, Order, OrderStatus } from '../models/order.model';
+import {
+  AdminOrderEditPayload,
+  CreateOrderPayload,
+  Order,
+  OrderStatus,
+} from '../models/order.model';
 import { AuthService } from './auth.service';
 import { SupabaseService } from './supabase.service';
-import { normalizeOrder, normalizeOrders } from '../utils/order-status.util';
+import { centsToNumber, normalizeOrder, normalizeOrders, toCents } from '../utils/order-status.util';
+import { isDeliveryDateAllowed } from '../constants/cities';
 
 @Injectable({
   providedIn: 'root',
@@ -15,6 +21,15 @@ export class OrdersService {
     const user = this.auth.user();
     if (!user) {
       return { data: null, error: 'Not authenticated' };
+    }
+
+    if (!isDeliveryDateAllowed(payload.delivery_date)) {
+      return { data: null, error: 'მიწოდების თარიღი უნდა იყოს ხვალ ან უფრო გვიან.' };
+    }
+
+    const amount = centsToNumber(toCents(payload.amount_to_collect));
+    if (!(amount > 0)) {
+      return { data: null, error: 'ასაღები თანხა უნდა იყოს 0-ზე მეტი.' };
     }
 
     const { data, error } = await this.supabase.client
@@ -32,10 +47,64 @@ export class OrdersService {
         delivery_address: payload.delivery_address,
         parcel_count: payload.parcel_count,
         delivery_date: payload.delivery_date,
+        amount_to_collect: amount,
         user_id: user.id,
         status: 'pending' as OrderStatus,
         notes: payload.notes?.trim() ? payload.notes.trim() : null,
       })
+      .select('*')
+      .single();
+
+    if (error) {
+      return { data: null, error: error.message };
+    }
+
+    return { data: normalizeOrder(data as Order), error: null };
+  }
+
+  async updateOrderDetails(
+    orderId: number,
+    payload: AdminOrderEditPayload,
+    options?: { originalDeliveryDate?: string },
+  ): Promise<{ data: Order | null; error: string | null }> {
+    if (
+      !isDeliveryDateAllowed(payload.delivery_date, {
+        allowExistingPast: true,
+        originalValue: options?.originalDeliveryDate,
+      })
+    ) {
+      return { data: null, error: 'მიწოდების თარიღი უნდა იყოს ხვალ ან უფრო გვიან.' };
+    }
+
+    if (payload.parcel_count < 1) {
+      return { data: null, error: 'ამანათების რაოდენობა უნდა იყოს 1 ან მეტი.' };
+    }
+
+    const amount = centsToNumber(toCents(payload.amount_to_collect));
+    if (!(amount > 0)) {
+      return { data: null, error: 'ასაღები თანხა უნდა იყოს 0-ზე მეტი.' };
+    }
+
+    const { data, error } = await this.supabase.client
+      .from('orders')
+      .update({
+        sender_name: payload.sender_name,
+        sender_phone: payload.sender_phone,
+        pickup_city: payload.pickup_city,
+        pickup_district: payload.pickup_district,
+        pickup_address: payload.pickup_address,
+        recipient_name: payload.recipient_name,
+        recipient_phone: payload.recipient_phone,
+        delivery_city: payload.delivery_city,
+        delivery_district: payload.delivery_district,
+        delivery_address: payload.delivery_address,
+        parcel_count: payload.parcel_count,
+        delivery_date: payload.delivery_date,
+        amount_to_collect: amount,
+        notes: payload.notes?.trim() ? payload.notes.trim() : null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', orderId)
       .select('*')
       .single();
 

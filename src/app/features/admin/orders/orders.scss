@@ -127,6 +127,11 @@
     }
   }
 
+  &__row-actions {
+    display: grid;
+    gap: 8px;
+  }
+
   &__link-btn {
     border: none;
     background: transparent;
@@ -134,6 +139,44 @@
     font-weight: 700;
     cursor: pointer;
     padding: 0;
+    text-align: left;
+  }
+
+  &__modal-panel--wide {
+    max-width: 780px;
+  }
+
+  &__edit-form {
+    display: grid;
+    gap: 16px;
+  }
+
+  &__edit-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+
+    label {
+      display: grid;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #575757;
+    }
+
+    .full {
+      grid-column: 1 / -1;
+    }
+
+    input,
+    select,
+    textarea {
+      border: 1px solid rgba(83, 83, 83, 0.18);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font: inherit;
+      background: #fff;
+    }
   }
 
   &__assign {

@@ -23,7 +23,12 @@
           </label>
           <label>
             <span>{{ 'orders.pickupCity' | t }}</span>
-            <input type="text" formControlName="pickup_city" />
+            <select formControlName="pickup_city">
+              <option value="">აირჩიე ქალაქი</option>
+              @for (city of cities; track city) {
+                <option [value]="city">{{ city }}</option>
+              }
+            </select>
           </label>
           <label>
             <span>{{ 'orders.pickupDistrict' | t }}</span>
@@ -32,6 +37,10 @@
           <label class="order-form-page__full">
             <span>{{ 'orders.pickupAddress' | t }}</span>
             <input type="text" formControlName="pickup_address" />
+          </label>
+          <label class="order-form-page__full order-form-page__check">
+            <input type="checkbox" formControlName="remember_sender" />
+            <span>ჩემი მონაცემების დამახსოვრება</span>
           </label>
         </div>
       </fieldset>
@@ -49,7 +58,12 @@
           </label>
           <label>
             <span>{{ 'orders.deliveryCity' | t }}</span>
-            <input type="text" formControlName="delivery_city" />
+            <select formControlName="delivery_city">
+              <option value="">აირჩიე ქალაქი</option>
+              @for (city of cities; track city) {
+                <option [value]="city">{{ city }}</option>
+              }
+            </select>
           </label>
           <label>
             <span>{{ 'orders.deliveryDistrict' | t }}</span>
@@ -71,7 +85,11 @@
           </label>
           <label>
             <span>{{ 'orders.deliveryDate' | t }}</span>
-            <input type="date" formControlName="delivery_date" />
+            <input type="date" [attr.min]="minDeliveryDate" formControlName="delivery_date" />
+          </label>
+          <label>
+            <span>მომხმარებლისგან ასაღები თანხა (₾)</span>
+            <input type="text" inputmode="decimal" formControlName="amount_to_collect" placeholder="25.00" />
           </label>
           <label class="order-form-page__full">
             <span>{{ 'orders.notes' | t }}</span>

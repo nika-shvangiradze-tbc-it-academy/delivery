@@ -63,16 +63,32 @@ export class AuthService {
       phone: row.phone ?? '',
       email,
       role: parseRole(row.role),
+      default_city: row.default_city ?? null,
+      default_district: row.default_district ?? null,
+      default_address: row.default_address ?? null,
       created_at: row.created_at ?? '',
     };
   }
 
   async loadProfile(userId: string): Promise<Profile | null> {
-    const { data, error } = await this.supabase.client
+    const fullSelect =
+      'id, full_name, phone, role, default_city, default_district, default_address, created_at';
+    const baseSelect = 'id, full_name, phone, role, created_at';
+
+    let { data, error } = await this.supabase.client
       .from('profiles')
-      .select('id, full_name, phone, role, created_at')
+      .select(fullSelect)
       .eq('id', userId)
       .maybeSingle();
+
+    // Migration not applied yet — fall back to existing columns so profile still loads
+    if (error && /default_city|default_district|default_address/i.test(error.message)) {
+      ({ data, error } = await this.supabase.client
+        .from('profiles')
+        .select(baseSelect)
+        .eq('id', userId)
+        .maybeSingle());
+    }
 
     if (error) {
       console.error('Failed to load profile', error.message);

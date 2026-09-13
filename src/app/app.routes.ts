@@ -51,22 +51,33 @@ export const routes: Routes = [
   },
   {
     path: 'courier',
-    redirectTo: 'courier/orders',
-    pathMatch: 'full',
-  },
-  {
-    path: 'courier/orders',
     canActivate: [courierGuard],
     loadComponent: () =>
-      import('./features/courier/courier-orders/courier-orders').then((m) => m.CourierOrders),
-  },
-  {
-    path: 'courier/order/:id',
-    canActivate: [courierGuard],
-    loadComponent: () =>
-      import('./features/courier/courier-order-detail/courier-order-detail').then(
-        (m) => m.CourierOrderDetail,
-      ),
+      import('./features/courier/courier-shell/courier-shell').then((m) => m.CourierShell),
+    children: [
+      {
+        path: '',
+        redirectTo: 'orders',
+        pathMatch: 'full',
+      },
+      {
+        path: 'orders',
+        loadComponent: () =>
+          import('./features/courier/courier-orders/courier-orders').then((m) => m.CourierOrders),
+      },
+      {
+        path: 'history',
+        loadComponent: () =>
+          import('./features/courier/courier-history/courier-history').then((m) => m.CourierHistory),
+      },
+      {
+        path: 'order/:id',
+        loadComponent: () =>
+          import('./features/courier/courier-order-detail/courier-order-detail').then(
+            (m) => m.CourierOrderDetail,
+          ),
+      },
+    ],
   },
   {
     path: '**',

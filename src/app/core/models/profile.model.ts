@@ -7,6 +7,9 @@ export interface Profile {
   /** From auth.users — not stored in profiles table */
   email: string;
   role: UserRole;
+  default_city: string | null;
+  default_district: string | null;
+  default_address: string | null;
   created_at: string;
 }
 
@@ -15,12 +18,18 @@ export interface ProfileRow {
   full_name: string;
   phone: string;
   role: UserRole;
+  default_city: string | null;
+  default_district: string | null;
+  default_address: string | null;
   created_at: string;
 }
 
 export interface ProfileUpdate {
   full_name?: string;
   phone?: string;
+  default_city?: string | null;
+  default_district?: string | null;
+  default_address?: string | null;
 }
 
 export interface CourierOption {

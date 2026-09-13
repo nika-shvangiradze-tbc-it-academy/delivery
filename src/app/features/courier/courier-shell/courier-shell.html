@@ -1,0 +1,29 @@
+<div class="courier-shell">
+  <header class="courier-shell__top">
+    <div>
+      <p class="courier-shell__eyebrow">Location Courier</p>
+      <h1>კურიერის პანელი</h1>
+      <p class="courier-shell__name">{{ courierName() }}</p>
+    </div>
+    <button type="button" class="courier-shell__logout" (click)="logout()">გასვლა</button>
+  </header>
+
+  <nav class="courier-shell__tabs" aria-label="Courier navigation">
+    <a
+      routerLink="/courier/orders"
+      routerLinkActive="is-active"
+      class="courier-shell__tab"
+    >
+      მიმდინარე
+    </a>
+    <a
+      routerLink="/courier/history"
+      routerLinkActive="is-active"
+      class="courier-shell__tab"
+    >
+      ისტორია
+    </a>
+  </nav>
+
+  <router-outlet />
+</div>

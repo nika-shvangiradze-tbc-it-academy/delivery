@@ -30,6 +30,8 @@ create table if not exists public.orders (
   payment_method text check (payment_method is null or payment_method in ('cash', 'card')),
   collected_amount numeric(12, 2) not null default 0,
   delivered_at timestamptz,
+  cancelled_at timestamptz,
+  courier_sort_order integer,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

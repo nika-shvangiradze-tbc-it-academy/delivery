@@ -1,0 +1,114 @@
+.courier-history {
+  &__heading {
+    margin-bottom: 12px;
+
+    h2 {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 800;
+    }
+
+    p {
+      margin: 4px 0 0;
+      color: #8a8a8a;
+      font-size: 13px;
+    }
+  }
+
+  &__error {
+    background: #fff1f0;
+    color: #b42318;
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    font-size: 13px;
+  }
+
+  &__muted {
+    color: #8a8a8a;
+    padding: 16px 0;
+    font-size: 14px;
+  }
+
+  &__list {
+    display: grid;
+    gap: 8px;
+  }
+}
+
+.history-card {
+  background: #fafafa;
+  border: 1px solid rgba(83, 83, 83, 0.08);
+  border-radius: 10px;
+  padding: 10px;
+
+  &__top {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    align-items: flex-start;
+    margin-bottom: 4px;
+
+    h3 {
+      margin: 1px 0 0;
+      font-size: 15px;
+      line-height: 1.25;
+      font-weight: 800;
+    }
+  }
+
+  &__id {
+    margin: 0;
+    color: #8a8a8a;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  &__address {
+    margin: 0 0 8px;
+    font-size: 13px;
+    color: #555;
+    line-height: 1.35;
+  }
+
+  &__meta {
+    display: grid;
+    gap: 4px;
+
+    p {
+      margin: 0;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 12px;
+      color: #3f3f3f;
+
+      span {
+        color: #8a8a8a;
+        font-weight: 600;
+      }
+    }
+  }
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #f3f3f3;
+  color: #535353;
+  white-space: nowrap;
+
+  &--delivered {
+    background: #ecfdf3;
+    color: #027a48;
+  }
+
+  &--cancelled {
+    background: #fef3f2;
+    color: #b42318;
+  }
+}

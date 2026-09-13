@@ -3,6 +3,7 @@ import {
   OrderStatus,
   PaymentMethod,
   CourierDailySummary,
+  CourierStatus,
 } from '../models/order.model';
 import { UserRole } from '../models/profile.model';
 
@@ -40,7 +41,14 @@ export function toCents(amount: number | string | null | undefined): number {
   if (amount === null || amount === undefined || amount === '') {
     return 0;
   }
-  const normalized = String(amount).replace(',', '.').trim();
+  // Strip currency symbols / spaces so "100.00 ₾" still parses.
+  const normalized = String(amount)
+    .replace(/[^\d,.\-]/g, '')
+    .replace(',', '.')
+    .trim();
+  if (!normalized || normalized === '-' || normalized === '.') {
+    return 0;
+  }
   const match = normalized.match(/^(-?)(\d+)(?:\.(\d{0,2})\d*)?$/);
   if (!match) {
     const n = Number(normalized);
@@ -59,6 +67,18 @@ export function centsToNumber(cents: number): number {
 
 export function parsePaymentMethod(value: unknown): PaymentMethod | null {
   return value === 'cash' || value === 'card' ? value : null;
+}
+
+export function parseCourierStatus(value: unknown): CourierStatus | null {
+  if (
+    value === 'accepted' ||
+    value === 'picked_up' ||
+    value === 'in_transit' ||
+    value === 'delivered'
+  ) {
+    return value;
+  }
+  return null;
 }
 
 export function normalizeOrder(
@@ -87,8 +107,14 @@ export function normalizeOrder(
     notes: raw.notes ?? null,
     status: (raw.status as OrderStatus) ?? 'pending',
     payment_method: parsePaymentMethod(raw.payment_method),
+    amount_to_collect: centsToNumber(toCents(raw.amount_to_collect as number | string | null)),
     collected_amount: centsToNumber(toCents(raw.collected_amount as number | string | null)),
     delivered_at: raw.delivered_at ?? null,
+    cancelled_at: raw.cancelled_at ?? null,
+    courier_sort_order:
+      raw.courier_sort_order === null || raw.courier_sort_order === undefined
+        ? null
+        : Number(raw.courier_sort_order),
     created_at: raw.created_at ?? '',
     updated_at: raw.updated_at ?? '',
   };
@@ -125,6 +151,54 @@ export function buildTelHref(phone: string): string {
     return `tel:+995${cleaned.slice(1)}`;
   }
   return `tel:+995${cleaned}`;
+}
+
+/** Visual phone formatting for courier UI (keeps dialable digits intact via buildTelHref). */
+export function formatPhoneDisplay(phone: string): string {
+  const trimmed = phone.trim();
+  if (!trimmed) {
+    return '';
+  }
+
+  let digits = trimmed.replace(/\D/g, '');
+  if (digits.startsWith('995') && digits.length > 9) {
+    digits = digits.slice(3);
+  }
+  if (digits.startsWith('0') && digits.length === 10) {
+    digits = digits.slice(1);
+  }
+  if (digits.length === 9) {
+    return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
+  }
+  return trimmed;
+}
+
+export function courierStatusLabel(status: OrderStatus | string): string {
+  const map: Record<string, string> = {
+    accepted: 'მიღებული',
+    picked_up: 'აღებული',
+    in_transit: 'გზაში',
+    delivered: 'ჩაბარებული',
+    cancelled: 'გაუქმებული',
+    pending: 'მოლოდინში',
+  };
+  return map[status] ?? status;
+}
+
+export function paymentMethodLabel(method: PaymentMethod | null | undefined): string {
+  if (method === 'cash') return 'ქეში';
+  if (method === 'card') return 'ბარათი';
+  return '—';
+}
+
+export function historyCompletedAt(order: Order): string | null {
+  if (order.status === 'delivered') {
+    return order.delivered_at;
+  }
+  if (order.status === 'cancelled') {
+    return order.cancelled_at ?? order.updated_at;
+  }
+  return order.updated_at;
 }
 
 export function summarizeCourierDay(orders: Order[]): CourierDailySummary {

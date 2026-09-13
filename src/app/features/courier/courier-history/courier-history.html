@@ -1,0 +1,51 @@
+<section class="courier-history">
+  <div class="courier-history__heading">
+    <h2>ისტორია</h2>
+    <p>ჩაბარებული და გაუქმებული შეკვეთები</p>
+  </div>
+
+  @if (errorMessage()) {
+    <p class="courier-history__error" role="alert">{{ errorMessage() }}</p>
+  }
+
+  @if (loading()) {
+    <p class="courier-history__muted">იტვირთება...</p>
+  } @else if (orders().length === 0) {
+    <p class="courier-history__muted">ისტორია ცარიელია.</p>
+  } @else {
+    <div class="courier-history__list">
+      @for (order of orders(); track order.id) {
+        <article class="history-card">
+          <div class="history-card__top">
+            <div>
+              <p class="history-card__id">#{{ order.id }}</p>
+              <h3>{{ order.recipient_name }}</h3>
+            </div>
+            <span [class]="statusClass(order.status)">{{ statusLabel(order.status) }}</span>
+          </div>
+
+          <p class="history-card__address">{{ order.delivery_address }}</p>
+
+          <div class="history-card__meta">
+            <p>
+              <span>თანხა</span>
+              {{ formatGel(order.collected_amount) }} ₾
+            </p>
+            <p>
+              <span>გადახდა</span>
+              {{ paymentLabel(order.payment_method) }}
+            </p>
+            <p>
+              <span>{{ order.status === 'cancelled' ? 'გაუქმდა' : 'ჩაბარდა' }}</span>
+              {{
+                completedAt(order)
+                  ? (completedAt(order) | date: 'd MMM y, HH:mm')
+                  : '—'
+              }}
+            </p>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</section>

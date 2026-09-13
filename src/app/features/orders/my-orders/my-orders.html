@@ -14,7 +14,7 @@
     } @else if (orders().length === 0) {
       <p class="my-orders-page__muted">{{ 'orders.empty' | t }}</p>
     } @else {
-      <div class="my-orders-page__list">
+      <div class="my-orders-page__grid">
         @for (order of orders(); track order.id) {
           <article class="my-orders-page__card">
             <div class="my-orders-page__card-top">
@@ -27,35 +27,7 @@
               </span>
             </div>
 
-            <dl class="my-orders-page__meta">
-              <div>
-                <dt>{{ 'orders.senderName' | t }}</dt>
-                <dd>{{ order.sender_name || '—' }}</dd>
-              </div>
-              <div>
-                <dt>{{ 'orders.senderPhone' | t }}</dt>
-                <dd>{{ order.sender_phone || '—' }}</dd>
-              </div>
-              <div>
-                <dt>{{ 'orders.recipientName' | t }}</dt>
-                <dd>{{ order.recipient_name || '—' }}</dd>
-              </div>
-              <div>
-                <dt>{{ 'orders.recipientPhone' | t }}</dt>
-                <dd>{{ order.recipient_phone || '—' }}</dd>
-              </div>
-              <div>
-                <dt>{{ 'orders.pickupCity' | t }}</dt>
-                <dd>{{ order.pickup_city || '—' }}</dd>
-              </div>
-              <div>
-                <dt>{{ 'orders.pickupDistrict' | t }}</dt>
-                <dd>{{ order.pickup_district || '—' }}</dd>
-              </div>
-              <div>
-                <dt>{{ 'orders.pickupAddress' | t }}</dt>
-                <dd>{{ order.pickup_address || '—' }}</dd>
-              </div>
+            <dl class="my-orders-page__compact">
               <div>
                 <dt>{{ 'orders.deliveryCity' | t }}</dt>
                 <dd>{{ order.delivery_city || '—' }}</dd>
@@ -65,28 +37,49 @@
                 <dd>{{ order.delivery_district || '—' }}</dd>
               </div>
               <div>
-                <dt>{{ 'orders.deliveryAddress' | t }}</dt>
-                <dd>{{ order.delivery_address || '—' }}</dd>
+                <dt>{{ 'orders.deliveryDate' | t }}</dt>
+                <dd>{{ order.delivery_date ? (order.delivery_date | date: 'mediumDate') : '—' }}</dd>
               </div>
               <div>
                 <dt>{{ 'orders.parcelCount' | t }}</dt>
                 <dd>{{ order.parcel_count }}</dd>
               </div>
               <div>
-                <dt>{{ 'orders.deliveryDate' | t }}</dt>
-                <dd>{{ order.delivery_date ? (order.delivery_date | date: 'mediumDate') : '—' }}</dd>
+                <dt>ასაღები თანხა</dt>
+                <dd>{{ formatGel(order.amount_to_collect) }} ₾</dd>
               </div>
-              <div>
-                <dt>{{ 'orders.created' | t }}</dt>
-                <dd>{{ order.created_at ? (order.created_at | date: 'medium') : '—' }}</dd>
-              </div>
-              @if (order.notes) {
-                <div class="my-orders-page__notes">
-                  <dt>{{ 'orders.notes' | t }}</dt>
-                  <dd>{{ order.notes }}</dd>
-                </div>
-              }
             </dl>
+
+            <button type="button" class="my-orders-page__details-btn" (click)="toggleDetails(order.id)">
+              {{ expandedId() === order.id ? 'დამალვა' : 'დეტალები' }}
+            </button>
+
+            @if (expandedId() === order.id) {
+              <dl class="my-orders-page__extra">
+                <div>
+                  <dt>{{ 'orders.recipientPhone' | t }}</dt>
+                  <dd>{{ order.recipient_phone || '—' }}</dd>
+                </div>
+                <div>
+                  <dt>{{ 'orders.deliveryAddress' | t }}</dt>
+                  <dd>{{ order.delivery_address || '—' }}</dd>
+                </div>
+                <div>
+                  <dt>{{ 'orders.senderName' | t }}</dt>
+                  <dd>{{ order.sender_name || '—' }}</dd>
+                </div>
+                <div>
+                  <dt>{{ 'orders.pickupCity' | t }}</dt>
+                  <dd>{{ order.pickup_city || '—' }}</dd>
+                </div>
+                @if (order.notes) {
+                  <div>
+                    <dt>{{ 'orders.notes' | t }}</dt>
+                    <dd>{{ order.notes }}</dd>
+                  </div>
+                }
+              </dl>
+            }
           </article>
         }
       </div>
