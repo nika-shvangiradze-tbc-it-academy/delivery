@@ -327,10 +327,10 @@ export const translationResources = {
         created: 'შექმნილია',
         status: {
           pending: 'მოლოდინში',
-          accepted: 'მინიჭებული',
+          accepted: 'მიღებული',
           picked_up: 'აღებული',
           in_transit: 'გზაში',
-          delivered: 'მიწოდებული',
+          delivered: 'ჩაბარებული',
           cancelled: 'გაუქმებული',
         },
       },

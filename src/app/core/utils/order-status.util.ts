@@ -7,16 +7,68 @@ import {
 } from '../models/order.model';
 import { UserRole } from '../models/profile.model';
 
-export function orderStatusLabelKey(status: OrderStatus | string | null | undefined): string {
-  if (!status) {
-    return 'orders.status.pending';
+/** Shared status → UI mapping (labels + CSS modifiers). DB values stay unchanged. */
+export const ORDER_STATUS_UI = {
+  pending: {
+    labelKa: 'მოლოდინში',
+    badgeClass: 'status-badge status-badge--pending',
+    selectClass: 'status-select status-select--pending',
+  },
+  accepted: {
+    labelKa: 'მიღებული',
+    badgeClass: 'status-badge status-badge--accepted',
+    selectClass: 'status-select status-select--accepted',
+  },
+  picked_up: {
+    labelKa: 'აღებული',
+    badgeClass: 'status-badge status-badge--picked_up',
+    selectClass: 'status-select status-select--picked_up',
+  },
+  in_transit: {
+    labelKa: 'გზაში',
+    badgeClass: 'status-badge status-badge--in_transit',
+    selectClass: 'status-select status-select--in_transit',
+  },
+  delivered: {
+    labelKa: 'ჩაბარებული',
+    badgeClass: 'status-badge status-badge--delivered',
+    selectClass: 'status-select status-select--delivered',
+  },
+  cancelled: {
+    labelKa: 'გაუქმებული',
+    badgeClass: 'status-badge status-badge--cancelled',
+    selectClass: 'status-select status-select--cancelled',
+  },
+} as const satisfies Record<
+  OrderStatus,
+  { labelKa: string; badgeClass: string; selectClass: string }
+>;
+
+function resolveStatusKey(
+  status: OrderStatus | string | null | undefined,
+): OrderStatus {
+  if (status && status in ORDER_STATUS_UI) {
+    return status as OrderStatus;
   }
-  return `orders.status.${status}`;
+  return 'pending';
 }
 
+export function orderStatusLabelKey(status: OrderStatus | string | null | undefined): string {
+  return `orders.status.${resolveStatusKey(status)}`;
+}
+
+/** CSS classes for status badge/pill. Alias: getStatusClass */
 export function orderStatusClass(status: OrderStatus | string | null | undefined): string {
-  const safe = status || 'pending';
-  return `status-badge status-badge--${safe}`;
+  return ORDER_STATUS_UI[resolveStatusKey(status)].badgeClass;
+}
+
+export const getStatusClass = orderStatusClass;
+
+/** CSS classes for admin status <select> reflecting current value. */
+export function orderStatusSelectClass(
+  status: OrderStatus | string | null | undefined,
+): string {
+  return ORDER_STATUS_UI[resolveStatusKey(status)].selectClass;
 }
 
 export function parseRole(role: string | null | undefined): UserRole {
@@ -175,15 +227,7 @@ export function formatPhoneDisplay(phone: string): string {
 }
 
 export function courierStatusLabel(status: OrderStatus | string): string {
-  const map: Record<string, string> = {
-    accepted: 'მიღებული',
-    picked_up: 'აღებული',
-    in_transit: 'გზაში',
-    delivered: 'ჩაბარებული',
-    cancelled: 'გაუქმებული',
-    pending: 'მოლოდინში',
-  };
-  return map[status] ?? status;
+  return ORDER_STATUS_UI[resolveStatusKey(status)].labelKa;
 }
 
 export function paymentMethodLabel(method: PaymentMethod | null | undefined): string {

@@ -122,47 +122,6 @@
   }
 }
 
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
-  background: #f3f3f3;
-  color: #535353;
-
-  &--pending {
-    background: #fff4e5;
-    color: #b54708;
-  }
-
-  &--accepted {
-    background: #eef4ff;
-    color: #3538cd;
-  }
-
-  &--picked_up {
-    background: #f4ebff;
-    color: #6941c6;
-  }
-
-  &--in_transit {
-    background: #e0f2fe;
-    color: #026aa2;
-  }
-
-  &--delivered {
-    background: #ecfdf3;
-    color: #027a48;
-  }
-
-  &--cancelled {
-    background: #fef3f2;
-    color: #b42318;
-  }
-}
-
 @media (max-width: 860px) {
   .admin-dashboard__grid {
     grid-template-columns: 1fr 1fr;

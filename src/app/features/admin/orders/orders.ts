@@ -24,6 +24,7 @@ import {
   formatGel,
   orderStatusClass,
   orderStatusLabelKey,
+  orderStatusSelectClass,
   paymentMethodLabel,
   centsToNumber,
   toCents,
@@ -67,6 +68,7 @@ export class AdminOrders implements OnInit {
   readonly statuses = ORDER_STATUSES;
 
   readonly statusClass = orderStatusClass;
+  readonly statusSelectClass = orderStatusSelectClass;
   readonly statusLabelKey = orderStatusLabelKey;
   readonly formatGel = formatGel;
   readonly paymentLabel = paymentMethodLabel;

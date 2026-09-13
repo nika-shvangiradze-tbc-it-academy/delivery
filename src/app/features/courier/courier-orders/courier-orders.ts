@@ -43,7 +43,8 @@ export class CourierOrders implements OnInit {
   readonly errorMessage = signal<string | null>(null);
   readonly successMessage = signal<string | null>(null);
   readonly showSummary = signal(false);
-  readonly expandedIds = signal<ReadonlySet<number>>(new Set());
+  /** Only one order card details panel open at a time. */
+  readonly expandedId = signal<number | null>(null);
   readonly confirmingCancelId = signal<number | null>(null);
   readonly paymentDrafts = signal<Record<number, PaymentMethod | null>>({});
   readonly summary = signal({
@@ -84,22 +85,22 @@ export class CourierOrders implements OnInit {
   }
 
   toggleDetails(orderId: number): void {
-    this.expandedIds.update((current) => {
-      const next = new Set(current);
-      if (next.has(orderId)) {
-        next.delete(orderId);
-      } else {
-        next.add(orderId);
-      }
-      return next;
-    });
+    this.expandedId.update((current) => (current === orderId ? null : orderId));
     if (this.confirmingCancelId() === orderId) {
       this.confirmingCancelId.set(null);
     }
   }
 
+  closeDetails(): void {
+    const id = this.expandedId();
+    this.expandedId.set(null);
+    if (id !== null && this.confirmingCancelId() === id) {
+      this.confirmingCancelId.set(null);
+    }
+  }
+
   isExpanded(orderId: number): boolean {
-    return this.expandedIds().has(orderId);
+    return this.expandedId() === orderId;
   }
 
   telHref(phone: string): string {
@@ -245,11 +246,7 @@ export class CourierOrders implements OnInit {
       delete next[orderId];
       return next;
     });
-    this.expandedIds.update((current) => {
-      const next = new Set(current);
-      next.delete(orderId);
-      return next;
-    });
+    this.expandedId.update((current) => (current === orderId ? null : current));
   }
 
   private async refreshSummary(): Promise<void> {

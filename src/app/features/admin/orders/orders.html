@@ -119,6 +119,7 @@
                 <td>{{ order.delivery_date ? (order.delivery_date | date: 'mediumDate') : '—' }}</td>
                 <td>
                   <select
+                    [class]="statusSelectClass(order.status)"
                     [disabled]="updating()"
                     [ngModel]="order.status"
                     [ngModelOptions]="{ standalone: true }"

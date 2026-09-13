@@ -133,68 +133,43 @@
               >
                 🧭 რუკაზე
               </a>
-              <button
-                type="button"
-                class="courier-card__btn courier-card__btn--details"
-                (click)="toggleDetails(order.id)"
-                [attr.aria-expanded]="isExpanded(order.id)"
-              >
-                {{ isExpanded(order.id) ? 'დახურვა' : 'დეტალები' }}
-              </button>
+              @if (!isExpanded(order.id)) {
+                <button
+                  type="button"
+                  class="courier-card__btn courier-card__btn--details"
+                  (click)="toggleDetails(order.id)"
+                  [attr.aria-expanded]="false"
+                >
+                  დეტალურად
+                </button>
+              } @else {
+                <button
+                  type="button"
+                  class="courier-card__btn courier-card__btn--close-action"
+                  (click)="closeDetails()"
+                  aria-expanded="true"
+                  aria-label="დეტალების დახურვა"
+                >
+                  ×
+                </button>
+              }
             </div>
           </div>
 
-          <!-- Expanded details -->
+          <!-- Expanded details: additional fields only (no compact summary duplicate) -->
           @if (isExpanded(order.id)) {
             <div class="courier-card__details" (click)="$event.stopPropagation()">
               <header class="courier-card__details-head">
-                <div>
-                  <p class="courier-card__details-id">შეკვეთა #{{ order.id }}</p>
-                  <h4 class="courier-card__details-name">{{ order.recipient_name }}</h4>
-                </div>
-                <span [class]="statusClass(order.status)">{{ statusLabel(order.status) }}</span>
-              </header>
-
-              <a class="courier-card__phone" [href]="telHref(order.recipient_phone)">
-                📞 {{ formatPhone(order.recipient_phone) }}
-              </a>
-
-              <div class="courier-card__location">
-                <p class="courier-card__location-addr">
-                  <span class="courier-card__pin" aria-hidden="true">📍</span>
-                  <strong>{{ order.delivery_address }}</strong>
-                </p>
-                @if (order.delivery_city || order.delivery_district) {
-                  <p class="courier-card__location-sub">
-                    @if (order.delivery_city && order.delivery_district) {
-                      {{ order.delivery_city }}, {{ order.delivery_district }}
-                    } @else {
-                      {{ order.delivery_city || order.delivery_district }}
-                    }
-                  </p>
-                }
-                <a
-                  class="courier-card__btn courier-card__btn--maps-outline"
-                  [href]="mapsUrl(order)"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <h4 class="courier-card__details-title">დეტალები</h4>
+                <button
+                  type="button"
+                  class="courier-card__details-close"
+                  (click)="closeDetails()"
+                  aria-label="დეტალების დახურვა"
                 >
-                  🧭 რუკაზე
-                </a>
-              </div>
-
-              <div class="courier-card__tiles">
-                <div class="courier-card__tile">
-                  <span class="courier-card__tile-value">📦 {{ order.parcel_count }}</span>
-                  <span class="courier-card__tile-label">ამანათი</span>
-                </div>
-                <div class="courier-card__tile courier-card__tile--wide">
-                  <span class="courier-card__tile-value courier-card__tile-value--money">
-                    {{ formatGel(order.amount_to_collect) }} ₾
-                  </span>
-                  <span class="courier-card__tile-label">ასაღები თანხა</span>
-                </div>
-              </div>
+                  ×
+                </button>
+              </header>
 
               <dl class="courier-card__info">
                 <div>
@@ -214,6 +189,14 @@
                 <div>
                   <dt>შენიშვნა</dt>
                   <dd>{{ order.notes || '—' }}</dd>
+                </div>
+                <div>
+                  <dt>გადახდის მეთოდი</dt>
+                  <dd>{{ selectedPayment(order.id) === 'cash' ? 'ქეში' : selectedPayment(order.id) === 'card' ? 'ბარათი' : '—' }}</dd>
+                </div>
+                <div>
+                  <dt>აღებული თანხა</dt>
+                  <dd>{{ formatGel(order.collected_amount) }} ₾</dd>
                 </div>
               </dl>
 
