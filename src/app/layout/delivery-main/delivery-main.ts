@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { DeliveryHeader } from '../delivery-header/delivery-header';
 import { Landing } from '../../features/landing/landing';
 import { Pricing } from '../../features/pricing/pricing';
@@ -14,5 +14,6 @@ import { Size } from '../../features/size/size';
   imports: [DeliveryHeader, Landing, Pricing, Items, Priorites, About, Rate, DeliveryFooter, Size],
   templateUrl: './delivery-main.html',
   styleUrl: './delivery-main.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DeliveryMain {}

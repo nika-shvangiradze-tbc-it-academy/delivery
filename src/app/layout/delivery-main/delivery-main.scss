@@ -14,8 +14,17 @@ app-items,
 app-priorites,
 app-about,
 app-rate,
+app-size,
 app-delivery-footer {
   content-visibility: auto;
   contain-intrinsic-size: 700px;
+}
+
+.main__defer-slot {
+  min-height: 280px;
+}
+
+.main__defer-slot--footer {
+  min-height: 160px;
 }
 

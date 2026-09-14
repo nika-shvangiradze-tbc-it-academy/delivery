@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { TranslatePipe } from '../../core/pipes/t.pipe';
 
 @Component({
@@ -6,6 +6,7 @@ import { TranslatePipe } from '../../core/pipes/t.pipe';
   imports: [TranslatePipe],
   templateUrl: './delivery-footer.html',
   styleUrl: './delivery-footer.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DeliveryFooter {
   readonly currentYear = new Date().getFullYear();
@@ -15,7 +16,6 @@ export class DeliveryFooter {
 
   readonly email = 'info@delivery.ge';
   readonly emailHref = 'mailto:info@delivery.ge';
-
 
   readonly social = {
     tiktok: 'https://www.tiktok.com/',

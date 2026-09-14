@@ -9,7 +9,6 @@
   --muted: #8a8a8a;
   --border: rgba(83, 83, 83, 0.12);
   --focus: 0 0 0 3px rgba(219, 118, 35, 0.28);
-  --rail-bg: #1e2738;
 }
 
 .header-fixed {
@@ -341,86 +340,6 @@
   }
 }
 
-/* Floating icon rail — overlays content, does not shrink page width */
-.side-nav {
-  position: fixed;
-  top: 50%;
-  left: 0;
-  z-index: 1050;
-  width: 68px;
-  padding: 14px 8px;
-  background: var(--rail-bg);
-  border-radius: 0 22px 22px 0;
-  box-shadow: 4px 8px 24px rgba(15, 25, 45, 0.22);
-  transform: translateY(-50%);
-  pointer-events: auto;
-
-  &__list {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-  }
-
-  &__item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    width: 52px;
-    min-height: 44px;
-    padding: 8px 4px;
-    border-radius: 14px;
-    text-decoration: none;
-    color: rgba(255, 255, 255, 0.82);
-    transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
-
-    &:hover {
-      color: #fff;
-      background: rgba(255, 255, 255, 0.08);
-    }
-
-    &.is-active {
-      width: 52px;
-      min-height: 58px;
-      background: var(--accent);
-      color: #fff;
-      box-shadow: 0 6px 14px rgba(219, 118, 35, 0.35);
-    }
-
-    &:focus-visible {
-      outline: none;
-      box-shadow: 0 0 0 3px rgba(219, 118, 35, 0.45);
-    }
-  }
-
-  &__icon {
-    display: block;
-    width: 20px;
-    height: 20px;
-    flex-shrink: 0;
-  }
-
-  &__label {
-    display: none;
-    max-width: 48px;
-    font-size: 9px;
-    font-weight: 700;
-    line-height: 1.15;
-    text-align: center;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  &__item.is-active .side-nav__label {
-    display: block;
-  }
-}
-
 .mobile-menu,
 .mobile-menu__backdrop {
   display: none;
@@ -465,10 +384,6 @@
     &__brand-name {
       font-size: 18px;
     }
-  }
-
-  .side-nav--desktop {
-    display: none;
   }
 
   .mobile-menu__backdrop {

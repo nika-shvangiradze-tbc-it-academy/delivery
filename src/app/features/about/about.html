@@ -8,7 +8,10 @@
         <p [innerText]="'about.body' | t"></p>
       </div>
       <div class="about__img">
-        <img src="/assets/Picture1.png" alt="about" width="100%" height="100%"/>
+        <picture>
+          <source srcset="/assets/Picture1.webp" type="image/webp" />
+          <img src="/assets/Picture1.jpg" alt="about" width="1200" height="365" loading="lazy" decoding="async" />
+        </picture>
       </div>
     </div>
     <div class="about__features">

@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, Signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, Signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { ImageLoaderService } from './core/services/image-loader.service';
 import { I18nService } from './core/services/i18n.service';
@@ -10,6 +10,7 @@ import { PageLoaderService } from './core/services/page-loader.service';
   imports: [RouterOutlet],
   templateUrl: './app.html',
   styleUrl: './app.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class App implements OnInit, OnDestroy {
   readonly isPageLoading: Signal<boolean>;

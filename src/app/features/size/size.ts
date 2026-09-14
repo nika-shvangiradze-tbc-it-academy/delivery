@@ -1,4 +1,4 @@
-import { Component, HostListener, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, HostListener, signal } from '@angular/core';
 import { TranslatePipe } from '../../core/pipes/t.pipe';
 
 @Component({
@@ -6,6 +6,7 @@ import { TranslatePipe } from '../../core/pipes/t.pipe';
   imports: [TranslatePipe],
   templateUrl: './size.html',
   styleUrl: './size.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Size {
   readonly contactModalOpen = signal(false);

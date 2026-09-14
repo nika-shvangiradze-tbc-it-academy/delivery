@@ -1,21 +1,7 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
-
-async function waitForAuthReady(auth: AuthService): Promise<void> {
-  if (auth.isReady()) {
-    return;
-  }
-
-  await new Promise<void>((resolve) => {
-    const interval = setInterval(() => {
-      if (auth.isReady()) {
-        clearInterval(interval);
-        resolve();
-      }
-    }, 20);
-  });
-}
+import { waitForAuthReady } from '../utils/wait-for-auth-ready';
 
 /**
  * Keeps admin/courier on their role home when they hit the public landing (`/`).

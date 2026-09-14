@@ -1,21 +1,47 @@
 <div class="main">
+  <app-delivery-header></app-delivery-header>
 
-<app-delivery-header></app-delivery-header>
+  <app-landing></app-landing>
 
-<app-landing></app-landing>
+  @defer (on viewport; prefetch on idle) {
+    <app-pricing></app-pricing>
+  } @placeholder {
+    <div class="main__defer-slot" aria-hidden="true"></div>
+  }
 
-<app-pricing></app-pricing>
+  @defer (on viewport; prefetch on idle) {
+    <app-items></app-items>
+  } @placeholder {
+    <div class="main__defer-slot" aria-hidden="true"></div>
+  }
 
+  @defer (on viewport; prefetch on idle) {
+    <app-priorites></app-priorites>
+  } @placeholder {
+    <div class="main__defer-slot" aria-hidden="true"></div>
+  }
 
-<app-items></app-items>
+  @defer (on viewport; prefetch on idle) {
+    <app-about></app-about>
+  } @placeholder {
+    <div class="main__defer-slot" aria-hidden="true"></div>
+  }
 
-<app-priorites></app-priorites>
+  @defer (on viewport; prefetch on idle) {
+    <app-rate></app-rate>
+  } @placeholder {
+    <div class="main__defer-slot" aria-hidden="true"></div>
+  }
 
-<app-about></app-about>
+  @defer (on viewport; prefetch on idle) {
+    <app-size></app-size>
+  } @placeholder {
+    <div class="main__defer-slot" aria-hidden="true"></div>
+  }
 
-<app-rate></app-rate>
-
-<app-size></app-size>
-<app-delivery-footer></app-delivery-footer>
-
+  @defer (on viewport; prefetch on idle) {
+    <app-delivery-footer></app-delivery-footer>
+  } @placeholder {
+    <div class="main__defer-slot main__defer-slot--footer" aria-hidden="true"></div>
+  }
 </div>

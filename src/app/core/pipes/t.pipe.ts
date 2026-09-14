@@ -1,17 +1,19 @@
 import {
   ChangeDetectorRef,
   EffectRef,
+  Pipe,
+  PipeTransform,
   effect,
   inject,
   OnDestroy,
-  Pipe,
-  PipeTransform,
 } from '@angular/core';
 import { I18nService } from '../services/i18n.service';
 
 @Pipe({
   name: 't',
   standalone: true,
+  // Impure so language switches refresh without threading lang into every call site.
+  // Marketing/feature shells use OnPush, which keeps re-eval cost bounded.
   pure: false,
 })
 export class TranslatePipe implements PipeTransform, OnDestroy {

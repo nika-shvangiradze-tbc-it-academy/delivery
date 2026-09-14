@@ -1,4 +1,4 @@
-<div class="chrome" [class.chrome--sidebar]="showPublicNav()">
+<div class="chrome">
   <div class="header-fixed">
     <header
       class="topbar"
@@ -52,13 +52,13 @@
           class="topbar__burger"
           type="button"
           (click)="toggleMenu()"
-          [attr.aria-expanded]="isMenuOpen"
+          [attr.aria-expanded]="isMenuOpen()"
           [attr.aria-controls]="'app-mobile-menu'"
-          [attr.aria-label]="(isMenuOpen ? 'nav.closeMenu' : 'nav.openMenu') | t"
+          [attr.aria-label]="(isMenuOpen() ? 'nav.closeMenu' : 'nav.openMenu') | t"
         >
-          <span [class.is-open]="isMenuOpen"></span>
-          <span [class.is-open]="isMenuOpen"></span>
-          <span [class.is-open]="isMenuOpen"></span>
+          <span [class.is-open]="isMenuOpen()"></span>
+          <span [class.is-open]="isMenuOpen()"></span>
+          <span [class.is-open]="isMenuOpen()"></span>
         </button>
 
         <div class="topbar__desktop-utils topbar__desktop-only">
@@ -141,79 +141,8 @@
     </header>
   </div>
 
-  <!-- Desktop floating public rail (does not shrink content) -->
-  @if (showPublicNav()) {
-    <aside class="side-nav side-nav--desktop" aria-label="Site">
-      <nav class="side-nav__list">
-        <a
-          href="#home"
-          class="side-nav__item"
-          [class.is-active]="activeSection === 'home'"
-          (click)="onNavClick('home', $event)"
-        >
-          <svg class="side-nav__icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1V9.5z" />
-          </svg>
-          <span class="side-nav__label">{{ 'nav.home' | t }}</span>
-        </a>
-        <a
-          href="#about"
-          class="side-nav__item"
-          [class.is-active]="activeSection === 'about'"
-          (click)="onNavClick('about', $event)"
-        >
-          <svg class="side-nav__icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="16" x2="12" y2="12" />
-            <line x1="12" y1="8" x2="12.01" y2="8" />
-          </svg>
-          <span class="side-nav__label">{{ 'nav.about' | t }}</span>
-        </a>
-        <a
-          href="#contact"
-          class="side-nav__item"
-          [class.is-active]="activeSection === 'contact'"
-          (click)="onNavClick('contact', $event)"
-        >
-          <svg class="side-nav__icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-          </svg>
-          <span class="side-nav__label">{{ 'nav.contact' | t }}</span>
-        </a>
-        <a
-          href="#pricing"
-          class="side-nav__item"
-          [class.is-active]="activeSection === 'pricing'"
-          (click)="onNavClick('pricing', $event)"
-        >
-          <svg class="side-nav__icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <rect x="3" y="3" width="7" height="7" rx="1" />
-            <rect x="14" y="3" width="7" height="7" rx="1" />
-            <rect x="14" y="14" width="7" height="7" rx="1" />
-            <rect x="3" y="14" width="7" height="7" rx="1" />
-          </svg>
-          <span class="side-nav__label">{{ 'nav.pricing' | t }}</span>
-        </a>
-        <a
-          href="#cities"
-          class="side-nav__item"
-          [class.is-active]="activeSection === 'cities'"
-          (click)="onNavClick('cities', $event)"
-        >
-          <svg class="side-nav__icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="12" cy="5" r="2" />
-            <circle cx="5" cy="19" r="2" />
-            <circle cx="19" cy="19" r="2" />
-            <path d="M12 7v4M12 11l-5 6M12 11l5 6" />
-          </svg>
-          <span class="side-nav__label">{{ 'nav.cities' | t }}</span>
-        </a>
-      </nav>
-    </aside>
-  }
-
   <!-- Mobile: one burger drawer with everything -->
-  @if (isMenuOpen) {
+  @if (isMenuOpen()) {
     <button
       type="button"
       class="mobile-menu__backdrop"
@@ -225,24 +154,24 @@
   <aside
     id="app-mobile-menu"
     class="mobile-menu"
-    [class.is-open]="isMenuOpen"
+    [class.is-open]="isMenuOpen()"
     aria-label="Menu"
   >
     @if (showPublicNav()) {
       <nav class="mobile-menu__section" aria-label="Site">
-        <a href="#home" [class.is-active]="activeSection === 'home'" (click)="onNavClick('home', $event)">
+        <a href="#home" [class.is-active]="activeSection() === 'home'" (click)="onNavClick('home', $event)">
           {{ 'nav.home' | t }}
         </a>
-        <a href="#about" [class.is-active]="activeSection === 'about'" (click)="onNavClick('about', $event)">
+        <a href="#about" [class.is-active]="activeSection() === 'about'" (click)="onNavClick('about', $event)">
           {{ 'nav.about' | t }}
         </a>
-        <a href="#contact" [class.is-active]="activeSection === 'contact'" (click)="onNavClick('contact', $event)">
+        <a href="#contact" [class.is-active]="activeSection() === 'contact'" (click)="onNavClick('contact', $event)">
           {{ 'nav.contact' | t }}
         </a>
-        <a href="#pricing" [class.is-active]="activeSection === 'pricing'" (click)="onNavClick('pricing', $event)">
+        <a href="#pricing" [class.is-active]="activeSection() === 'pricing'" (click)="onNavClick('pricing', $event)">
           {{ 'nav.pricing' | t }}
         </a>
-        <a href="#cities" [class.is-active]="activeSection === 'cities'" (click)="onNavClick('cities', $event)">
+        <a href="#cities" [class.is-active]="activeSection() === 'cities'" (click)="onNavClick('cities', $event)">
           {{ 'nav.cities' | t }}
         </a>
       </nav>

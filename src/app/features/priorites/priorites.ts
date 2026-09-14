@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { TranslatePipe } from '../../core/pipes/t.pipe';
 
 @Component({
@@ -6,5 +6,6 @@ import { TranslatePipe } from '../../core/pipes/t.pipe';
   imports: [TranslatePipe],
   templateUrl: './priorites.html',
   styleUrl: './priorites.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Priorites {}

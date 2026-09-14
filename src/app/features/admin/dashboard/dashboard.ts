@@ -1,4 +1,5 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   DestroyRef,
   OnInit,
@@ -20,6 +21,7 @@ import { DeliveryHeader } from '../../../layout/delivery-header/delivery-header'
   imports: [DeliveryHeader, TranslatePipe, RouterLink, DatePipe],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AdminDashboard implements OnInit {
   private readonly adminService = inject(AdminService);

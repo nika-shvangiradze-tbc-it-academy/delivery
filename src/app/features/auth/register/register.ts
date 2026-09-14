@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { TranslatePipe } from '../../../core/pipes/t.pipe';
@@ -10,6 +10,7 @@ import { DeliveryHeader } from '../../../layout/delivery-header/delivery-header'
   imports: [ReactiveFormsModule, RouterLink, TranslatePipe, DeliveryHeader],
   templateUrl: './register.html',
   styleUrl: './register.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Register implements OnInit {
   private readonly fb = inject(FormBuilder);
@@ -28,9 +29,7 @@ export class Register implements OnInit {
   });
 
   async ngOnInit(): Promise<void> {
-    while (!this.auth.isReady()) {
-      await new Promise((r) => setTimeout(r, 20));
-    }
+    await this.auth.whenReady();
     if (this.auth.isAuthenticated()) {
       await this.router.navigateByUrl(await this.auth.resolveHomePath());
     }

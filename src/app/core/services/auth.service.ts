@@ -23,6 +23,10 @@ export class AuthService {
   private readonly userSignal = signal<User | null>(null);
   private readonly profileSignal = signal<Profile | null>(null);
   private readonly readySignal = signal(false);
+  private readyResolve!: () => void;
+  private readonly readyPromise = new Promise<void>((resolve) => {
+    this.readyResolve = resolve;
+  });
 
   readonly session = this.sessionSignal.asReadonly();
   readonly user = this.userSignal.asReadonly();
@@ -36,6 +40,11 @@ export class AuthService {
     void this.init();
   }
 
+  /** Resolves once the initial auth session check finishes (no polling). */
+  whenReady(): Promise<void> {
+    return this.readySignal() ? Promise.resolve() : this.readyPromise;
+  }
+
   private async init(): Promise<void> {
     const { data } = await this.supabase.client.auth.getSession();
     await this.applySession(data.session);
@@ -45,6 +54,7 @@ export class AuthService {
     });
 
     this.readySignal.set(true);
+    this.readyResolve();
   }
 
   private async applySession(session: Session | null): Promise<void> {

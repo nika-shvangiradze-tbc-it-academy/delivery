@@ -1,5 +1,6 @@
 import {
   AfterViewInit,
+  ChangeDetectionStrategy,
   Component,
   HostListener,
   OnDestroy,
@@ -20,14 +21,15 @@ type SectionId = 'home' | 'about' | 'pricing' | 'cities' | 'contact';
   imports: [TranslatePipe, RouterLink, RouterLinkActive],
   templateUrl: './delivery-header.html',
   styleUrl: './delivery-header.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DeliveryHeader implements AfterViewInit, OnDestroy {
   private readonly i18nService = inject(I18nService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 
-  isMenuOpen = false;
-  activeSection: SectionId = 'home';
+  readonly isMenuOpen = signal(false);
+  readonly activeSection = signal<SectionId>('home');
   readonly loggingOut = signal(false);
   readonly currentLanguage = this.i18nService.currentLanguage;
   readonly isAuthenticated = this.auth.isAuthenticated;
@@ -71,22 +73,22 @@ export class DeliveryHeader implements AfterViewInit, OnDestroy {
 
   @HostListener('document:keydown.escape')
   onEscape(): void {
-    if (this.isMenuOpen) {
+    if (this.isMenuOpen()) {
       this.closeMenu();
     }
   }
 
   toggleMenu(): void {
-    this.isMenuOpen = !this.isMenuOpen;
+    this.isMenuOpen.update((open) => !open);
   }
 
   closeMenu(): void {
-    this.isMenuOpen = false;
+    this.isMenuOpen.set(false);
   }
 
   async onNavClick(sectionId: SectionId, event: Event): Promise<void> {
     event.preventDefault();
-    this.activeSection = sectionId;
+    this.activeSection.set(sectionId);
     this.closeMenu();
 
     if (this.router.url.split('#')[0] !== '/') {
@@ -136,7 +138,7 @@ export class DeliveryHeader implements AfterViewInit, OnDestroy {
       const bottomY = topY + el.offsetHeight;
 
       if (markerY >= topY && markerY < bottomY) {
-        this.activeSection = id;
+        this.activeSection.set(id);
         return;
       }
 
@@ -147,7 +149,7 @@ export class DeliveryHeader implements AfterViewInit, OnDestroy {
       }
     }
 
-    this.activeSection = closestId;
+    this.activeSection.set(closestId);
   }
 
   private scrollToSection(sectionId: SectionId): void {

@@ -5,39 +5,28 @@ export class PageLoaderService {
   readonly isLoading = signal(true);
 
   private loaderTimeoutId: ReturnType<typeof setTimeout> | null = null;
-  private fallbackTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
   init(): void {
-    const hideLoader = (delayMs = 700) => {
+    // Hide as soon as the document is interactive — do not wait on window.load
+    // (images/fonts) or invent artificial delay that blocks LCP.
+    const hide = () => {
       if (this.loaderTimeoutId) {
         clearTimeout(this.loaderTimeoutId);
       }
-
-      this.loaderTimeoutId = setTimeout(() => {
-        this.isLoading.set(false);
-      }, delayMs);
+      this.loaderTimeoutId = setTimeout(() => this.isLoading.set(false), 0);
     };
 
-    if (document.readyState === 'complete') {
-      hideLoader(350);
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      hide();
       return;
     }
 
-    const onWindowLoad = () => hideLoader();
-    window.addEventListener('load', onWindowLoad, { once: true });
-
-    this.fallbackTimeoutId = setTimeout(() => {
-      hideLoader(0);
-    }, 3000);
+    document.addEventListener('DOMContentLoaded', hide, { once: true });
   }
 
   destroy(): void {
     if (this.loaderTimeoutId) {
       clearTimeout(this.loaderTimeoutId);
-    }
-
-    if (this.fallbackTimeoutId) {
-      clearTimeout(this.fallbackTimeoutId);
     }
   }
 }
