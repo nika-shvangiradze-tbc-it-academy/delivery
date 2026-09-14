@@ -4,6 +4,21 @@
     <p>ჩაბარებული და გაუქმებული შეკვეთები</p>
   </div>
 
+  <div class="courier-history__filters" role="tablist" aria-label="ისტორიის ფილტრი">
+    @for (option of filterOptions; track option.id) {
+      <button
+        type="button"
+        class="courier-history__filter"
+        role="tab"
+        [class.is-active]="historyFilter() === option.id"
+        [attr.aria-selected]="historyFilter() === option.id"
+        (click)="setHistoryFilter(option.id)"
+      >
+        {{ option.label }}
+      </button>
+    }
+  </div>
+
   @if (errorMessage()) {
     <p class="courier-history__error" role="alert">{{ errorMessage() }}</p>
   }
@@ -14,11 +29,11 @@
 
   @if (loading()) {
     <p class="courier-history__muted">იტვირთება...</p>
-  } @else if (orders().length === 0) {
-    <p class="courier-history__muted">ისტორია ცარიელია.</p>
+  } @else if (filteredOrders().length === 0) {
+    <p class="courier-history__muted">{{ emptyStateText() }}</p>
   } @else {
     <div class="courier-history__list">
-      @for (order of orders(); track order.id) {
+      @for (order of filteredOrders(); track order.id) {
         <article class="history-card">
           <div class="history-card__top">
             <div>

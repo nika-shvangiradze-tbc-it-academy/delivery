@@ -1,4 +1,6 @@
--- Base reference schema (see also migrations/20260913_courier_role.sql for upgrades).
+-- Base reference schema (see also migrations/ for upgrades + RLS).
+-- RLS must remain ENABLED on profiles, orders, courier_order_events.
+-- Apply migrations/20260914_security_hardening.sql before production.
 
 create table if not exists public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,

@@ -3,6 +3,7 @@ import {
   Component,
   DestroyRef,
   OnInit,
+  computed,
   inject,
   signal,
 } from '@angular/core';
@@ -26,6 +27,8 @@ import {
   paymentMethodLabel,
 } from '../../../core/utils/order-status.util';
 
+export type HistoryFilter = 'all' | 'delivered' | 'cancelled';
+
 @Component({
   selector: 'app-courier-history',
   imports: [DatePipe],
@@ -47,6 +50,22 @@ export class CourierHistory implements OnInit {
   readonly editingId = signal<number | null>(null);
   readonly draftStatus = signal<CourierStatus>('accepted');
   readonly draftPayment = signal<PaymentMethod | null>(null);
+  readonly historyFilter = signal<HistoryFilter>('all');
+
+  readonly filterOptions: ReadonlyArray<{ id: HistoryFilter; label: string }> = [
+    { id: 'all', label: 'ყველა' },
+    { id: 'delivered', label: 'ჩაბარებული' },
+    { id: 'cancelled', label: 'გაუქმებული' },
+  ];
+
+  readonly filteredOrders = computed(() => {
+    const filter = this.historyFilter();
+    const list = this.orders();
+    if (filter === 'all') {
+      return list;
+    }
+    return list.filter((order) => order.status === filter);
+  });
 
   readonly correctionStatuses = COURIER_CORRECTION_STATUSES;
   readonly statusClass = orderStatusClass;
@@ -68,6 +87,21 @@ export class CourierHistory implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await this.reload();
+  }
+
+  setHistoryFilter(filter: HistoryFilter): void {
+    this.historyFilter.set(filter);
+  }
+
+  emptyStateText(): string {
+    switch (this.historyFilter()) {
+      case 'delivered':
+        return 'ჩაბარებული შეკვეთები არ არის.';
+      case 'cancelled':
+        return 'გაუქმებული შეკვეთები არ არის.';
+      default:
+        return 'ისტორია ცარიელია.';
+    }
   }
 
   async reload(): Promise<void> {

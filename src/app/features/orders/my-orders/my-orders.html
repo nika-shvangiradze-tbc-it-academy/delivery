@@ -7,6 +7,10 @@
       <a routerLink="/create-order" class="my-orders-page__cta">{{ 'nav.createOrder' | t }}</a>
     </div>
 
+    @if (successMessage()) {
+      <p class="my-orders-page__success" role="status">{{ successMessage() }}</p>
+    }
+
     @if (loading()) {
       <p class="my-orders-page__muted">{{ 'common.loading' | t }}</p>
     } @else if (errorMessage()) {
@@ -50,9 +54,16 @@
               </div>
             </dl>
 
-            <button type="button" class="my-orders-page__details-btn" (click)="toggleDetails(order.id)">
-              {{ expandedId() === order.id ? 'დამალვა' : 'დეტალები' }}
-            </button>
+            <div class="my-orders-page__actions">
+              <button type="button" class="my-orders-page__details-btn" (click)="toggleDetails(order.id)">
+                {{ expandedId() === order.id ? 'დამალვა' : 'დეტალები' }}
+              </button>
+              @if (canEdit(order)) {
+                <button type="button" class="my-orders-page__edit-btn" (click)="openEdit(order)">
+                  რედაქტირება
+                </button>
+              }
+            </div>
 
             @if (expandedId() === order.id) {
               <dl class="my-orders-page__extra">
@@ -86,3 +97,104 @@
     }
   </div>
 </section>
+
+@if (editingOrder(); as order) {
+  <div class="my-orders-page__modal" (click)="closeEdit()">
+    <div class="my-orders-page__modal-panel" (click)="$event.stopPropagation()">
+      <div class="my-orders-page__modal-head">
+        <h2>შეკვეთის რედაქტირება #{{ order.id }}</h2>
+        <button type="button" (click)="closeEdit()" aria-label="დახურვა">×</button>
+      </div>
+
+      @if (editError()) {
+        <p class="my-orders-page__error" role="alert">{{ editError() }}</p>
+      }
+
+      <form class="my-orders-page__edit-form" [formGroup]="editForm" (ngSubmit)="saveEdit()">
+        <div class="my-orders-page__edit-grid">
+          <label>
+            <span>{{ 'orders.senderName' | t }}</span>
+            <input type="text" formControlName="sender_name" />
+          </label>
+          <label>
+            <span>{{ 'orders.senderPhone' | t }}</span>
+            <input type="tel" formControlName="sender_phone" />
+          </label>
+          <label>
+            <span>{{ 'orders.pickupCity' | t }}</span>
+            <select formControlName="pickup_city">
+              <option value="">აირჩიე ქალაქი</option>
+              @for (city of cities; track city) {
+                <option [value]="city">{{ city }}</option>
+              }
+            </select>
+          </label>
+          <label>
+            <span>{{ 'orders.pickupDistrict' | t }}</span>
+            <input type="text" formControlName="pickup_district" />
+          </label>
+          <label class="full">
+            <span>{{ 'orders.pickupAddress' | t }}</span>
+            <input type="text" formControlName="pickup_address" />
+          </label>
+
+          <label>
+            <span>{{ 'orders.recipientName' | t }}</span>
+            <input type="text" formControlName="recipient_name" />
+          </label>
+          <label>
+            <span>{{ 'orders.recipientPhone' | t }}</span>
+            <input type="tel" formControlName="recipient_phone" />
+          </label>
+          <label>
+            <span>{{ 'orders.deliveryCity' | t }}</span>
+            <select formControlName="delivery_city">
+              <option value="">აირჩიე ქალაქი</option>
+              @for (city of cities; track city) {
+                <option [value]="city">{{ city }}</option>
+              }
+            </select>
+          </label>
+          <label>
+            <span>{{ 'orders.deliveryDistrict' | t }}</span>
+            <input type="text" formControlName="delivery_district" />
+          </label>
+          <label class="full">
+            <span>{{ 'orders.deliveryAddress' | t }}</span>
+            <input type="text" formControlName="delivery_address" />
+          </label>
+
+          <label>
+            <span>{{ 'orders.parcelCount' | t }}</span>
+            <input type="number" min="1" formControlName="parcel_count" />
+          </label>
+          <label>
+            <span>{{ 'orders.deliveryDate' | t }}</span>
+            <input type="date" [attr.min]="minDeliveryDate" formControlName="delivery_date" />
+          </label>
+          <label>
+            <span>ასაღები თანხა (₾)</span>
+            <input type="text" inputmode="decimal" formControlName="amount_to_collect" />
+          </label>
+          <label class="full my-orders-page__check">
+            <input type="checkbox" formControlName="is_fragile" />
+            <span>მსხვრევადი ამანათი</span>
+          </label>
+          <label class="full">
+            <span>{{ 'orders.notes' | t }}</span>
+            <textarea rows="3" formControlName="notes"></textarea>
+          </label>
+        </div>
+
+        <div class="my-orders-page__edit-actions">
+          <button type="submit" class="my-orders-page__save-btn" [disabled]="saving()">
+            {{ saving() ? 'ინახება...' : 'შენახვა' }}
+          </button>
+          <button type="button" class="my-orders-page__cancel-btn" (click)="closeEdit()" [disabled]="saving()">
+            გაუქმება
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

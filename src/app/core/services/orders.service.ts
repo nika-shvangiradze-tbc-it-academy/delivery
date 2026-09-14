@@ -117,6 +117,86 @@ export class OrdersService {
     return { data: normalizeOrder(data as Order), error: null };
   }
 
+  /**
+   * Owner edit of customer fields while status is still pending.
+   * Scoped to id + user_id + status so operational fields cannot be touched.
+   */
+  async updateMyPendingOrder(
+    orderId: number,
+    payload: AdminOrderEditPayload,
+    options?: { originalDeliveryDate?: string },
+  ): Promise<{ data: Order | null; error: string | null }> {
+    const user = this.auth.user();
+    if (!user) {
+      return { data: null, error: 'Not authenticated' };
+    }
+
+    if (
+      !isDeliveryDateAllowed(payload.delivery_date, {
+        allowExistingPast: true,
+        originalValue: options?.originalDeliveryDate,
+      })
+    ) {
+      return { data: null, error: 'მიწოდების თარიღი უნდა იყოს ხვალ ან უფრო გვიან.' };
+    }
+
+    if (payload.parcel_count < 1) {
+      return { data: null, error: 'ამანათების რაოდენობა უნდა იყოს 1 ან მეტი.' };
+    }
+
+    const amount = centsToNumber(toCents(payload.amount_to_collect));
+    if (!(amount >= 0)) {
+      return { data: null, error: 'ასაღები თანხა უნდა იყოს 0 ან მეტი.' };
+    }
+
+    const updatePayload = {
+      sender_name: payload.sender_name,
+      sender_phone: payload.sender_phone,
+      pickup_city: payload.pickup_city,
+      pickup_district: payload.pickup_district,
+      pickup_address: payload.pickup_address,
+      recipient_name: payload.recipient_name,
+      recipient_phone: payload.recipient_phone,
+      delivery_city: payload.delivery_city,
+      delivery_district: payload.delivery_district,
+      delivery_address: payload.delivery_address,
+      parcel_count: payload.parcel_count,
+      delivery_date: payload.delivery_date,
+      notes: payload.notes?.trim() ? payload.notes.trim() : null,
+      is_fragile: Boolean(payload.is_fragile),
+      amount_to_collect: amount,
+    };
+
+    const { data, error } = await this.supabase.client
+      .from('orders')
+      .update(updatePayload)
+      .eq('id', orderId)
+      .eq('user_id', user.id)
+      .eq('status', 'pending')
+      .select('*')
+      .maybeSingle();
+
+    if (error) {
+      return { data: null, error: this.mapOwnerEditError(error.message) };
+    }
+
+    if (!data) {
+      return {
+        data: null,
+        error: 'შეკვეთის რედაქტირება შესაძლებელია მხოლოდ მოლოდინის სტატუსში.',
+      };
+    }
+
+    return { data: normalizeOrder(data as Order), error: null };
+  }
+
+  private mapOwnerEditError(message: string): string {
+    if (message.includes('Order can only be edited while pending')) {
+      return 'შეკვეთის რედაქტირება შესაძლებელია მხოლოდ მოლოდინის სტატუსში.';
+    }
+    return message;
+  }
+
   async getMyOrders(): Promise<{ data: Order[]; error: string | null }> {
     const user = this.auth.user();
     if (!user) {

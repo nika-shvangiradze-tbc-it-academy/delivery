@@ -67,6 +67,10 @@
   }
 
   &__logout {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     border: 1px solid rgba(22, 163, 74, 0.35);
     background: #fff;
     color: #16a34a;
@@ -75,7 +79,84 @@
     font-weight: 700;
     font-size: 13px;
     min-height: 40px;
+    min-width: 88px;
     flex-shrink: 0;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    box-shadow: 0 1px 2px rgba(17, 24, 39, 0.04);
+    transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+
+    &:hover:not(:disabled) {
+      background: #ecfdf3;
+      border-color: rgba(22, 163, 74, 0.55);
+    }
+
+    &:active:not(:disabled) {
+      background: #dcfce7;
+    }
+
+    &:focus-visible {
+      outline: 2px solid #16a34a;
+      outline-offset: 2px;
+    }
+
+    &:disabled,
+    &--busy {
+      opacity: 0.75;
+      cursor: not-allowed;
+    }
+  }
+
+  &__logout-spinner {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid rgba(22, 163, 74, 0.25);
+    border-top-color: #16a34a;
+    animation: courier-shell-spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+
+  &__logout-error {
+    background: #fef2f2;
+    color: #b42318;
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin: 0 0 10px;
+    font-size: 13px;
+  }
+
+  &__scroll-top {
+    position: fixed;
+    right: max(12px, calc(50% - 215px + 12px));
+    bottom: max(20px, env(safe-area-inset-bottom, 0px) + 20px);
+    z-index: 40;
+    width: 44px;
+    height: 44px;
+    border: 1px solid #e5e7eb;
+    border-radius: 50%;
+    background: #fff;
+    color: #111827;
+    box-shadow: 0 4px 14px rgba(17, 24, 39, 0.12);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+
+    &:active {
+      transform: translateY(1px);
+    }
+
+    &:focus-visible {
+      outline: 2px solid #16a34a;
+      outline-offset: 2px;
+    }
+  }
+
+  &__scroll-top-icon {
+    display: block;
   }
 
   &__tabs {
@@ -114,5 +195,11 @@
   .courier-shell {
     padding-top: 24px;
     max-width: 430px;
+  }
+}
+
+@keyframes courier-shell-spin {
+  to {
+    transform: rotate(360deg);
   }
 }

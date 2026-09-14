@@ -1,9 +1,11 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  HostListener,
   computed,
   effect,
   inject,
+  signal,
 } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
@@ -21,7 +23,12 @@ export class CourierShell {
   private readonly router = inject(Router);
   private readonly realtime = inject(CourierRealtimeService);
 
+  private static readonly SCROLL_TOP_THRESHOLD_PX = 280;
+
   readonly courierName = computed(() => this.auth.profile()?.full_name ?? 'კურიერი');
+  readonly loggingOut = signal(false);
+  readonly logoutError = signal<string | null>(null);
+  readonly showScrollTop = signal(false);
 
   constructor() {
     // Channel lifecycle is owned by OrderRealtimeService (auth-driven).
@@ -37,6 +44,16 @@ export class CourierShell {
     });
   }
 
+  @HostListener('window:scroll')
+  onWindowScroll(): void {
+    const y = window.scrollY || document.documentElement.scrollTop || 0;
+    this.showScrollTop.set(y > CourierShell.SCROLL_TOP_THRESHOLD_PX);
+  }
+
+  scrollToTop(): void {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   async onLogoClick(): Promise<void> {
     const target = '/courier/orders';
     if (!this.router.url.startsWith(target)) {
@@ -46,8 +63,28 @@ export class CourierShell {
   }
 
   async logout(): Promise<void> {
-    this.realtime.disconnect();
-    await this.auth.logout();
-    await this.router.navigateByUrl('/login');
+    if (this.loggingOut()) {
+      return;
+    }
+
+    this.loggingOut.set(true);
+    this.logoutError.set(null);
+
+    try {
+      this.realtime.disconnect();
+      const { error } = await this.auth.logout();
+
+      if (error) {
+        this.logoutError.set(error);
+        this.loggingOut.set(false);
+        return;
+      }
+
+      await this.router.navigateByUrl('/login');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'გასვლა ვერ მოხერხდა';
+      this.logoutError.set(message);
+      this.loggingOut.set(false);
+    }
   }
 }

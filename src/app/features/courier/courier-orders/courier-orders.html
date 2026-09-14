@@ -123,8 +123,8 @@
               </div>
             </div>
 
-            <div class="courier-card__actions" (click)="$event.stopPropagation()">
-              @if (!isExpanded(order.id)) {
+            @if (!isExpanded(order.id)) {
+              <div class="courier-card__actions" (click)="$event.stopPropagation()">
                 <button
                   type="button"
                   class="courier-card__btn courier-card__btn--details"
@@ -133,18 +133,8 @@
                 >
                   დეტალურად
                 </button>
-              } @else {
-                <button
-                  type="button"
-                  class="courier-card__btn courier-card__btn--close-action"
-                  (click)="closeDetails()"
-                  aria-expanded="true"
-                  aria-label="დეტალების დახურვა"
-                >
-                  ×
-                </button>
-              }
-            </div>
+              </div>
+            }
           </div>
 
           <!-- Expanded details: additional fields only (no compact summary duplicate) -->
@@ -233,7 +223,7 @@
                         [disabled]="savingId() === order.id"
                         (click)="confirmCancel(order)"
                       >
-                        დიახ, გაუქმება
+                        დიახ
                       </button>
                       <button
                         type="button"

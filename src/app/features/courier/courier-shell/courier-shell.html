@@ -19,8 +19,26 @@
       <h1>კურიერის პანელი</h1>
       <p class="courier-shell__name">{{ courierName() }}</p>
     </div>
-    <button type="button" class="courier-shell__logout" (click)="logout()">გასვლა</button>
+    <button
+      type="button"
+      class="courier-shell__logout"
+      [class.courier-shell__logout--busy]="loggingOut()"
+      [disabled]="loggingOut()"
+      (click)="logout()"
+      [attr.aria-busy]="loggingOut()"
+    >
+      @if (loggingOut()) {
+        <span class="courier-shell__logout-spinner" aria-hidden="true"></span>
+        <span>გასვლა...</span>
+      } @else {
+        გასვლა
+      }
+    </button>
   </header>
+
+  @if (logoutError()) {
+    <p class="courier-shell__logout-error" role="alert">{{ logoutError() }}</p>
+  }
 
   <nav class="courier-shell__tabs" aria-label="Courier navigation">
     <a
@@ -40,4 +58,27 @@
   </nav>
 
   <router-outlet />
+
+  @if (showScrollTop()) {
+    <button
+      type="button"
+      class="courier-shell__scroll-top"
+      (click)="scrollToTop()"
+      aria-label="ზემოთ აწევა"
+    >
+      <svg
+        class="courier-shell__scroll-top-icon"
+        viewBox="0 0 24 24"
+        width="22"
+        height="22"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path
+          fill="currentColor"
+          d="M12 4.5 5.5 11h4.25v8.5h4.5V11H18.5L12 4.5z"
+        />
+      </svg>
+    </button>
+  }
 </div>

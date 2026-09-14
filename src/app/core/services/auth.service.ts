@@ -133,6 +133,8 @@ export class AuthService {
         id: userId,
         full_name: payload.fullName,
         phone: payload.phone,
+        // Role is enforced by DB (insert check + protect_profile_role trigger).
+        // Never accept admin/courier from the client.
         role: 'user',
       },
       { onConflict: 'id' },

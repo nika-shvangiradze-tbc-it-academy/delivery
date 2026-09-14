@@ -82,12 +82,10 @@ export class CourierService {
       p_payment_method: paymentMethod,
     };
 
-    console.info('Courier complete RPC courier_complete_order', rpcArgs);
-
     const { data, error } = await this.supabase.client.rpc('courier_complete_order', rpcArgs);
 
     if (error) {
-      this.logRpcError('courier_complete_order', error, rpcArgs);
+      this.logRpcError('courier_complete_order', error);
       return { data: null, error: this.mapCourierRpcError(error.message) };
     }
 
@@ -103,13 +101,12 @@ export class CourierService {
       return { data: null, error: sessionCheck.error };
     }
 
-    const rpcArgs = { p_order_id: orderId };
-    console.info('Courier cancel RPC courier_cancel_order', rpcArgs);
-
-    const { data, error } = await this.supabase.client.rpc('courier_cancel_order', rpcArgs);
+    const { data, error } = await this.supabase.client.rpc('courier_cancel_order', {
+      p_order_id: orderId,
+    });
 
     if (error) {
-      this.logRpcError('courier_cancel_order', error, rpcArgs);
+      this.logRpcError('courier_cancel_order', error);
       return { data: null, error: this.mapCourierRpcError(error.message) };
     }
 
@@ -149,12 +146,10 @@ export class CourierService {
       p_payment_method: status === 'delivered' ? parsePaymentMethod(paymentMethod) : null,
     };
 
-    console.info('Courier change status RPC courier_change_order_status', rpcArgs);
-
     const { data, error } = await this.supabase.client.rpc('courier_change_order_status', rpcArgs);
 
     if (error) {
-      this.logRpcError('courier_change_order_status', error, rpcArgs);
+      this.logRpcError('courier_change_order_status', error);
       return { data: null, error: this.mapCourierRpcError(error.message) };
     }
 
@@ -167,7 +162,7 @@ export class CourierService {
     });
 
     if (error) {
-      this.logRpcError('courier_reorder_orders', error, { order_ids: orderIds });
+      this.logRpcError('courier_reorder_orders', error);
       return { error: error.message };
     }
 
@@ -296,14 +291,11 @@ export class CourierService {
   private logRpcError(
     rpcName: string,
     error: { message?: string; details?: string; hint?: string; code?: string },
-    rpcArgs: unknown,
   ): void {
+    // Do not log RPC argument payloads (order IDs / payment method) in production browsers.
     console.error(`${rpcName} failed:`, {
       message: error.message,
-      details: error.details,
-      hint: error.hint,
       code: error.code,
-      rpcArgs,
     });
   }
 
