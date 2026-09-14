@@ -19,6 +19,50 @@
         <p class="profile-page__success">{{ successMessage() }}</p>
       }
 
+      <div class="profile-page__stats" aria-label="Order statistics">
+        <article class="profile-page__stat">
+          <span class="profile-page__stat-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16.5 9.4 7.55 4.24" />
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+              <polyline points="3.29 7 12 12 20.71 7" />
+              <line x1="12" y1="22" x2="12" y2="12" />
+            </svg>
+          </span>
+          <div class="profile-page__stat-body">
+            <strong>{{ stats().total }}</strong>
+            <span>{{ 'profile.totalOrders' | t }}</span>
+          </div>
+        </article>
+        <article class="profile-page__stat">
+          <span class="profile-page__stat-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" />
+              <path d="M15 18H9" />
+              <path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14" />
+              <circle cx="17" cy="18" r="2" />
+              <circle cx="7" cy="18" r="2" />
+            </svg>
+          </span>
+          <div class="profile-page__stat-body">
+            <strong>{{ stats().active }}</strong>
+            <span>{{ 'profile.activeOrders' | t }}</span>
+          </div>
+        </article>
+        <article class="profile-page__stat">
+          <span class="profile-page__stat-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+          </span>
+          <div class="profile-page__stat-body">
+            <strong>{{ stats().completed }}</strong>
+            <span>{{ 'profile.completedOrders' | t }}</span>
+          </div>
+        </article>
+      </div>
+
       <div class="profile-page__grid">
         <article class="profile-page__card">
           <h2>ჩემი მონაცემები</h2>
@@ -60,21 +104,6 @@
             </button>
           </form>
         </article>
-
-        <div class="profile-page__stats">
-          <article class="profile-page__stat">
-            <span>{{ 'profile.totalOrders' | t }}</span>
-            <strong>{{ stats().total }}</strong>
-          </article>
-          <article class="profile-page__stat">
-            <span>{{ 'profile.activeOrders' | t }}</span>
-            <strong>{{ stats().active }}</strong>
-          </article>
-          <article class="profile-page__stat">
-            <span>{{ 'profile.completedOrders' | t }}</span>
-            <strong>{{ stats().completed }}</strong>
-          </article>
-        </div>
       </div>
 
       <section class="profile-page__orders">

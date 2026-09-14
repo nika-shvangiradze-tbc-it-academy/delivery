@@ -1,96 +1,289 @@
-<div class="header-fixed">
-<header class="header">
-  <section class="header__container">
-    <a class="header__content" routerLink="/" (click)="closeMenu()">
-      <img src="/assets/header/location.svg" alt="logo" class="header__image" width="30" height="30"/>
-      <h1 class="header__title">Location</h1>
-    </a>
-
-    <button
-      class="header__burger"
-      type="button"
-      (click)="toggleMenu()"
-      [attr.aria-expanded]="isMenuOpen"
-      aria-label="Toggle navigation menu"
+<div class="chrome" [class.chrome--sidebar]="showPublicNav()">
+  <div class="header-fixed">
+    <header
+      class="topbar"
+      [class.topbar--admin]="isAdmin()"
+      [class.topbar--guest]="isReady() && !isAuthenticated()"
     >
-      <span [class.is-open]="isMenuOpen"></span>
-      <span [class.is-open]="isMenuOpen"></span>
-      <span [class.is-open]="isMenuOpen"></span>
-    </button>
-
-    <nav class="header__navigation" [class.is-open]="isMenuOpen">
-      <div class="header__nav-primary">
-        <a
-          href="#home"
-          [class.is-active]="activeSection === 'home'"
-          (click)="onNavClick('home', $event)"
-        >{{ 'nav.home' | t }}</a>
-        <a
-          href="#about"
-          [class.is-active]="activeSection === 'about'"
-          (click)="onNavClick('about', $event)"
-        >{{ 'nav.about' | t }}</a>
-        <a
-          href="#contact"
-          [class.is-active]="activeSection === 'contact'"
-          (click)="onNavClick('contact', $event)"
-        >{{ 'nav.contact' | t }}</a>
-        <a
-          href="#pricing"
-          [class.is-active]="activeSection === 'cities'"
-          (click)="onNavClick('cities', $event)"
-        >{{ 'nav.pricing' | t }}</a>
-        <a
-          href="#cities"
-          [class.is-active]="activeSection === 'pricing'"
-          (click)="onNavClick('pricing', $event)"
-        >{{ 'nav.cities' | t }}</a>
+      <div class="topbar__left">
+        <a class="topbar__brand" routerLink="/" (click)="closeMenu()">
+          <img
+            src="/assets/header/location.svg"
+            alt="Location"
+            class="topbar__logo"
+            width="28"
+            height="28"
+          />
+          <span class="topbar__brand-name">Location</span>
+        </a>
       </div>
 
-      <div class="header__auth" aria-label="Account">
+      <div class="topbar__center topbar__desktop-only">
         @if (isReady()) {
-          @if (!isAuthenticated()) {
-            <a routerLink="/login" routerLinkActive="is-active" (click)="closeMenu()">
-              {{ 'nav.login' | t }}
-            </a>
-            <a routerLink="/register" routerLinkActive="is-active" (click)="closeMenu()">
-              {{ 'nav.register' | t }}
-            </a>
-          } @else if (isAdmin()) {
-            <a routerLink="/admin" routerLinkActive="is-active" (click)="closeMenu()">
-              {{ 'nav.adminPanel' | t }}
-            </a>
-            <button type="button" class="header__auth-btn" (click)="onLogout()">
-              {{ 'nav.logout' | t }}
-            </button>
+          @if (isAdmin()) {
+            <span class="topbar__admin-title">{{ 'nav.adminPanel' | t }}</span>
           } @else if (isCourier()) {
-            <a routerLink="/courier" routerLinkActive="is-active" (click)="closeMenu()">
+            <a
+              class="topbar__admin-title topbar__admin-title--link"
+              routerLink="/courier"
+              routerLinkActive="is-active"
+              (click)="closeMenu()"
+            >
               {{ 'nav.courierPanel' | t }}
             </a>
-            <button type="button" class="header__auth-btn" (click)="onLogout()">
-              {{ 'nav.logout' | t }}
-            </button>
-          } @else {
-            <a routerLink="/profile" routerLinkActive="is-active" (click)="closeMenu()">
-              {{ 'nav.profile' | t }}
-            </a>
-            <a routerLink="/my-orders" routerLinkActive="is-active" (click)="closeMenu()">
-              {{ 'nav.myOrders' | t }}
-            </a>
-            <a routerLink="/create-order" routerLinkActive="is-active" (click)="closeMenu()">
-              {{ 'nav.createOrder' | t }}
-            </a>
-            <button type="button" class="header__auth-btn" (click)="onLogout()">
-              {{ 'nav.logout' | t }}
-            </button>
+          } @else if (isAuthenticated()) {
+            <nav class="topbar__user-nav" aria-label="Account">
+              <a routerLink="/profile" routerLinkActive="is-active" (click)="closeMenu()">
+                {{ 'nav.profile' | t }}
+              </a>
+              <a routerLink="/my-orders" routerLinkActive="is-active" (click)="closeMenu()">
+                {{ 'nav.myOrders' | t }}
+              </a>
+              <a routerLink="/create-order" routerLinkActive="is-active" (click)="closeMenu()">
+                {{ 'nav.createOrder' | t }}
+              </a>
+            </nav>
           }
         }
       </div>
 
-      <div class="header__lang" [attr.aria-label]="'app.languageLabel' | t">
+      <div class="topbar__right">
+        <button
+          class="topbar__burger"
+          type="button"
+          (click)="toggleMenu()"
+          [attr.aria-expanded]="isMenuOpen"
+          [attr.aria-controls]="'app-mobile-menu'"
+          [attr.aria-label]="(isMenuOpen ? 'nav.closeMenu' : 'nav.openMenu') | t"
+        >
+          <span [class.is-open]="isMenuOpen"></span>
+          <span [class.is-open]="isMenuOpen"></span>
+          <span [class.is-open]="isMenuOpen"></span>
+        </button>
+
+        <div class="topbar__desktop-utils topbar__desktop-only">
+          <div class="topbar__lang" [attr.aria-label]="'app.languageLabel' | t" role="group">
+            <button
+              type="button"
+              class="topbar__lang-btn"
+              [class.is-active]="currentLanguage() === 'ka'"
+              (click)="onLanguageChange('ka')"
+            >
+              KA
+            </button>
+            <button
+              type="button"
+              class="topbar__lang-btn"
+              [class.is-active]="currentLanguage() === 'en'"
+              (click)="onLanguageChange('en')"
+            >
+              EN
+            </button>
+          </div>
+
+          @if (isReady()) {
+            @if (!isAuthenticated()) {
+              <div class="topbar__auth-links">
+                <a
+                  class="topbar__auth-link"
+                  routerLink="/login"
+                  routerLinkActive="is-active"
+                  (click)="closeMenu()"
+                >
+                  {{ 'nav.login' | t }}
+                </a>
+                <a
+                  class="topbar__auth-link topbar__auth-link--primary"
+                  routerLink="/register"
+                  routerLinkActive="is-active"
+                  (click)="closeMenu()"
+                >
+                  {{ 'nav.register' | t }}
+                </a>
+              </div>
+            } @else {
+              <button
+                type="button"
+                class="topbar__logout"
+                [class.is-busy]="loggingOut()"
+                [disabled]="loggingOut()"
+                (click)="onLogout()"
+                [attr.aria-busy]="loggingOut()"
+                [attr.aria-label]="'nav.logout' | t"
+              >
+                @if (loggingOut()) {
+                  <span class="topbar__logout-spinner" aria-hidden="true"></span>
+                } @else {
+                  <svg
+                    class="topbar__logout-icon"
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                  </svg>
+                }
+                <span class="topbar__logout-label">{{ 'nav.logout' | t }}</span>
+              </button>
+            }
+          }
+        </div>
+      </div>
+    </header>
+  </div>
+
+  <!-- Desktop floating public rail (does not shrink content) -->
+  @if (showPublicNav()) {
+    <aside class="side-nav side-nav--desktop" aria-label="Site">
+      <nav class="side-nav__list">
+        <a
+          href="#home"
+          class="side-nav__item"
+          [class.is-active]="activeSection === 'home'"
+          (click)="onNavClick('home', $event)"
+        >
+          <svg class="side-nav__icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1V9.5z" />
+          </svg>
+          <span class="side-nav__label">{{ 'nav.home' | t }}</span>
+        </a>
+        <a
+          href="#about"
+          class="side-nav__item"
+          [class.is-active]="activeSection === 'about'"
+          (click)="onNavClick('about', $event)"
+        >
+          <svg class="side-nav__icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="16" x2="12" y2="12" />
+            <line x1="12" y1="8" x2="12.01" y2="8" />
+          </svg>
+          <span class="side-nav__label">{{ 'nav.about' | t }}</span>
+        </a>
+        <a
+          href="#contact"
+          class="side-nav__item"
+          [class.is-active]="activeSection === 'contact'"
+          (click)="onNavClick('contact', $event)"
+        >
+          <svg class="side-nav__icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
+          <span class="side-nav__label">{{ 'nav.contact' | t }}</span>
+        </a>
+        <a
+          href="#pricing"
+          class="side-nav__item"
+          [class.is-active]="activeSection === 'pricing'"
+          (click)="onNavClick('pricing', $event)"
+        >
+          <svg class="side-nav__icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="3" width="7" height="7" rx="1" />
+            <rect x="14" y="3" width="7" height="7" rx="1" />
+            <rect x="14" y="14" width="7" height="7" rx="1" />
+            <rect x="3" y="14" width="7" height="7" rx="1" />
+          </svg>
+          <span class="side-nav__label">{{ 'nav.pricing' | t }}</span>
+        </a>
+        <a
+          href="#cities"
+          class="side-nav__item"
+          [class.is-active]="activeSection === 'cities'"
+          (click)="onNavClick('cities', $event)"
+        >
+          <svg class="side-nav__icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="5" r="2" />
+            <circle cx="5" cy="19" r="2" />
+            <circle cx="19" cy="19" r="2" />
+            <path d="M12 7v4M12 11l-5 6M12 11l5 6" />
+          </svg>
+          <span class="side-nav__label">{{ 'nav.cities' | t }}</span>
+        </a>
+      </nav>
+    </aside>
+  }
+
+  <!-- Mobile: one burger drawer with everything -->
+  @if (isMenuOpen) {
+    <button
+      type="button"
+      class="mobile-menu__backdrop"
+      (click)="closeMenu()"
+      [attr.aria-label]="'nav.closeMenu' | t"
+    ></button>
+  }
+
+  <aside
+    id="app-mobile-menu"
+    class="mobile-menu"
+    [class.is-open]="isMenuOpen"
+    aria-label="Menu"
+  >
+    @if (showPublicNav()) {
+      <nav class="mobile-menu__section" aria-label="Site">
+        <a href="#home" [class.is-active]="activeSection === 'home'" (click)="onNavClick('home', $event)">
+          {{ 'nav.home' | t }}
+        </a>
+        <a href="#about" [class.is-active]="activeSection === 'about'" (click)="onNavClick('about', $event)">
+          {{ 'nav.about' | t }}
+        </a>
+        <a href="#contact" [class.is-active]="activeSection === 'contact'" (click)="onNavClick('contact', $event)">
+          {{ 'nav.contact' | t }}
+        </a>
+        <a href="#pricing" [class.is-active]="activeSection === 'pricing'" (click)="onNavClick('pricing', $event)">
+          {{ 'nav.pricing' | t }}
+        </a>
+        <a href="#cities" [class.is-active]="activeSection === 'cities'" (click)="onNavClick('cities', $event)">
+          {{ 'nav.cities' | t }}
+        </a>
+      </nav>
+    }
+
+    @if (isReady()) {
+      @if (isAdmin()) {
+        <nav class="mobile-menu__section" aria-label="Admin">
+          <a routerLink="/admin" routerLinkActive="is-active" (click)="closeMenu()">
+            {{ 'nav.adminPanel' | t }}
+          </a>
+          <a routerLink="/admin/orders" routerLinkActive="is-active" (click)="closeMenu()">
+            {{ 'admin.manageOrders' | t }}
+          </a>
+        </nav>
+      } @else if (isCourier()) {
+        <nav class="mobile-menu__section" aria-label="Courier">
+          <a routerLink="/courier" routerLinkActive="is-active" (click)="closeMenu()">
+            {{ 'nav.courierPanel' | t }}
+          </a>
+        </nav>
+      } @else if (isAuthenticated()) {
+        <nav class="mobile-menu__section" aria-label="Account">
+          <a routerLink="/profile" routerLinkActive="is-active" (click)="closeMenu()">
+            {{ 'nav.profile' | t }}
+          </a>
+          <a routerLink="/my-orders" routerLinkActive="is-active" (click)="closeMenu()">
+            {{ 'nav.myOrders' | t }}
+          </a>
+          <a routerLink="/create-order" routerLinkActive="is-active" (click)="closeMenu()">
+            {{ 'nav.createOrder' | t }}
+          </a>
+        </nav>
+      }
+    }
+
+    <div class="mobile-menu__section mobile-menu__utils">
+      <div class="mobile-menu__lang" [attr.aria-label]="'app.languageLabel' | t" role="group">
         <button
           type="button"
-          class="header__lang-btn"
+          class="topbar__lang-btn"
           [class.is-active]="currentLanguage() === 'ka'"
           (click)="onLanguageChange('ka')"
         >
@@ -98,53 +291,62 @@
         </button>
         <button
           type="button"
-          class="header__lang-btn"
+          class="topbar__lang-btn"
           [class.is-active]="currentLanguage() === 'en'"
           (click)="onLanguageChange('en')"
         >
           EN
         </button>
       </div>
-      <div class="header__contact header__contact--in-menu" aria-label="Contact">
-        <a href="tel:+995551000000" class="header__contact-link" (click)="closeMenu()">
-          <span class="header__contact-icon-frame" aria-hidden="true">
-            <svg class="header__contact-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-            </svg>
-          </span>
-          <span>+995 551 000 000</span>
-        </a>
-        <a href="mailto:info@delivery.ge" class="header__contact-link" (click)="closeMenu()">
-          <span class="header__contact-icon-frame" aria-hidden="true">
-            <svg class="header__contact-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-              <polyline points="22,6 12,13 2,6"/>
-            </svg>
-          </span>
-          <span>info@delivery.ge</span>
-        </a>
-      </div>
-    </nav>
-    <div class="header__contact header__contact--toolbar" aria-label="Contact">
-      <a href="tel:+995551000000" class="header__contact-link">
-        <span class="header__contact-icon-frame" aria-hidden="true">
-          <svg class="header__contact-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-          </svg>
-        </span>
-        <span>+995 551 000 000</span>
-      </a>
-      <a href="mailto:info@delivery.ge" class="header__contact-link">
-        <span class="header__contact-icon-frame" aria-hidden="true">
-          <svg class="header__contact-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-            <polyline points="22,6 12,13 2,6"/>
-          </svg>
-        </span>
-        <span>info@delivery.ge</span>
-      </a>
-    </div>
 
-  </section>
-</header>
+      @if (isReady()) {
+        @if (!isAuthenticated()) {
+          <a class="mobile-menu__action" routerLink="/login" routerLinkActive="is-active" (click)="closeMenu()">
+            {{ 'nav.login' | t }}
+          </a>
+          <a
+            class="mobile-menu__action mobile-menu__action--primary"
+            routerLink="/register"
+            routerLinkActive="is-active"
+            (click)="closeMenu()"
+          >
+            {{ 'nav.register' | t }}
+          </a>
+        } @else {
+          <button
+            type="button"
+            class="mobile-menu__logout"
+            [class.is-busy]="loggingOut()"
+            [disabled]="loggingOut()"
+            (click)="onLogout()"
+            [attr.aria-busy]="loggingOut()"
+            [attr.aria-label]="'nav.logout' | t"
+          >
+            @if (loggingOut()) {
+              <span class="topbar__logout-spinner" aria-hidden="true"></span>
+            } @else {
+              <svg
+                class="topbar__logout-icon"
+                xmlns="http://www.w3.org/2000/svg"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            }
+            <span>{{ 'nav.logout' | t }}</span>
+          </button>
+        }
+      }
+    </div>
+  </aside>
 </div>

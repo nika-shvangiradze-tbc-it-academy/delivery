@@ -1,39 +1,39 @@
 @use './styles/status-badge';
 
-*{
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-
-
+:root {
+  --app-header-h: 84px;
+}
 
 body {
-    min-height: 100vh;
-    font-family: "Open Sans", sans-serif;
-    background: #ffffff;
-    background-repeat: no-repeat;
-    background-attachment: fixed;
-
+  min-height: 100vh;
+  font-family: "Open Sans", sans-serif;
+  background: #ffffff;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
 }
 
 img {
-    transition: opacity 0.35s ease, filter 0.35s ease;
+  transition: opacity 0.35s ease, filter 0.35s ease;
 }
 
 img.img-loading {
-    opacity: 0.55;
-    filter: saturate(0.9);
+  opacity: 0.55;
+  filter: saturate(0.9);
 }
 
 img.img-loaded {
-    opacity: 1;
-    filter: none;
+  opacity: 1;
+  filter: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-    img {
-        transition: none;
-    }
+  img {
+    transition: none;
+  }
 }

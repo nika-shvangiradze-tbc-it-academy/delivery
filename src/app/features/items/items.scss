@@ -4,36 +4,27 @@
   padding: 2rem 1rem 3rem;
 
   &__container {
-    width: min(2000px, 92%);
- 
-  
+    max-width: 1600px;
+    width: 100%;
+    margin: 0 auto;
   }
 
   &__title {
-    max-width: 1600px;
-    margin: 0 auto;
     margin-bottom: 80px;
     padding: 30px;
-  
     position: relative;
-  
-  
     border-left: 3px solid #db7623;
-  
     font-size: 24px;
     font-weight: 600;
     color: #3f3f3f;
-  
-    
+
     &::before {
       content: "";
       position: absolute;
       top: 0;
       left: 0;
-  
       width: 100px;
       height: 3px;
-  
       background: #db7623;
     }
   }

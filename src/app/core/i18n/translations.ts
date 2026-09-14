@@ -20,6 +20,8 @@ export const translationResources = {
         logout: 'Logout',
         adminPanel: 'Admin Panel',
         courierPanel: 'Courier Panel',
+        openMenu: 'Open navigation menu',
+        closeMenu: 'Close navigation menu',
       },
       common: {
         loading: 'Loading...',
@@ -115,6 +117,12 @@ export const translationResources = {
         description:
           'We connect cities and businesses with fast, secure, and affordable delivery services. Whether you need same-day delivery in Tbilisi or quick shipping between regions like Kutaisi, Gori, and Rustavi, we make sure your packages arrive on time and safely.',
         cta: 'Contact Us',
+        trustFast: 'Fast',
+        trustSafe: 'Safe',
+        trustGeorgia: 'Across Georgia',
+        statusPickup: 'Pickup',
+        statusTransit: 'In transit',
+        statusDone: 'Delivered',
         modalTitle: "Let's talk",
         modalLead:
           'Questions about routes, pricing, or partnerships? Reach us directly - we usually reply the same day.',
@@ -265,6 +273,8 @@ export const translationResources = {
         logout: 'გასვლა',
         adminPanel: 'ადმინ პანელი',
         courierPanel: 'კურიერის პანელი',
+        openMenu: 'ნავიგაციის მენიუს გახსნა',
+        closeMenu: 'ნავიგაციის მენიუს დახურვა',
       },
       common: {
         loading: 'იტვირთება...',
@@ -360,6 +370,12 @@ export const translationResources = {
         description:
           'ჩვენ ვაკავშირებთ ქალაქებსა და ბიზნესებს სწრაფი, უსაფრთხო და ხელმისაწვდომი მიწოდების სერვისით. იქნება ეს იმავე დღეს მიწოდება  თუ სწრაფი გადაზიდვა რეგიონებს შორის, როგორიცაა ქუთაისი, ბათუმი, გორი, თელავი და რუსთავი - თქვენი ამანათები დროულად და უსაფრთხოდ მიდის დანიშნულებამდე.',
         cta: 'დაგვიკავშირდით',
+        trustFast: 'სწრაფი',
+        trustSafe: 'უსაფრთხო',
+        trustGeorgia: 'მთელი საქართველო',
+        statusPickup: 'აღება',
+        statusTransit: 'გზაშია',
+        statusDone: 'მიწოდებული',
         modalTitle: 'მოდით ვისაუბროთ',
         modalLead:
           'გაქვთ კითხვები მარშრუტებზე, ფასებზე ან პარტნიორობაზე? დაგვიკავშირდით პირდაპირ - ჩვეულებრივ, იმავე დღეს გპასუხობთ.',

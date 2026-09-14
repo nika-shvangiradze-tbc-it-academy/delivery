@@ -1,11 +1,11 @@
 :host {
   display: block;
-  padding-top: 88px;
+  padding-top: calc(var(--app-header-h, 60px) + 12px);
 }
 
 @media (max-width: 768px) {
   :host {
-    padding-top: 100px;
+    padding-top: calc(var(--app-header-h, 60px) + 16px);
   }
 }
 

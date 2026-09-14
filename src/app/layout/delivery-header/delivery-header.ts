@@ -1,4 +1,12 @@
-import { AfterViewInit, Component, OnDestroy, inject } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  HostListener,
+  OnDestroy,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { TranslatePipe } from '../../core/pipes/t.pipe';
 import { AppLanguage } from '../../core/i18n/translations';
@@ -20,11 +28,15 @@ export class DeliveryHeader implements AfterViewInit, OnDestroy {
 
   isMenuOpen = false;
   activeSection: SectionId = 'home';
+  readonly loggingOut = signal(false);
   readonly currentLanguage = this.i18nService.currentLanguage;
   readonly isAuthenticated = this.auth.isAuthenticated;
   readonly isAdmin = this.auth.isAdmin;
   readonly isCourier = this.auth.isCourier;
   readonly isReady = this.auth.isReady;
+
+  /** Public site nav for guests and normal users (not admin/courier). */
+  readonly showPublicNav = computed(() => !this.isAdmin() && !this.isCourier());
 
   private readonly sectionIds: SectionId[] = ['home', 'about', 'pricing', 'cities', 'contact'];
   private sectionElements: HTMLElement[] = [];
@@ -57,6 +69,13 @@ export class DeliveryHeader implements AfterViewInit, OnDestroy {
     if (this.rafId) window.cancelAnimationFrame(this.rafId);
   }
 
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.isMenuOpen) {
+      this.closeMenu();
+    }
+  }
+
   toggleMenu(): void {
     this.isMenuOpen = !this.isMenuOpen;
   }
@@ -83,9 +102,15 @@ export class DeliveryHeader implements AfterViewInit, OnDestroy {
   }
 
   async onLogout(): Promise<void> {
+    if (this.loggingOut()) return;
+    this.loggingOut.set(true);
     this.closeMenu();
-    await this.auth.logout();
-    await this.router.navigateByUrl('/');
+    try {
+      await this.auth.logout();
+      await this.router.navigateByUrl('/');
+    } finally {
+      this.loggingOut.set(false);
+    }
   }
 
   private refreshSections(): void {
@@ -97,9 +122,9 @@ export class DeliveryHeader implements AfterViewInit, OnDestroy {
   private updateActiveSection(): void {
     if (this.sectionElements.length === 0) return;
 
-    const headerEl = document.querySelector<HTMLElement>('.header');
+    const headerEl = document.querySelector<HTMLElement>('.header-fixed');
     const headerBottom = headerEl?.getBoundingClientRect().bottom;
-    const headerHeight = headerEl?.getBoundingClientRect().height ?? 88;
+    const headerHeight = headerEl?.getBoundingClientRect().height ?? 84;
     const markerY = window.scrollY + (headerBottom ?? headerHeight) + 8;
 
     let closestId: SectionId = 'home';
@@ -131,9 +156,9 @@ export class DeliveryHeader implements AfterViewInit, OnDestroy {
 
     history.replaceState(null, '', `/#${sectionId}`);
 
-    const headerEl = document.querySelector<HTMLElement>('.header');
+    const headerEl = document.querySelector<HTMLElement>('.header-fixed');
     const headerBottom = headerEl?.getBoundingClientRect().bottom;
-    const headerHeight = headerEl?.getBoundingClientRect().height ?? 88;
+    const headerHeight = headerEl?.getBoundingClientRect().height ?? 84;
 
     const top =
       window.scrollY + el.getBoundingClientRect().top - (headerBottom ?? headerHeight) - 12;

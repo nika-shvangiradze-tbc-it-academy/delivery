@@ -1,20 +1,405 @@
 <div class="main">
-    <section id="home" class="main__hero">
+    <section id="home" class="main__hero" #heroRoot>
+        <div class="main__glow" aria-hidden="true"></div>
+
         <div class="main__content">
             <h1>{{ 'landing.title' | t }}</h1>
-            <p>
-                {{ 'landing.description' | t }}
-            </p>
-            <button type="button" class="main__cta" (click)="openContactModal()">{{ 'landing.cta' | t }}</button>
+            <p>{{ 'landing.description' | t }}</p>
+
+            <button
+                type="button"
+                class="main__cta"
+                #heroCta
+                (pointermove)="onCtaMove($event)"
+                (pointerleave)="onCtaLeave()"
+                (click)="openContactModal()"
+            >
+                <span class="main__cta-label">{{ 'landing.cta' | t }}</span>
+                <span class="main__cta-arrow" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M5 12h14M13 6l6 6-6 6" />
+                    </svg>
+                </span>
+            </button>
+
+            <ul class="main__pills" aria-label="Service highlights">
+                <li>
+                    <span class="main__pill-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                        </svg>
+                    </span>
+                    {{ 'landing.trustFast' | t }}
+                </li>
+                <li>
+                    <span class="main__pill-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                        </svg>
+                    </span>
+                    {{ 'landing.trustSafe' | t }}
+                </li>
+                <li>
+                    <span class="main__pill-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="10" r="3" />
+                            <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z" />
+                        </svg>
+                    </span>
+                    {{ 'landing.trustGeorgia' | t }}
+                </li>
+            </ul>
         </div>
 
-        <div class="main__circles">
-            <img class="circle circle--lg circle--one" src="assets/main/landing/delivery-dog.webp" alt="Delivery dog" width="250" height="250" fetchpriority="high" decoding="async" />
-            <img class="circle circle--md circle--two" src="assets/main/landing/delivery-door.webp" alt="Courier at a door" width="200" height="200" decoding="async" />
-            <img class="circle circle--sm circle--three" src="assets/main/landing/delivery-package-2.webp" alt="Delivery package" width="160" height="160" loading="lazy" decoding="async" />
-            <img class="circle circle--md circle--four" src="assets/main/landing/delivery-package-3.webp" alt="Prepared delivery boxes" width="200" height="200" loading="lazy" decoding="async" />
+        <div
+            class="iso"
+            #heroViz
+            (pointermove)="onPointerMove($event)"
+            (pointerleave)="onPointerLeave()"
+            aria-hidden="true"
+        >
+            <div class="iso__ambient"></div>
 
+            <div class="iso__stage">
+                <!-- Land tiles -->
+                <div class="iso__tile iso__tile--a">
+                    <span class="iso__tile-face"></span>
+                    <span class="iso__tile-edge"></span>
+                </div>
+                <div class="iso__tile iso__tile--b">
+                    <span class="iso__tile-face"></span>
+                    <span class="iso__tile-edge"></span>
+                </div>
+                <div class="iso__tile iso__tile--c">
+                    <span class="iso__tile-face"></span>
+                    <span class="iso__tile-edge"></span>
+                </div>
+                <div class="iso__tile iso__tile--d">
+                    <span class="iso__tile-face"></span>
+                    <span class="iso__tile-edge"></span>
+                </div>
 
+                <!-- Roads network -->
+                <svg class="iso__roads" viewBox="0 0 640 520" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Base grey roads -->
+                    <path
+                        class="iso__road iso__road--wide"
+                        d="M48 410 C140 355, 230 310, 320 270 C410 230, 500 175, 580 120"
+                        stroke="#efede8"
+                        stroke-width="34"
+                        stroke-linecap="round"
+                    />
+                    <path
+                        class="iso__road"
+                        d="M120 460 C190 390, 250 330, 310 280 C380 220, 450 165, 540 115"
+                        stroke="#f3f0ea"
+                        stroke-width="20"
+                        stroke-linecap="round"
+                    />
+                    <path
+                        class="iso__road iso__road--cross"
+                        d="M160 180 C230 220, 300 270, 360 330 C410 375, 455 420, 510 455"
+                        stroke="#f0ece5"
+                        stroke-width="16"
+                        stroke-linecap="round"
+                    />
+                    <path
+                        class="iso__road iso__road--side"
+                        d="M40 280 C110 265, 190 255, 270 260 C350 265, 430 285, 500 320"
+                        stroke="#f2efe9"
+                        stroke-width="14"
+                        stroke-linecap="round"
+                    />
+                    <path
+                        class="iso__road iso__road--spur"
+                        d="M380 90 C400 140, 415 200, 420 260 C425 310, 440 360, 470 400"
+                        stroke="#f1eee8"
+                        stroke-width="12"
+                        stroke-linecap="round"
+                    />
+                    <!-- Soft lane marks -->
+                    <path
+                        class="iso__road-mark"
+                        d="M70 395 C155 345, 240 305, 325 268 C410 230, 500 175, 570 125"
+                        stroke="#fff"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-dasharray="8 12"
+                        opacity="0.5"
+                    />
+                    <path
+                        class="iso__road-mark"
+                        d="M180 195 C245 232, 310 280, 365 335"
+                        stroke="#fff"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-dasharray="6 10"
+                        opacity="0.4"
+                    />
+                    <!-- Secondary stylized orange routes -->
+                    <path
+                        class="iso__road-accent"
+                        d="M150 200 C220 245, 285 300, 350 355 C390 390, 430 420, 475 445"
+                        stroke="#ee7720"
+                        stroke-width="3"
+                        stroke-linecap="round"
+                        opacity="0.28"
+                    />
+                    <path
+                        class="iso__road-accent"
+                        d="M55 285 C130 268, 210 258, 290 265 C370 272, 445 295, 510 330"
+                        stroke="#ee7720"
+                        stroke-width="2.5"
+                        stroke-linecap="round"
+                        opacity="0.22"
+                    />
+                    <path
+                        class="iso__road-accent iso__road-accent--bright"
+                        d="M390 100 C408 148, 420 205, 424 265"
+                        stroke="#ee7720"
+                        stroke-width="2.75"
+                        stroke-linecap="round"
+                        opacity="0.32"
+                    />
+                </svg>
+
+                <!-- Buildings -->
+                <div class="iso__bldg iso__bldg--tall">
+                    <span class="iso__bldg-top"></span>
+                    <span class="iso__bldg-side"></span>
+                    <span class="iso__bldg-front"></span>
+                </div>
+                <div class="iso__bldg iso__bldg--mid">
+                    <span class="iso__bldg-top"></span>
+                    <span class="iso__bldg-side"></span>
+                    <span class="iso__bldg-front"></span>
+                </div>
+                <div class="iso__bldg iso__bldg--low">
+                    <span class="iso__bldg-top"></span>
+                    <span class="iso__bldg-side"></span>
+                    <span class="iso__bldg-front"></span>
+                </div>
+
+                <!-- Hub -->
+                <div class="iso__hub">
+                    <span class="iso__hub-body"></span>
+                    <span class="iso__hub-roof"></span>
+                    <span class="iso__hub-door"></span>
+                    <span class="iso__hub-pulse"></span>
+                </div>
+
+                <!-- Destination house -->
+                <div class="iso__house">
+                    <span class="iso__house-body"></span>
+                    <span class="iso__house-roof"></span>
+                    <span class="iso__house-door"></span>
+                    <span class="iso__house-glow"></span>
+                </div>
+
+                <!-- Green trees -->
+                <span class="iso__tree iso__tree--1" aria-hidden="true">
+                    <i class="iso__tree-trunk"></i>
+                    <i class="iso__tree-leaf iso__tree-leaf--a"></i>
+                    <i class="iso__tree-leaf iso__tree-leaf--b"></i>
+                    <i class="iso__tree-leaf iso__tree-leaf--c"></i>
+                </span>
+                <span class="iso__tree iso__tree--2" aria-hidden="true">
+                    <i class="iso__tree-trunk"></i>
+                    <i class="iso__tree-leaf iso__tree-leaf--a"></i>
+                    <i class="iso__tree-leaf iso__tree-leaf--b"></i>
+                    <i class="iso__tree-leaf iso__tree-leaf--c"></i>
+                </span>
+                <span class="iso__tree iso__tree--3" aria-hidden="true">
+                    <i class="iso__tree-trunk"></i>
+                    <i class="iso__tree-leaf iso__tree-leaf--a"></i>
+                    <i class="iso__tree-leaf iso__tree-leaf--b"></i>
+                    <i class="iso__tree-leaf iso__tree-leaf--c"></i>
+                </span>
+                <span class="iso__tree iso__tree--4" aria-hidden="true">
+                    <i class="iso__tree-trunk"></i>
+                    <i class="iso__tree-leaf iso__tree-leaf--a"></i>
+                    <i class="iso__tree-leaf iso__tree-leaf--b"></i>
+                    <i class="iso__tree-leaf iso__tree-leaf--c"></i>
+                </span>
+                <span class="iso__tree iso__tree--5" aria-hidden="true">
+                    <i class="iso__tree-trunk"></i>
+                    <i class="iso__tree-leaf iso__tree-leaf--a"></i>
+                    <i class="iso__tree-leaf iso__tree-leaf--b"></i>
+                    <i class="iso__tree-leaf iso__tree-leaf--c"></i>
+                </span>
+
+                <!-- Windmill -->
+                <div class="iso__mill" aria-hidden="true">
+                    <span class="iso__mill-base"></span>
+                    <span class="iso__mill-tower"></span>
+                    <span class="iso__mill-hub"></span>
+                    <span class="iso__mill-blades">
+                        <i></i>
+                        <i></i>
+                        <i></i>
+                    </span>
+                </div>
+
+                <!-- Primary orange route + cars -->
+                <svg class="iso__route" viewBox="0 0 640 520" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="isoRouteGrad" x1="80" y1="400" x2="520" y2="120" gradientUnits="userSpaceOnUse">
+                            <stop stop-color="#ee7720" stop-opacity="0.15" />
+                            <stop offset="0.35" stop-color="#ee7720" stop-opacity="0.95" />
+                            <stop offset="0.7" stop-color="#f08b31" stop-opacity="1" />
+                            <stop offset="1" stop-color="#ffc07a" stop-opacity="0.55" />
+                        </linearGradient>
+                        <filter id="isoRouteSoft" x="-40%" y="-40%" width="180%" height="180%">
+                            <feGaussianBlur stdDeviation="4" result="b" />
+                            <feMerge>
+                                <feMergeNode in="b" />
+                                <feMergeNode in="SourceGraphic" />
+                            </feMerge>
+                        </filter>
+                        <path
+                            id="isoMotionPath"
+                            d="M95 395 C175 345, 250 305, 320 265 C390 225, 460 180, 530 130"
+                        />
+                        <path
+                            id="isoMotionPathB"
+                            d="M150 200 C220 245, 285 300, 350 355 C390 390, 430 420, 475 445"
+                        />
+                        <path
+                            id="isoMotionPathC"
+                            d="M55 285 C130 268, 210 258, 290 265 C370 272, 445 295, 510 330"
+                        />
+
+                        <!-- Mini cars: hood on +X; rotate="auto-reverse" aligns hood with travel -->
+                        <g id="isoCarIcon">
+                            <ellipse cx="15" cy="15.5" rx="11" ry="2.2" fill="rgba(42,30,18,0.14)" />
+                            <path
+                                d="M2.5 10.8 V13.4 C2.5 14.2 3.1 14.8 3.9 14.8 H27.2 C28.1 14.8 28.8 14.2 28.8 13.3 V11.2 C28.8 10.2 28.1 9.4 26.8 9.4 H24.2 L22.1 5.2 C21.7 4.4 21 4 20.1 4 H12.8 C11.9 4 11.2 4.4 10.7 5.1 L8.8 8.2 H5.2 C3.6 8.2 2.5 9.2 2.5 10.8 Z"
+                                fill="#fffaf5"
+                                stroke="#ee7720"
+                                stroke-width="1.15"
+                                stroke-linejoin="round"
+                            />
+                            <path d="M9.2 5.6 H12.4 L11.2 8.4 H8.2 Z" fill="#e8dfd4" opacity="0.85" />
+                            <path d="M13 5.5 H19.6 L21.5 9 H12 Z" fill="#ffd7b0" opacity="0.95" />
+                            <path d="M21.8 9.2 H26.5" stroke="#ee7720" stroke-width="1" opacity="0.4" />
+                            <path d="M5 11 H26.5" stroke="#ee7720" stroke-width="1.15" opacity="0.5" />
+                            <circle cx="8.5" cy="14.9" r="2.35" fill="#3a3530" />
+                            <circle cx="8.5" cy="14.9" r="1" fill="#d8d2c8" />
+                            <circle cx="22.8" cy="14.9" r="2.35" fill="#3a3530" />
+                            <circle cx="22.8" cy="14.9" r="1" fill="#d8d2c8" />
+                            <rect x="2.8" y="10.4" width="1.6" height="2.4" rx="0.5" fill="#e85d4c" />
+                            <circle cx="27.8" cy="11.4" r="1.15" fill="#ffb86a" />
+                        </g>
+
+                        <g id="isoCarIconAlt">
+                            <ellipse cx="15" cy="15.5" rx="11" ry="2.2" fill="rgba(42,30,18,0.12)" />
+                            <path
+                                d="M2.5 10.8 V13.4 C2.5 14.2 3.1 14.8 3.9 14.8 H27.2 C28.1 14.8 28.8 14.2 28.8 13.3 V11.2 C28.8 10.2 28.1 9.4 26.8 9.4 H24.2 L22.1 5.2 C21.7 4.4 21 4 20.1 4 H12.8 C11.9 4 11.2 4.4 10.7 5.1 L8.8 8.2 H5.2 C3.6 8.2 2.5 9.2 2.5 10.8 Z"
+                                fill="#fff"
+                                stroke="#d66a18"
+                                stroke-width="1.1"
+                                stroke-linejoin="round"
+                            />
+                            <path d="M9.2 5.6 H12.4 L11.2 8.4 H8.2 Z" fill="#ebe4da" />
+                            <path d="M13 5.5 H19.6 L21.5 9 H12 Z" fill="#f0ebe3" />
+                            <rect x="5" y="10.3" width="16" height="2.1" rx="1" fill="#ee7720" opacity="0.88" />
+                            <circle cx="8.5" cy="14.9" r="2.35" fill="#3a3530" />
+                            <circle cx="8.5" cy="14.9" r="1" fill="#ece7df" />
+                            <circle cx="22.8" cy="14.9" r="2.35" fill="#3a3530" />
+                            <circle cx="22.8" cy="14.9" r="1" fill="#ece7df" />
+                            <rect x="2.8" y="10.4" width="1.6" height="2.4" rx="0.5" fill="#e85d4c" />
+                            <circle cx="27.8" cy="11.4" r="1.15" fill="#ffc07a" />
+                        </g>
+                    </defs>
+
+                    <path
+                        class="iso__route-soft"
+                        d="M95 395 C175 345, 250 305, 320 265 C390 225, 460 180, 530 130"
+                        stroke="#ee7720"
+                        stroke-width="14"
+                        stroke-linecap="round"
+                        opacity="0.18"
+                        filter="url(#isoRouteSoft)"
+                    />
+                    <path
+                        class="iso__route-body"
+                        d="M95 395 C175 345, 250 305, 320 265 C390 225, 460 180, 530 130"
+                        stroke="url(#isoRouteGrad)"
+                        stroke-width="5"
+                        stroke-linecap="round"
+                    />
+                    <path
+                        class="iso__route-core"
+                        d="M95 395 C175 345, 250 305, 320 265 C390 225, 460 180, 530 130"
+                        stroke="#fff8f0"
+                        stroke-width="1.75"
+                        stroke-linecap="round"
+                        opacity="0.85"
+                    />
+                    <path
+                        class="iso__route-dash"
+                        d="M95 395 C175 345, 250 305, 320 265 C390 225, 460 180, 530 130"
+                        stroke="#ffffff"
+                        stroke-width="3.5"
+                        stroke-linecap="round"
+                        stroke-dasharray="18 220"
+                    />
+                    <circle class="iso__route-end" cx="530" cy="130" r="7" fill="#ee7720" opacity="0.35" />
+                    <circle cx="530" cy="130" r="3.5" fill="#fff" stroke="#ee7720" stroke-width="2" />
+
+                    <!-- Car 1: main orange route -->
+                    <g class="iso__car-g iso__car-g--a">
+                        <animateMotion dur="12s" begin="1.1s" repeatCount="indefinite" rotate="auto-reverse">
+                            <mpath [attr.href]="'#isoMotionPath'" [attr.xlink:href]="'#isoMotionPath'" />
+                        </animateMotion>
+                        <use [attr.href]="'#isoCarIcon'" x="-14" y="-10" />
+                    </g>
+
+                    <!-- Car 2: main route, delayed -->
+                    <g class="iso__car-g iso__car-g--b">
+                        <animateMotion
+                            dur="13.5s"
+                            begin="5.2s"
+                            repeatCount="indefinite"
+                            rotate="auto-reverse"
+                            keyPoints="0;1"
+                            keyTimes="0;1"
+                            calcMode="linear"
+                        >
+                            <mpath [attr.href]="'#isoMotionPath'" [attr.xlink:href]="'#isoMotionPath'" />
+                        </animateMotion>
+                        <g transform="translate(-12.5 -9) scale(0.9)">
+                            <use [attr.href]="'#isoCarIconAlt'" />
+                        </g>
+                    </g>
+
+                    <!-- Car 3: secondary cross road -->
+                    <g class="iso__car-g iso__car-g--c">
+                        <animateMotion dur="16s" begin="2.4s" repeatCount="indefinite" rotate="auto-reverse">
+                            <mpath [attr.href]="'#isoMotionPathB'" [attr.xlink:href]="'#isoMotionPathB'" />
+                        </animateMotion>
+                        <g transform="translate(-12 -8.5) scale(0.85)">
+                            <use [attr.href]="'#isoCarIcon'" />
+                        </g>
+                    </g>
+
+                    <!-- Car 4: side road -->
+                    <g class="iso__car-g iso__car-g--d">
+                        <animateMotion dur="15s" begin="3.8s" repeatCount="indefinite" rotate="auto-reverse">
+                            <mpath [attr.href]="'#isoMotionPathC'" [attr.xlink:href]="'#isoMotionPathC'" />
+                        </animateMotion>
+                        <g transform="translate(-11 -8) scale(0.8)">
+                            <use [attr.href]="'#isoCarIconAlt'" />
+                        </g>
+                    </g>
+                </svg>
+
+                <!-- Status chip -->
+                <div class="iso__chip">
+                    <span class="iso__chip-dot"></span>
+                    <strong>{{ 'landing.statusTransit' | t }}</strong>
+                </div>
+            </div>
         </div>
     </section>
 </div>

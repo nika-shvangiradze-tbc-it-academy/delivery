@@ -1,6 +1,6 @@
 .profile-page {
   min-height: 100vh;
-  padding: 130px 20px 60px;
+  padding: calc(var(--app-header-h, 60px) + 28px) 20px 60px;
   background: #fff;
 
   &__container {
@@ -37,7 +37,7 @@
 
   &__grid {
     display: grid;
-    grid-template-columns: 1.2fr 1fr;
+    grid-template-columns: 1fr;
     gap: 20px;
     margin-bottom: 28px;
   }
@@ -122,25 +122,57 @@
 
   &__stats {
     display: grid;
-    gap: 14px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 20px;
   }
 
   &__stat {
-    background: linear-gradient(135deg, rgba(219, 118, 35, 0.12), rgba(240, 160, 97, 0.08));
-    border-radius: 16px;
-    padding: 18px 20px;
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: 10px;
+    min-height: 0;
+    padding: 12px 14px;
+    background: #fff;
+    border: 1px solid rgba(83, 83, 83, 0.1);
+    border-radius: 14px;
+    box-shadow: 0 2px 8px rgba(15, 35, 95, 0.04);
+  }
 
-    span {
-      color: #575757;
-      font-size: 14px;
+  &__stat-icon {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: rgba(219, 118, 35, 0.1);
+    color: #db7623;
+
+    svg {
+      display: block;
     }
+  }
+
+  &__stat-body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
 
     strong {
-      color: #db7623;
-      font-size: 28px;
+      color: #3f3f3f;
+      font-size: 20px;
+      font-weight: 700;
+      line-height: 1.15;
+    }
+
+    span {
+      color: #8a8a8a;
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.25;
     }
   }
 
@@ -226,7 +258,21 @@
 }
 
 @media (max-width: 860px) {
-  .profile-page__grid {
+  .profile-page__stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .profile-page__stat:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 480px) {
+  .profile-page__stats {
     grid-template-columns: 1fr;
+  }
+
+  .profile-page__stat:last-child {
+    grid-column: auto;
   }
 }
