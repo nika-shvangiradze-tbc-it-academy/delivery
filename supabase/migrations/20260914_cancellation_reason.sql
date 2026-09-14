@@ -40,16 +40,15 @@ create policy "Orders insert"
 -- ---------------------------------------------------------------------------
 -- 3) Immutability trigger (applies to EVERYONE, including Admin)
 -- ---------------------------------------------------------------------------
--- Allows: NULL → non-null only via courier_rpc write source (or SQL with no JWT).
--- Blocks: any change once set (including clear to NULL).
+-- Once set, never change (including clear to NULL).
+-- Initial NULL → value is allowed for non-admin writers (courier RPC).
+-- Admin cannot set or change the field (bypasses column allowlist otherwise).
 create or replace function public.protect_cancellation_reason_immutable()
 returns trigger
 language plpgsql
 security definer
 set search_path = public
 as $$
-declare
-  v_source text := coalesce(current_setting('app.orders_write_source', true), '');
 begin
   -- Once written, never change (Admin included).
   if old.cancellation_reason is not null
@@ -57,17 +56,18 @@ begin
     raise exception 'Cancellation reason cannot be changed';
   end if;
 
-  -- Initial write: only courier cancel RPC (or migration / SQL editor with no JWT).
+  -- Initial write
   if old.cancellation_reason is null
      and new.cancellation_reason is not null then
-    if auth.uid() is not null and v_source is distinct from 'courier_rpc' then
-      raise exception 'Cancellation reason can only be set by courier cancellation';
-    end if;
-
-    -- Normalize whitespace; reject empty after trim.
     new.cancellation_reason := nullif(btrim(new.cancellation_reason), '');
     if new.cancellation_reason is null then
       raise exception 'Cancellation reason is required';
+    end if;
+
+    -- Admin must never manually seed this operational field.
+    -- Couriers set it only via courier_cancel_order (RPC).
+    if public.is_admin() then
+      raise exception 'Cancellation reason can only be set by courier cancellation';
     end if;
   end if;
 

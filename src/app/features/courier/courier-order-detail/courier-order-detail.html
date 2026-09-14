@@ -115,9 +115,9 @@
               <textarea
                 id="cancel-reason-detail"
                 class="courier-detail__cancel-reason"
+                #cancelReasonInput
                 rows="3"
                 maxlength="500"
-                [value]="cancelReasonDraft()"
                 [disabled]="saving()"
                 placeholder="მიუთითეთ გაუქმების მიზეზი..."
                 (input)="onCancelReasonInput($event)"
@@ -130,7 +130,7 @@
                   type="button"
                   class="courier-detail__danger"
                   [disabled]="saving()"
-                  (click)="confirmCancel()"
+                  (click)="confirmCancel(cancelReasonInput.value)"
                 >
                   {{ saving() ? 'ინახება...' : 'დიახ' }}
                 </button>

@@ -236,9 +236,9 @@
                       <textarea
                         class="courier-card__cancel-reason"
                         [id]="'cancel-reason-' + order.id"
+                        #cancelReasonInput
                         rows="3"
                         maxlength="500"
-                        [value]="cancelReasonDraft()"
                         [disabled]="savingId() === order.id"
                         placeholder="მიუთითეთ გაუქმების მიზეზი..."
                         (input)="onCancelReasonInput($event)"
@@ -251,7 +251,7 @@
                           type="button"
                           class="courier-card__btn courier-card__btn--danger"
                           [disabled]="savingId() === order.id"
-                          (click)="confirmCancel(order)"
+                          (click)="confirmCancel(order, cancelReasonInput.value)"
                         >
                           {{ savingId() === order.id ? 'ინახება...' : 'დიახ' }}
                         </button>

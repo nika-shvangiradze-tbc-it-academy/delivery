@@ -280,15 +280,19 @@ export class CourierOrders implements OnInit {
   onCancelReasonInput(event: Event): void {
     const value = (event.target as HTMLTextAreaElement).value;
     this.cancelReasonDraft.set(value);
-    if (this.cancelReasonError() && value.trim()) {
+    this.errorMessage.set(null);
+    if (value.trim()) {
       this.cancelReasonError.set(null);
     }
   }
 
-  async confirmCancel(order: Order): Promise<void> {
-    const reason = this.cancelReasonDraft().trim();
+  async confirmCancel(order: Order, reasonFromInput?: string): Promise<void> {
+    const reason = [reasonFromInput, this.cancelReasonDraft()]
+      .map((value) => String(value ?? '').trim())
+      .find((value) => value.length > 0) ?? '';
     if (!reason) {
       this.cancelReasonError.set('გთხოვთ მიუთითოთ გაუქმების მიზეზი');
+      this.errorMessage.set(null);
       return;
     }
 
@@ -296,6 +300,7 @@ export class CourierOrders implements OnInit {
       return;
     }
 
+    this.cancelReasonDraft.set(reason);
     this.savingId.set(order.id);
     this.cancelReasonError.set(null);
     this.errorMessage.set(null);

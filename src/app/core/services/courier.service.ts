@@ -285,8 +285,14 @@ export class CourierService {
 
   private mapCourierRpcError(message: string): string {
     const lower = message.toLowerCase();
-    if (lower.includes('cancellation reason')) {
+    if (lower.includes('cancellation reason is required')) {
       return 'გთხოვთ მიუთითოთ გაუქმების მიზეზი';
+    }
+    if (
+      lower.includes('cancellation reason cannot be changed') ||
+      lower.includes('cancellation reason can only be set')
+    ) {
+      return 'გაუქმების მიზეზის შეცვლა შეუძლებელია.';
     }
     if (lower.includes('payment method required') || lower.includes('invalid payment')) {
       return 'აირჩიეთ გადახდის მეთოდი — ქეში ან ბარათი.';
@@ -308,9 +314,10 @@ export class CourierService {
     rpcName: string,
     error: { message?: string; details?: string; hint?: string; code?: string },
   ): void {
-    // Do not log RPC argument payloads (order IDs / payment method) in production browsers.
     console.error(`${rpcName} failed:`, {
       message: error.message,
+      details: error.details,
+      hint: error.hint,
       code: error.code,
     });
   }
