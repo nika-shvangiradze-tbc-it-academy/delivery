@@ -197,17 +197,25 @@ export class OrdersService {
     return message;
   }
 
-  async getMyOrders(): Promise<{ data: Order[]; error: string | null }> {
+  async getMyOrders(
+    status?: OrderStatus,
+  ): Promise<{ data: Order[]; error: string | null }> {
     const user = this.auth.user();
     if (!user) {
       return { data: [], error: 'Not authenticated' };
     }
 
-    const { data, error } = await this.supabase.client
+    let query = this.supabase.client
       .from('orders')
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
+
+    if (status) {
+      query = query.eq('status', status);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       return { data: [], error: error.message };

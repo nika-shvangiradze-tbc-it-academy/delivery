@@ -5,6 +5,8 @@ import {
   ADMIN_COURIER_UNASSIGNED,
   ADMIN_ORDER_LIST_COLUMNS,
   AdminDashboardStats,
+  AdminDeliveredAnalytics,
+  AdminDeliveredAnalyticsFilters,
   AdminOrderFilters,
   AdminStatusGroup,
   Order,
@@ -14,6 +16,51 @@ import {
 import { CourierOption } from '../models/profile.model';
 import { SupabaseService } from './supabase.service';
 import { normalizeOrder, normalizeOrders } from '../utils/order-status.util';
+
+/** Georgia has no DST; align delivered_at day bounds with RPC Asia/Tbilisi. */
+const TBILISI_OFFSET = '+04:00';
+
+function emptyDeliveredAnalytics(): AdminDeliveredAnalytics {
+  return {
+    summary: {
+      order_count: 0,
+      parcel_count: 0,
+      total_amount: 0,
+      cash_amount: 0,
+      card_amount: 0,
+    },
+    by_city: [],
+    by_courier: [],
+  };
+}
+
+/**
+ * Start of calendar day in Asia/Tbilisi, as UTC ISO (Z).
+ * Always use toISOString() — raw "+04:00" breaks PostgREST query strings
+ * because "+" is decoded as a space.
+ */
+function tbilisiDayStartIso(dateStr: string): string {
+  return new Date(`${dateStr.trim()}T00:00:00${TBILISI_OFFSET}`).toISOString();
+}
+
+/** Exclusive end = start of next Tbilisi calendar day (UTC ISO). */
+function tbilisiDayEndExclusiveIso(dateStr: string): string {
+  const start = new Date(`${dateStr.trim()}T00:00:00${TBILISI_OFFSET}`);
+  return new Date(start.getTime() + 24 * 60 * 60 * 1000).toISOString();
+}
+
+function isIsoDateOnly(value: string | null | undefined): boolean {
+  return !!value && /^\d{4}-\d{2}-\d{2}$/.test(value.trim());
+}
+
+function asNumber(value: unknown): number {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim() !== '') {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : 0;
+  }
+  return 0;
+}
 
 @Injectable({
   providedIn: 'root',
@@ -103,6 +150,7 @@ export class AdminService {
       .from('orders')
       .select(ADMIN_ORDER_LIST_COLUMNS, { count: 'exact' })
       .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
       .range(from, to);
 
     query = this.applyStatusGroup(query, filters.statusGroup);
@@ -115,7 +163,19 @@ export class AdminService {
       query = query.eq('delivery_city', filters.city.trim());
     }
 
-    if (filters.date?.trim()) {
+    // Delivered tab: date range on visible delivery_date column (not delivered_at).
+    // Analytics RPC still uses delivered_at separately.
+    // Other tabs: single delivery_date via date preset.
+    if (filters.statusGroup === 'delivered') {
+      const fromDate = filters.deliveredDateFrom?.trim() ?? '';
+      const toDate = filters.deliveredDateTo?.trim() ?? '';
+      if (isIsoDateOnly(fromDate)) {
+        query = query.gte('delivery_date', fromDate);
+      }
+      if (isIsoDateOnly(toDate)) {
+        query = query.lte('delivery_date', toDate);
+      }
+    } else if (filters.date?.trim()) {
       query = query.eq('delivery_date', filters.date.trim());
     }
 
@@ -124,6 +184,11 @@ export class AdminService {
       query = query.is('assigned_courier_id', null);
     } else if (courierId) {
       query = query.eq('assigned_courier_id', courierId);
+    }
+
+    const payment = filters.paymentMethod;
+    if (payment === 'cash' || payment === 'card') {
+      query = query.eq('payment_method', payment);
     }
 
     const searchOr = this.buildSearchOrFilter(filters.search);
@@ -147,6 +212,35 @@ export class AdminService {
     };
   }
 
+  /**
+   * Server-side delivered analytics (summary + city + courier).
+   * Requires admin_delivered_analytics RPC migration applied in Supabase.
+   */
+  async getDeliveredAnalytics(
+    filters: AdminDeliveredAnalyticsFilters,
+  ): Promise<{ data: AdminDeliveredAnalytics; error: string | null }> {
+    const payment =
+      filters.paymentMethod === 'cash' || filters.paymentMethod === 'card'
+        ? filters.paymentMethod
+        : null;
+    const courierRaw = filters.courierId?.trim() || null;
+
+    const { data, error } = await this.supabase.client.rpc('admin_delivered_analytics', {
+      p_date_from: isIsoDateOnly(filters.dateFrom) ? filters.dateFrom!.trim() : null,
+      p_date_to: isIsoDateOnly(filters.dateTo) ? filters.dateTo!.trim() : null,
+      p_city: filters.city?.trim() || null,
+      p_courier_id: courierRaw,
+      p_payment_method: payment,
+    });
+
+    if (error) {
+      this.logSupabaseError('getDeliveredAnalytics', error);
+      return { data: emptyDeliveredAnalytics(), error: error.message };
+    }
+
+    return { data: this.normalizeDeliveredAnalytics(data), error: null };
+  }
+
   /** Whether an order matches the current Admin list filters (Realtime-ready). */
   orderMatchesAdminFilters(order: Order, filters: AdminOrderFilters): boolean {
     if (!this.statusMatchesGroup(order.status, filters.statusGroup)) {
@@ -161,7 +255,11 @@ export class AdminService {
       return false;
     }
 
-    if (filters.date?.trim() && order.delivery_date !== filters.date.trim()) {
+    if (filters.statusGroup === 'delivered') {
+      if (!this.matchesDeliveryDateRange(order, filters.deliveredDateFrom, filters.deliveredDateTo)) {
+        return false;
+      }
+    } else if (filters.date?.trim() && order.delivery_date !== filters.date.trim()) {
       return false;
     }
 
@@ -169,6 +267,11 @@ export class AdminService {
     if (courierId === ADMIN_COURIER_UNASSIGNED) {
       if (order.assigned_courier_id != null) return false;
     } else if (courierId && order.assigned_courier_id !== courierId) {
+      return false;
+    }
+
+    const payment = filters.paymentMethod;
+    if ((payment === 'cash' || payment === 'card') && order.payment_method !== payment) {
       return false;
     }
 
@@ -193,6 +296,66 @@ export class AdminService {
     }
 
     return true;
+  }
+
+  private matchesDeliveryDateRange(
+    order: Order,
+    fromDate?: string | null,
+    toDate?: string | null,
+  ): boolean {
+    const from = fromDate?.trim();
+    const to = toDate?.trim();
+    if (!isIsoDateOnly(from) && !isIsoDateOnly(to)) return true;
+
+    const deliveryDate = order.delivery_date?.trim() ?? '';
+    if (!isIsoDateOnly(deliveryDate)) return false;
+
+    if (isIsoDateOnly(from) && deliveryDate < from!) return false;
+    if (isIsoDateOnly(to) && deliveryDate > to!) return false;
+    return true;
+  }
+
+  private normalizeDeliveredAnalytics(raw: unknown): AdminDeliveredAnalytics {
+    const root = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+    const summaryRaw = (root['summary'] && typeof root['summary'] === 'object'
+      ? root['summary']
+      : {}) as Record<string, unknown>;
+
+    const byCity = Array.isArray(root['by_city']) ? root['by_city'] : [];
+    const byCourier = Array.isArray(root['by_courier']) ? root['by_courier'] : [];
+
+    return {
+      summary: {
+        order_count: asNumber(summaryRaw['order_count']),
+        parcel_count: asNumber(summaryRaw['parcel_count']),
+        total_amount: asNumber(summaryRaw['total_amount']),
+        cash_amount: asNumber(summaryRaw['cash_amount']),
+        card_amount: asNumber(summaryRaw['card_amount']),
+      },
+      by_city: byCity.map((row) => {
+        const r = (row && typeof row === 'object' ? row : {}) as Record<string, unknown>;
+        return {
+          city: typeof r['city'] === 'string' ? r['city'] : '—',
+          order_count: asNumber(r['order_count']),
+          parcel_count: asNumber(r['parcel_count']),
+          total_amount: asNumber(r['total_amount']),
+          cash_amount: asNumber(r['cash_amount']),
+          card_amount: asNumber(r['card_amount']),
+        };
+      }),
+      by_courier: byCourier.map((row) => {
+        const r = (row && typeof row === 'object' ? row : {}) as Record<string, unknown>;
+        return {
+          courier_id: typeof r['courier_id'] === 'string' ? r['courier_id'] : null,
+          full_name: typeof r['full_name'] === 'string' ? r['full_name'] : 'მიუნიჭებელი',
+          order_count: asNumber(r['order_count']),
+          parcel_count: asNumber(r['parcel_count']),
+          total_amount: asNumber(r['total_amount']),
+          cash_amount: asNumber(r['cash_amount']),
+          card_amount: asNumber(r['card_amount']),
+        };
+      }),
+    };
   }
 
   statusMatchesGroup(status: OrderStatus, group: AdminStatusGroup): boolean {

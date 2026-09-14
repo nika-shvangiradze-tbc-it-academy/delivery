@@ -7,6 +7,21 @@
       <a routerLink="/create-order" class="my-orders-page__cta">{{ 'nav.createOrder' | t }}</a>
     </div>
 
+    <div class="my-orders-page__filters" role="tablist" aria-label="შეკვეთის სტატუსი">
+      @for (option of statusFilters; track option.id) {
+        <button
+          type="button"
+          role="tab"
+          [class]="'my-orders-page__filter my-orders-page__filter--' + option.id"
+          [class.is-active]="statusFilter() === option.id"
+          [attr.aria-selected]="statusFilter() === option.id"
+          (click)="selectStatusFilter(option.id)"
+        >
+          {{ option.label }}
+        </button>
+      }
+    </div>
+
     @if (successMessage()) {
       <p class="my-orders-page__success" role="status">{{ successMessage() }}</p>
     }
@@ -16,7 +31,7 @@
     } @else if (errorMessage()) {
       <p class="my-orders-page__error" role="alert">{{ errorMessage() }}</p>
     } @else if (orders().length === 0) {
-      <p class="my-orders-page__muted">{{ 'orders.empty' | t }}</p>
+      <p class="my-orders-page__muted">{{ emptyMessage() }}</p>
     } @else {
       <div class="my-orders-page__grid">
         @for (order of orders(); track order.id) {

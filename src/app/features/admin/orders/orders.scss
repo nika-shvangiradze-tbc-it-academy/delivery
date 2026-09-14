@@ -4,7 +4,7 @@
   background: #fff;
 
   &__container {
-    max-width: 1200px;
+    max-width: 1600px;
     margin: 0 auto;
   }
 
@@ -97,27 +97,159 @@
   &__filters {
     display: grid;
     grid-template-columns: 1.4fr repeat(4, minmax(0, 1fr)) auto;
-    gap: 10px;
-    margin-bottom: 14px;
+    gap: 12px;
+    align-items: end;
+    margin-bottom: 16px;
 
     input,
     select,
     button {
       border: 1px solid rgba(83, 83, 83, 0.18);
       border-radius: 12px;
-      padding: 11px 12px;
+      padding: 12px 14px;
       font: inherit;
+      font-size: 14px;
+      line-height: 1.3;
+      min-height: 46px;
       background: #fff;
       color: #3f3f3f;
+      box-sizing: border-box;
     }
 
     button {
       background: #db7623;
       border-color: #db7623;
       color: #fff;
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
+      white-space: nowrap;
+      padding-inline: 18px;
     }
+
+    &--delivered {
+      grid-template-columns: 1.5fr repeat(3, minmax(0, 1fr));
+      grid-template-areas:
+        'search pickup delivery courier'
+        'from to payment submit';
+
+      .admin-orders__filter-search {
+        grid-area: search;
+      }
+
+      select[formControlName='pickupCity'] {
+        grid-area: pickup;
+      }
+
+      select[formControlName='deliveryCity'] {
+        grid-area: delivery;
+      }
+
+      select[formControlName='courierId'] {
+        grid-area: courier;
+      }
+
+      .admin-orders__date-field--from {
+        grid-area: from;
+      }
+
+      .admin-orders__date-field--to {
+        grid-area: to;
+      }
+
+      .admin-orders__filter-payment {
+        grid-area: payment;
+      }
+
+      .admin-orders__filter-submit {
+        grid-area: submit;
+        width: 100%;
+      }
+    }
+  }
+
+  &__date-field {
+    display: grid;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #575757;
+    min-width: 0;
+
+    span {
+      line-height: 1;
+    }
+
+    input {
+      width: 100%;
+      min-width: 0;
+      font-size: 14px;
+      min-height: 46px;
+    }
+  }
+
+  &__analytics {
+    margin-bottom: 18px;
+    padding: 16px 18px;
+    border-radius: 16px;
+    background: linear-gradient(180deg, #f8faf8 0%, #f3f6f3 100%);
+    border: 1px solid rgba(22, 163, 74, 0.12);
+  }
+
+  &__analytics-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+
+    h2 {
+      margin: 0;
+      font-size: 16px;
+      color: #166534;
+    }
+  }
+
+  &__summary-cards {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  &__summary-card {
+    background: #fff;
+    border-radius: 14px;
+    padding: 14px 16px;
+    border: 1px solid rgba(83, 83, 83, 0.1);
+
+    &--cash {
+      border-color: rgba(217, 119, 6, 0.25);
+    }
+
+    &--card {
+      border-color: rgba(37, 99, 235, 0.25);
+    }
+  }
+
+  &__summary-label {
+    margin: 0 0 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b7280;
+  }
+
+  &__summary-value {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 800;
+    color: #1f2937;
+    letter-spacing: -0.02em;
+  }
+
+  &__summary-sub {
+    margin: 6px 0 0;
+    font-size: 12px;
+    color: #6b7280;
   }
 
   &__pagination {
@@ -131,9 +263,20 @@
     font-size: 13px;
   }
 
+  &__page-meta {
+    display: grid;
+    gap: 2px;
+  }
+
   &__page-info {
     margin: 0;
-    font-weight: 600;
+    font-weight: 700;
+  }
+
+  &__page-total,
+  &__page-range {
+    margin: 0;
+    color: #6b7280;
   }
 
   &__page-size {
@@ -153,22 +296,43 @@
   &__page-nav {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
 
-    button {
-      border: 1px solid rgba(83, 83, 83, 0.18);
-      background: #fff;
-      color: #535353;
-      border-radius: 10px;
-      width: 36px;
-      height: 36px;
-      font: inherit;
-      cursor: pointer;
+  &__page-btn,
+  &__page-num {
+    border: 1px solid rgba(83, 83, 83, 0.18);
+    background: #fff;
+    color: #535353;
+    border-radius: 10px;
+    min-height: 36px;
+    padding: 0 12px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
 
-      &:disabled {
-        opacity: 0.45;
-        cursor: not-allowed;
-      }
+    &:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+  }
+
+  &__page-numbers {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  &__page-num {
+    min-width: 36px;
+    padding: 0 8px;
+
+    &.is-active {
+      background: #db7623;
+      border-color: #db7623;
+      color: #fff;
     }
   }
 
@@ -446,17 +610,52 @@
 @media (max-width: 1100px) {
   .admin-orders__filters {
     grid-template-columns: 1fr 1fr 1fr;
+
+    &--delivered {
+      grid-template-columns: 1fr 1fr;
+      grid-template-areas:
+        'search search'
+        'pickup delivery'
+        'courier courier'
+        'from to'
+        'payment submit';
+    }
+  }
+
+  .admin-orders__summary-cards {
+    grid-template-columns: 1fr 1fr;
   }
 }
 
 @media (max-width: 720px) {
   .admin-orders__filters {
     grid-template-columns: 1fr 1fr;
+
+    &--delivered {
+      grid-template-columns: 1fr;
+      grid-template-areas:
+        'search'
+        'pickup'
+        'delivery'
+        'courier'
+        'from'
+        'to'
+        'payment'
+        'submit';
+    }
   }
 
   .admin-orders__pagination {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .admin-orders__page-numbers {
+    display: none;
+  }
+
+  .admin-orders__summary-cards {
+    grid-template-columns: 1fr;
   }
 }
 

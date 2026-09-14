@@ -22,10 +22,13 @@ import { TranslatePipe } from '../../../core/pipes/t.pipe';
 import {
   ADMIN_COURIER_UNASSIGNED,
   ADMIN_ORDER_PAGE_SIZES,
+  ADMIN_PAGE_SIZE_STORAGE_KEY,
   ADMIN_STATUS_GROUPS,
   AdminDatePreset,
+  AdminDeliveredAnalytics,
   AdminOrderFilters,
   AdminOrderPageSize,
+  AdminPaymentMethodFilter,
   AdminStatusGroup,
   ORDER_STATUSES,
   Order,
@@ -61,6 +64,31 @@ function amountPositiveValidator(control: AbstractControl): ValidationErrors | n
   return amount > 0 ? null : { amountInvalid: true };
 }
 
+function readStoredPageSize(): AdminOrderPageSize {
+  try {
+    const raw = localStorage.getItem(ADMIN_PAGE_SIZE_STORAGE_KEY);
+    const n = raw ? Number(raw) : NaN;
+    if ((ADMIN_ORDER_PAGE_SIZES as readonly number[]).includes(n)) {
+      return n as AdminOrderPageSize;
+    }
+  } catch {
+    // ignore storage errors
+  }
+  return 50;
+}
+
+const EMPTY_ANALYTICS: AdminDeliveredAnalytics = {
+  summary: {
+    order_count: 0,
+    parcel_count: 0,
+    total_amount: 0,
+    cash_amount: 0,
+    card_amount: 0,
+  },
+  by_city: [],
+  by_courier: [],
+};
+
 const EMPTY_MESSAGES: Record<AdminStatusGroup, string> = {
   pending: 'მოლოდინში შეკვეთები არ არის',
   active: 'აქტიური შეკვეთები არ მოიძებნა',
@@ -93,6 +121,7 @@ export class AdminOrders implements OnInit {
 
   /** Ignores stale responses when filters change rapidly. */
   private loadGeneration = 0;
+  private analyticsGeneration = 0;
   /** Prevents overlapping soft reloads from Realtime bursts. */
   private softReloadInFlight = false;
   private softReloadQueued = false;
@@ -111,6 +140,7 @@ export class AdminOrders implements OnInit {
   readonly selectedIds = signal<Set<number>>(new Set());
   readonly bulkCourierId = signal<string | null>(null);
   readonly loading = signal(true);
+  readonly analyticsLoading = signal(false);
   readonly updating = signal(false);
   readonly errorMessage = signal<string | null>(null);
   readonly successMessage = signal<string | null>(null);
@@ -118,9 +148,10 @@ export class AdminOrders implements OnInit {
 
   readonly statusGroup = signal<AdminStatusGroup>('pending');
   readonly page = signal(1);
-  readonly pageSize = signal<AdminOrderPageSize>(50);
+  readonly pageSize = signal<AdminOrderPageSize>(readStoredPageSize());
   readonly total = signal(0);
   readonly datePreset = signal<AdminDatePreset>('all');
+  readonly analytics = signal<AdminDeliveredAnalytics>(EMPTY_ANALYTICS);
 
   readonly statusClass = orderStatusClass;
   readonly statusSelectClass = orderStatusSelectClass;
@@ -134,11 +165,13 @@ export class AdminOrders implements OnInit {
   );
   readonly totalPages = computed(() => Math.max(1, Math.ceil(this.total() / this.pageSize())));
   readonly emptyMessage = computed(() => EMPTY_MESSAGES[this.statusGroup()]);
+  readonly showDeliveredAnalytics = computed(() => this.statusGroup() === 'delivered');
   readonly rangeFrom = computed(() => {
     if (this.total() === 0) return 0;
     return (this.page() - 1) * this.pageSize() + 1;
   });
   readonly rangeTo = computed(() => Math.min(this.page() * this.pageSize(), this.total()));
+  readonly pageNumbers = computed(() => this.buildPageNumbers(this.page(), this.totalPages()));
 
   readonly filtersForm = this.fb.nonNullable.group({
     search: [''],
@@ -146,6 +179,9 @@ export class AdminOrders implements OnInit {
     deliveryCity: [''],
     deliveryDate: [''],
     courierId: [''],
+    deliveredDateFrom: [''],
+    deliveredDateTo: [''],
+    paymentMethod: ['all' as AdminPaymentMethodFilter],
   });
 
   readonly editForm = this.fb.nonNullable.group({
@@ -185,10 +221,30 @@ export class AdminOrders implements OnInit {
       .pipe(distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => void this.resetPageAndLoad());
 
+    this.filtersForm.controls.paymentMethod.valueChanges
+      .pipe(distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => void this.resetPageAndLoad());
+
+    this.filtersForm.controls.deliveredDateFrom.valueChanges
+      .pipe(distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        if (this.statusGroup() === 'delivered') {
+          void this.resetPageAndLoad();
+        }
+      });
+
+    this.filtersForm.controls.deliveredDateTo.valueChanges
+      .pipe(distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        if (this.statusGroup() === 'delivered') {
+          void this.resetPageAndLoad();
+        }
+      });
+
     this.filtersForm.controls.deliveryDate.valueChanges
       .pipe(distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
-        if (this.datePreset() === 'custom') {
+        if (this.datePreset() === 'custom' && this.statusGroup() !== 'delivered') {
           void this.resetPageAndLoad();
         }
       });
@@ -213,12 +269,24 @@ export class AdminOrders implements OnInit {
 
   currentFilters(): AdminOrderFilters {
     const form = this.filtersForm.getRawValue();
+    const payment = form.paymentMethod;
+    const isDelivered = this.statusGroup() === 'delivered';
+    const from = form.deliveredDateFrom.trim();
+    const to = form.deliveredDateTo.trim();
+
     return {
       statusGroup: this.statusGroup(),
-      date: this.resolveDeliveryDate(form.deliveryDate),
+      date: isDelivered ? null : this.resolveDeliveryDate(form.deliveryDate),
+      deliveredDateFrom: isDelivered && /^\d{4}-\d{2}-\d{2}$/.test(from) ? from : null,
+      deliveredDateTo: isDelivered && /^\d{4}-\d{2}-\d{2}$/.test(to) ? to : null,
       pickupCity: form.pickupCity || null,
       city: form.deliveryCity || null,
       courierId: form.courierId || null,
+      paymentMethod: isDelivered
+        ? payment === 'cash' || payment === 'card'
+          ? payment
+          : 'all'
+        : 'all',
       search: form.search,
       page: this.page(),
       pageSize: this.pageSize(),
@@ -231,7 +299,13 @@ export class AdminOrders implements OnInit {
     this.errorMessage.set(null);
 
     const filters = this.currentFilters();
-    const result = await this.adminService.getAdminOrders(filters);
+    const analyticsPromise =
+      filters.statusGroup === 'delivered' ? this.loadDeliveredAnalytics(filters) : Promise.resolve();
+
+    const [result] = await Promise.all([
+      this.adminService.getAdminOrders(filters),
+      analyticsPromise,
+    ]);
 
     if (generation !== this.loadGeneration) {
       return;
@@ -242,6 +316,10 @@ export class AdminOrders implements OnInit {
     this.selectedIds.set(new Set());
     this.errorMessage.set(result.error);
     this.loading.set(false);
+
+    if (filters.statusGroup !== 'delivered') {
+      this.analytics.set(EMPTY_ANALYTICS);
+    }
   }
 
   selectStatusGroup(group: AdminStatusGroup): void {
@@ -261,7 +339,6 @@ export class AdminOrders implements OnInit {
     } else if (preset === 'all') {
       this.filtersForm.controls.deliveryDate.setValue('', { emitEvent: false });
     }
-    // custom: keep whatever is in the date input
     this.resetPageAndLoad();
   }
 
@@ -270,13 +347,15 @@ export class AdminOrders implements OnInit {
       ? (size as AdminOrderPageSize)
       : 50;
     this.pageSize.set(next);
+    try {
+      localStorage.setItem(ADMIN_PAGE_SIZE_STORAGE_KEY, String(next));
+    } catch {
+      // ignore storage errors
+    }
     this.resetPageAndLoad();
   }
 
   async onFilter(): Promise<void> {
-    if (this.datePreset() === 'custom' && !this.filtersForm.controls.deliveryDate.value) {
-      // custom with empty date = all dates
-    }
     await this.resetPageAndLoad();
   }
 
@@ -372,6 +451,9 @@ export class AdminOrders implements OnInit {
     this.patchOrDropOrder(data);
     this.successMessage.set(`შეკვეთა #${order.id} განახლდა`);
     this.closeEdit();
+    if (this.statusGroup() === 'delivered') {
+      void this.loadDeliveredAnalytics(this.currentFilters());
+    }
   }
 
   courierName(courierId: string | null): string {
@@ -426,7 +508,6 @@ export class AdminOrders implements OnInit {
 
     this.selectedIds.set(new Set());
     this.successMessage.set(`${data.length} შეკვეთა მიენიჭა კურიერს`);
-    // Assigned orders leave Pending → re-fetch current page/filters
     await this.loadOrders();
   }
 
@@ -479,6 +560,9 @@ export class AdminOrders implements OnInit {
     }
 
     this.patchOrDropOrder(data);
+    if (this.statusGroup() === 'delivered' || status === 'delivered' || previousStatus === 'delivered') {
+      void this.loadDeliveredAnalytics(this.currentFilters());
+    }
   }
 
   /**
@@ -516,6 +600,8 @@ export class AdminOrders implements OnInit {
           return next;
         });
         await this.softReloadCurrentPage();
+      } else if (this.statusGroup() === 'delivered') {
+        void this.loadDeliveredAnalytics(this.currentFilters());
       }
       return;
     }
@@ -536,24 +622,31 @@ export class AdminOrders implements OnInit {
     if (inList && matches) {
       this.patchOrDropOrder(normalized);
       this.syncOpenModals(normalized);
+      if (filters.statusGroup === 'delivered') {
+        void this.loadDeliveredAnalytics(filters);
+      }
       return;
     }
 
     if (inList && !matches) {
       this.patchOrDropOrder(normalized);
       this.closeModalsForOrder(normalized.id);
-      // Fill the hole from the next page without changing filters.
       await this.softReloadCurrentPage();
       return;
     }
 
     if (!inList && matches) {
-      // Entered current filter set — refresh this page only (pagination-safe).
       await this.softReloadCurrentPage();
       return;
     }
 
-    // Not visible and does not match current filters — ignore.
+    // Not visible — still refresh delivered analytics if status could affect totals.
+    if (
+      filters.statusGroup === 'delivered' &&
+      (normalized.status === 'delivered' || change.oldRow?.status === 'delivered')
+    ) {
+      void this.loadDeliveredAnalytics(filters);
+    }
   }
 
   private syncOpenModals(order: Order): void {
@@ -584,7 +677,15 @@ export class AdminOrders implements OnInit {
         this.softReloadQueued = false;
         const generation = ++this.loadGeneration;
         const filters = this.currentFilters();
-        const result = await this.adminService.getAdminOrders(filters);
+        const analyticsPromise =
+          filters.statusGroup === 'delivered'
+            ? this.loadDeliveredAnalytics(filters)
+            : Promise.resolve();
+
+        const [result] = await Promise.all([
+          this.adminService.getAdminOrders(filters),
+          analyticsPromise,
+        ]);
 
         if (generation !== this.loadGeneration) {
           return;
@@ -607,6 +708,29 @@ export class AdminOrders implements OnInit {
     }
   }
 
+  private async loadDeliveredAnalytics(filters: AdminOrderFilters): Promise<void> {
+    const generation = ++this.analyticsGeneration;
+    this.analyticsLoading.set(true);
+
+    const { data, error } = await this.adminService.getDeliveredAnalytics({
+      dateFrom: filters.deliveredDateFrom,
+      dateTo: filters.deliveredDateTo,
+      city: filters.city,
+      courierId: filters.courierId,
+      paymentMethod: filters.paymentMethod,
+    });
+
+    if (generation !== this.analyticsGeneration) {
+      return;
+    }
+
+    this.analytics.set(data);
+    this.analyticsLoading.set(false);
+    if (error && !this.errorMessage()) {
+      this.errorMessage.set(error);
+    }
+  }
+
   private async resetPageAndLoad(): Promise<void> {
     this.page.set(1);
     await this.loadOrders();
@@ -618,5 +742,19 @@ export class AdminOrders implements OnInit {
     if (preset === 'today') return toDateInputValue(new Date());
     if (preset === 'tomorrow') return minDeliveryDateIso();
     return formDate.trim() || null;
+  }
+
+  private buildPageNumbers(current: number, total: number): number[] {
+    if (total <= 1) return [1];
+    const windowSize = 5;
+    let start = Math.max(1, current - Math.floor(windowSize / 2));
+    let end = Math.min(total, start + windowSize - 1);
+    start = Math.max(1, end - windowSize + 1);
+
+    const pages: number[] = [];
+    for (let p = start; p <= end; p += 1) {
+      pages.push(p);
+    }
+    return pages;
   }
 }

@@ -18,7 +18,7 @@ import {
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '../../../core/pipes/t.pipe';
 import { GEORGIAN_CITIES, isDeliveryDateAllowed, minDeliveryDateIso } from '../../../core/constants/cities';
-import { Order } from '../../../core/models/order.model';
+import { Order, OrderStatus } from '../../../core/models/order.model';
 import { OrderRealtimeService } from '../../../core/services/order-realtime.service';
 import { OrdersService } from '../../../core/services/orders.service';
 import {
@@ -29,6 +29,8 @@ import {
   toCents,
 } from '../../../core/utils/order-status.util';
 import { DeliveryHeader } from '../../../layout/delivery-header/delivery-header';
+
+export type MyOrdersStatusFilter = OrderStatus;
 
 function amountNonNegativeValidator(control: AbstractControl): ValidationErrors | null {
   const amount = centsToNumber(toCents(control.value));
@@ -49,6 +51,7 @@ export class MyOrders implements OnInit {
   private readonly fb = inject(FormBuilder);
 
   readonly orders = signal<Order[]>([]);
+  readonly statusFilter = signal<MyOrdersStatusFilter>('pending');
   readonly expandedId = signal<number | null>(null);
   readonly loading = signal(true);
   readonly errorMessage = signal<string | null>(null);
@@ -62,6 +65,20 @@ export class MyOrders implements OnInit {
   readonly statusClass = orderStatusClass;
   readonly statusLabelKey = orderStatusLabelKey;
   readonly formatGel = formatGel;
+
+  readonly statusFilters: ReadonlyArray<{ id: MyOrdersStatusFilter; label: string }> = [
+    { id: 'pending', label: 'მოლოდინში' },
+    { id: 'picked_up', label: 'აღებული' },
+    { id: 'delivered', label: 'ჩაბარებული' },
+    { id: 'cancelled', label: 'გაუქმებული' },
+  ];
+
+  readonly emptyByStatus: Record<MyOrdersStatusFilter, string> = {
+    pending: 'მოლოდინში შეკვეთები არ არის.',
+    picked_up: 'აღებული შეკვეთები არ არის.',
+    delivered: 'ჩაბარებული შეკვეთები არ არის.',
+    cancelled: 'გაუქმებული შეკვეთები არ არის.',
+  };
 
   readonly editForm = this.fb.nonNullable.group({
     sender_name: ['', Validators.required],
@@ -96,6 +113,21 @@ export class MyOrders implements OnInit {
     this.loading.set(true);
     await this.fetchOrders();
     this.loading.set(false);
+  }
+
+  async selectStatusFilter(status: MyOrdersStatusFilter): Promise<void> {
+    if (this.statusFilter() === status) {
+      return;
+    }
+    this.statusFilter.set(status);
+    this.expandedId.set(null);
+    this.loading.set(true);
+    await this.fetchOrders();
+    this.loading.set(false);
+  }
+
+  emptyMessage(): string {
+    return this.emptyByStatus[this.statusFilter()];
   }
 
   toggleDetails(orderId: number): void {
@@ -246,7 +278,7 @@ export class MyOrders implements OnInit {
   }
 
   private async fetchOrders(): Promise<void> {
-    const { data, error } = await this.ordersService.getMyOrders();
+    const { data, error } = await this.ordersService.getMyOrders(this.statusFilter());
     this.orders.set(data);
     this.errorMessage.set(error);
 

@@ -99,8 +99,10 @@ export const ADMIN_ACTIVE_STATUS_FILTER: string[] = [
 
 export type AdminDatePreset = 'all' | 'today' | 'tomorrow' | 'custom';
 
-export const ADMIN_ORDER_PAGE_SIZES = [50, 100] as const;
+export const ADMIN_ORDER_PAGE_SIZES = [30, 50, 100] as const;
 export type AdminOrderPageSize = (typeof ADMIN_ORDER_PAGE_SIZES)[number];
+
+export const ADMIN_PAGE_SIZE_STORAGE_KEY = 'admin.orderPageSize';
 
 /**
  * Sentinel for "unassigned" courier filter.
@@ -108,10 +110,18 @@ export type AdminOrderPageSize = (typeof ADMIN_ORDER_PAGE_SIZES)[number];
  */
 export const ADMIN_COURIER_UNASSIGNED = 'unassigned' as const;
 
+export type AdminPaymentMethodFilter = 'all' | PaymentMethod;
+
 export interface AdminOrderFilters {
   statusGroup: AdminStatusGroup;
-  /** Optional delivery_date filter. Null/empty = all dates. */
+  /** Optional delivery_date filter (non-delivered tabs). Null/empty = all dates. */
   date?: string | null;
+  /**
+   * Delivered-tab date range on delivery_date (visible "მიწოდების თარიღი").
+   * Analytics RPC still uses delivered_at separately.
+   */
+  deliveredDateFrom?: string | null;
+  deliveredDateTo?: string | null;
   pickupCity?: string | null;
   city?: string | null;
   /**
@@ -121,9 +131,52 @@ export interface AdminOrderFilters {
    * - uuid → assigned_courier_id = uuid
    */
   courierId?: string | null;
+  /** Payment method filter (typically delivered tab). */
+  paymentMethod?: AdminPaymentMethodFilter | null;
   search?: string;
   page: number;
   pageSize: AdminOrderPageSize | number;
+}
+
+export interface AdminDeliveredAnalyticsFilters {
+  dateFrom?: string | null;
+  dateTo?: string | null;
+  city?: string | null;
+  courierId?: string | null;
+  paymentMethod?: AdminPaymentMethodFilter | null;
+}
+
+export interface AdminDeliveredAnalyticsSummary {
+  order_count: number;
+  parcel_count: number;
+  total_amount: number;
+  cash_amount: number;
+  card_amount: number;
+}
+
+export interface AdminDeliveredCityBreakdown {
+  city: string;
+  order_count: number;
+  parcel_count: number;
+  total_amount: number;
+  cash_amount: number;
+  card_amount: number;
+}
+
+export interface AdminDeliveredCourierBreakdown {
+  courier_id: string | null;
+  full_name: string;
+  order_count: number;
+  parcel_count: number;
+  total_amount: number;
+  cash_amount: number;
+  card_amount: number;
+}
+
+export interface AdminDeliveredAnalytics {
+  summary: AdminDeliveredAnalyticsSummary;
+  by_city: AdminDeliveredCityBreakdown[];
+  by_courier: AdminDeliveredCourierBreakdown[];
 }
 
 export interface PaginatedOrdersResult {
