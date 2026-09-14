@@ -1,44 +1,29 @@
-export type OrderStatus =
-  | 'pending'
-  | 'accepted'
-  | 'picked_up'
-  | 'in_transit'
-  | 'delivered'
-  | 'cancelled';
+export type OrderStatus = 'pending' | 'picked_up' | 'delivered' | 'cancelled';
 
 /** Status values couriers may set (English DB values only — not UI labels). */
-export type CourierStatus =
-  | 'accepted'
-  | 'picked_up'
-  | 'in_transit'
-  | 'delivered'
-  | 'cancelled';
+export type CourierStatus = 'pending' | 'picked_up' | 'delivered' | 'cancelled';
 
 export type PaymentMethod = 'cash' | 'card';
 
 export const ORDER_STATUSES: OrderStatus[] = [
   'pending',
-  'accepted',
   'picked_up',
-  'in_transit',
   'delivered',
   'cancelled',
 ];
 
 /** @deprecated Prefer complete/cancel RPCs; kept for correction UI labels. */
 export const COURIER_ALLOWED_STATUSES: CourierStatus[] = [
-  'accepted',
+  'pending',
   'picked_up',
-  'in_transit',
   'delivered',
   'cancelled',
 ];
 
 /** Statuses a courier may restore/correct to from history. */
 export const COURIER_CORRECTION_STATUSES: CourierStatus[] = [
-  'accepted',
+  'pending',
   'picked_up',
-  'in_transit',
   'delivered',
   'cancelled',
 ];
@@ -75,9 +60,17 @@ export interface Order {
   updated_at: string;
 }
 
-export const COURIER_ACTIVE_STATUSES: OrderStatus[] = [
-  'accepted',
+/** Assigned courier work queue (pending = assigned awaiting pickup). */
+export const COURIER_ACTIVE_STATUSES: OrderStatus[] = ['pending', 'picked_up'];
+
+/**
+ * Active-list query values including legacy statuses until the DB migration runs.
+ * Rows are normalized to the 4-status model in the client.
+ */
+export const COURIER_ACTIVE_STATUS_FILTER: string[] = [
+  'pending',
   'picked_up',
+  'accepted',
   'in_transit',
 ];
 
@@ -94,9 +87,13 @@ export const ADMIN_STATUS_GROUPS: AdminStatusGroup[] = [
   'all',
 ];
 
-export const ADMIN_ACTIVE_STATUSES: OrderStatus[] = [
-  'accepted',
+/** Admin "აქტიური" tab — picked up only (canonical). */
+export const ADMIN_ACTIVE_STATUSES: OrderStatus[] = ['picked_up'];
+
+/** Includes legacy accepted/in_transit until migration is applied. */
+export const ADMIN_ACTIVE_STATUS_FILTER: string[] = [
   'picked_up',
+  'accepted',
   'in_transit',
 ];
 
@@ -203,9 +200,7 @@ export interface AdminDashboardStats {
   totalUsers: number;
   totalOrders: number;
   pendingOrders: number;
-  acceptedOrders: number;
   pickedUpOrders: number;
-  inTransitOrders: number;
   deliveredOrders: number;
   cancelledOrders: number;
 }

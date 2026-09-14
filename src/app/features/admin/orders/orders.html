@@ -9,7 +9,7 @@
         <button
           type="button"
           role="tab"
-          class="admin-orders__tab"
+          [class]="'admin-orders__tab admin-orders__tab--' + group"
           [class.is-active]="statusGroup() === group"
           [attr.aria-selected]="statusGroup() === group"
           (click)="selectStatusGroup(group)"

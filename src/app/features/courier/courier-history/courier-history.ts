@@ -48,7 +48,7 @@ export class CourierHistory implements OnInit {
   readonly errorMessage = signal<string | null>(null);
   readonly successMessage = signal<string | null>(null);
   readonly editingId = signal<number | null>(null);
-  readonly draftStatus = signal<CourierStatus>('accepted');
+  readonly draftStatus = signal<CourierStatus>('picked_up');
   readonly draftPayment = signal<PaymentMethod | null>(null);
   readonly historyFilter = signal<HistoryFilter>('all');
 
@@ -139,7 +139,7 @@ export class CourierHistory implements OnInit {
     this.draftStatus.set(
       (COURIER_CORRECTION_STATUSES as string[]).includes(order.status)
         ? (order.status as CourierStatus)
-        : 'accepted',
+        : 'picked_up',
     );
     this.draftPayment.set(order.payment_method);
     this.errorMessage.set(null);

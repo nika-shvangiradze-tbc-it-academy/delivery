@@ -17,20 +17,19 @@ async function waitForAuthReady(auth: AuthService): Promise<void> {
   });
 }
 
-/** Auth required; admin/courier are sent to their role home (not user pages). */
-export const authGuard: CanActivateFn = async () => {
+/**
+ * Keeps admin/courier on their role home when they hit the public landing (`/`).
+ * Guests and normal users stay on the landing page.
+ */
+export const roleHomeGuard: CanActivateFn = async () => {
   const auth = inject(AuthService);
   const router = inject(Router);
 
   await waitForAuthReady(auth);
 
-  if (!auth.isAuthenticated()) {
-    return router.createUrlTree(['/login']);
-  }
-
   const user = auth.user();
   if (!user) {
-    return router.createUrlTree(['/login']);
+    return true;
   }
 
   const profile = auth.profile() ?? (await auth.loadProfile(user.id));

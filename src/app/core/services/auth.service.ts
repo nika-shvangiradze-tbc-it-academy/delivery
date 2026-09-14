@@ -1,6 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Session, User } from '@supabase/supabase-js';
-import { Profile, ProfileRow } from '../models/profile.model';
+import { setRememberMe } from '../auth/auth-storage';
+import { Profile, ProfileRow, UserRole } from '../models/profile.model';
 import { parseRole } from '../utils/order-status.util';
 import { SupabaseService } from './supabase.service';
 
@@ -9,6 +10,7 @@ export interface RegisterPayload {
   phone: string;
   email: string;
   password: string;
+  rememberMe?: boolean;
 }
 
 @Injectable({
@@ -108,6 +110,8 @@ export class AuthService {
   }
 
   async register(payload: RegisterPayload): Promise<{ error: string | null }> {
+    setRememberMe(payload.rememberMe !== false);
+
     const { data, error } = await this.supabase.client.auth.signUp({
       email: payload.email,
       password: payload.password,
@@ -153,7 +157,13 @@ export class AuthService {
     return { error: null };
   }
 
-  async login(email: string, password: string): Promise<{ error: string | null }> {
+  async login(
+    email: string,
+    password: string,
+    rememberMe = true,
+  ): Promise<{ error: string | null }> {
+    setRememberMe(rememberMe);
+
     const { data, error } = await this.supabase.client.auth.signInWithPassword({
       email,
       password,
@@ -179,10 +189,23 @@ export class AuthService {
     this.profileSignal.set(profile);
   }
 
-  homePathForRole(): string {
-    const role = this.profileSignal()?.role;
-    if (role === 'admin') return '/admin';
-    if (role === 'courier') return '/courier';
+  homePathForRole(role?: UserRole | null): string {
+    const resolved = role ?? this.profileSignal()?.role;
+    if (resolved === 'admin') return '/admin';
+    if (resolved === 'courier') return '/courier';
     return '/profile';
+  }
+
+  /**
+   * Ensures profile is loaded, then returns the deterministic role home path.
+   * Used after login so admins never briefly land on the user area.
+   */
+  async resolveHomePath(): Promise<string> {
+    const user = this.userSignal();
+    if (!user) {
+      return '/login';
+    }
+    const profile = this.profileSignal() ?? (await this.loadProfile(user.id));
+    return this.homePathForRole(profile?.role ?? null);
   }
 }

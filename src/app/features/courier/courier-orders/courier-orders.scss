@@ -329,6 +329,20 @@
     font-weight: 500;
   }
 
+  &__btn--picked-up {
+    width: 100%;
+    background: #2563eb;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 800;
+    min-height: 48px;
+
+    &:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+  }
+
   &__btn--delivered {
     width: 100%;
     background: #16a34a;
@@ -515,19 +529,9 @@
     color: #4b5563;
   }
 
-  &--accepted {
+  &--picked_up {
     background: #dbeafe;
     color: #1e40af;
-  }
-
-  &--picked_up {
-    background: #ffedd5;
-    color: #c2410c;
-  }
-
-  &--in_transit {
-    background: #bfdbfe;
-    color: #1d4ed8;
   }
 
   &--delivered {

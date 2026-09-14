@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { TranslatePipe } from '../../../core/pipes/t.pipe';
@@ -11,7 +11,7 @@ import { DeliveryHeader } from '../../../layout/delivery-header/delivery-header'
   templateUrl: './register.html',
   styleUrl: './register.scss',
 })
-export class Register {
+export class Register implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
@@ -24,7 +24,17 @@ export class Register {
     phone: ['', [Validators.required, Validators.minLength(6)]],
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(6)]],
+    rememberMe: [true],
   });
+
+  async ngOnInit(): Promise<void> {
+    while (!this.auth.isReady()) {
+      await new Promise((r) => setTimeout(r, 20));
+    }
+    if (this.auth.isAuthenticated()) {
+      await this.router.navigateByUrl(await this.auth.resolveHomePath());
+    }
+  }
 
   async onSubmit(): Promise<void> {
     if (this.form.invalid) {
@@ -41,6 +51,7 @@ export class Register {
       phone: value.phone,
       email: value.email,
       password: value.password,
+      rememberMe: value.rememberMe,
     });
 
     this.loading.set(false);
@@ -50,6 +61,6 @@ export class Register {
       return;
     }
 
-    await this.router.navigateByUrl('/profile');
+    await this.router.navigateByUrl(await this.auth.resolveHomePath());
   }
 }

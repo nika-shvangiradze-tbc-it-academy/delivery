@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import {
+  COURIER_ACTIVE_STATUS_FILTER,
   COURIER_ACTIVE_STATUSES,
   COURIER_HISTORY_STATUSES,
   CourierDailySummary,
@@ -31,7 +32,7 @@ export class CourierService {
   private readonly auth = inject(AuthService);
 
   async getMyActiveOrders(): Promise<{ data: Order[]; error: string | null }> {
-    return this.getMyOrdersByStatuses([...COURIER_ACTIVE_STATUSES], 'active');
+    return this.getMyOrdersByStatuses([...COURIER_ACTIVE_STATUS_FILTER], 'active');
   }
 
   async getMyHistoryOrders(): Promise<{ data: Order[]; error: string | null }> {
@@ -300,7 +301,7 @@ export class CourierService {
   }
 
   private async getMyOrdersByStatuses(
-    statuses: OrderStatus[],
+    statuses: string[],
     mode: 'active' | 'history',
   ): Promise<{ data: Order[]; error: string | null }> {
     const user = this.auth.user();

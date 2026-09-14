@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import {
+  ADMIN_ACTIVE_STATUS_FILTER,
   ADMIN_ACTIVE_STATUSES,
   ADMIN_COURIER_UNASSIGNED,
   ADMIN_ORDER_LIST_COLUMNS,
@@ -34,16 +35,17 @@ export class AdminService {
       return { data: this.emptyStats(), error: ordersResult.error.message };
     }
 
-    const orders = (ordersResult.data ?? []) as Pick<Order, 'status'>[];
+    const orders = (ordersResult.data ?? []) as { status: string }[];
 
     return {
       data: {
         totalUsers: usersResult.count ?? 0,
         totalOrders: orders.length,
         pendingOrders: orders.filter((o) => o.status === 'pending').length,
-        acceptedOrders: orders.filter((o) => o.status === 'accepted').length,
-        pickedUpOrders: orders.filter((o) => o.status === 'picked_up').length,
-        inTransitOrders: orders.filter((o) => o.status === 'in_transit').length,
+        pickedUpOrders: orders.filter(
+          (o) =>
+            o.status === 'picked_up' || o.status === 'accepted' || o.status === 'in_transit',
+        ).length,
         deliveredOrders: orders.filter((o) => o.status === 'delivered').length,
         cancelledOrders: orders.filter((o) => o.status === 'cancelled').length,
       },
@@ -261,8 +263,13 @@ export class AdminService {
     const payload: Record<string, unknown> = {
       assigned_courier_id: courierId,
       updated_at: new Date().toISOString(),
-      status: courierId ? 'accepted' : 'pending',
     };
+
+    // Assign keeps current status (pending stays pending).
+    // Unassign returns the order to the waiting pool.
+    if (!courierId) {
+      payload['status'] = 'pending';
+    }
 
     const { data, error } = await this.supabase.client
       .from('orders')
@@ -283,7 +290,7 @@ export class AdminService {
       case 'pending':
         return query.eq('status', 'pending');
       case 'active':
-        return query.in('status', [...ADMIN_ACTIVE_STATUSES]);
+        return query.in('status', [...ADMIN_ACTIVE_STATUS_FILTER]);
       case 'delivered':
         return query.eq('status', 'delivered');
       case 'cancelled':
@@ -346,9 +353,7 @@ export class AdminService {
       totalUsers: 0,
       totalOrders: 0,
       pendingOrders: 0,
-      acceptedOrders: 0,
       pickedUpOrders: 0,
-      inTransitOrders: 0,
       deliveredOrders: 0,
       cancelledOrders: 0,
     };

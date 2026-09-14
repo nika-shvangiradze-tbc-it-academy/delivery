@@ -178,6 +178,46 @@ export class CourierOrders implements OnInit {
     );
   }
 
+  async markPickedUp(order: Order): Promise<void> {
+    this.savingId.set(order.id);
+    this.errorMessage.set(null);
+    this.successMessage.set(null);
+    this.confirmingCancelId.set(null);
+
+    try {
+      const { data, error } = await this.courierService.changeOrderStatus(
+        order.id,
+        'picked_up',
+        null,
+        order.assigned_courier_id,
+      );
+
+      if (error || !data) {
+        console.error('CourierOrders.markPickedUp failed:', error);
+        this.errorMessage.set(error ?? 'აღება ვერ მოხერხდა');
+        if (error?.includes('სესია არ არის აქტიური')) {
+          await this.router.navigateByUrl('/login');
+        }
+        return;
+      }
+
+      this.orders.update((list) =>
+        list.map((item) => (item.id === order.id ? { ...item, ...data } : item)),
+      );
+      this.successMessage.set('შეკვეთა აღებულია');
+    } catch (err) {
+      console.error(err);
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      this.errorMessage.set(`აღება ვერ მოხერხდა: ${message}`);
+    } finally {
+      this.savingId.set(null);
+    }
+  }
+
+  canMarkPickedUp(order: Order): boolean {
+    return order.status === 'pending';
+  }
+
   async markDelivered(order: Order): Promise<void> {
     const payment = this.selectedPayment(order.id);
     if (!payment) {

@@ -30,6 +30,11 @@
         <input type="password" formControlName="password" autocomplete="new-password" />
       </label>
 
+      <label class="auth-page__remember">
+        <input type="checkbox" formControlName="rememberMe" />
+        <span>{{ 'auth.rememberMe' | t }}</span>
+      </label>
+
       <button class="auth-page__submit" type="submit" [disabled]="loading()">
         {{ loading() ? ('auth.loading' | t) : ('auth.registerAction' | t) }}
       </button>

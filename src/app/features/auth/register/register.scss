@@ -69,6 +69,25 @@
     }
   }
 
+  &__remember {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #535353;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+
+    input {
+      width: 16px;
+      height: 16px;
+      accent-color: #db7623;
+      cursor: pointer;
+      margin: 0;
+    }
+  }
+
   &__submit {
     border: none;
     background: #db7623;

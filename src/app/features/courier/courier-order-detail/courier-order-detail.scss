@@ -139,6 +139,24 @@
     }
   }
 
+  &__picked-up {
+    border: none;
+    background: #2563eb;
+    color: #fff;
+    border-radius: 12px;
+    padding: 14px;
+    font: inherit;
+    font-size: 16px;
+    font-weight: 800;
+    min-height: 48px;
+    cursor: pointer;
+
+    &:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+  }
+
   &__danger {
     border: 2px solid #fecaca;
     background: #fff;
@@ -226,28 +244,23 @@
   background: #eef2f6;
   color: #475467;
 
-  &--accepted {
-    background: #eef2f6;
-    color: #475467;
+  &--pending {
+    background: #f3f4f6;
+    color: #4b5563;
   }
 
   &--picked_up {
-    background: #ffefd6;
-    color: #b54708;
-  }
-
-  &--in_transit {
-    background: #e0f2fe;
-    color: #026aa2;
+    background: #dbeafe;
+    color: #1e40af;
   }
 
   &--delivered {
-    background: #ecfdf3;
-    color: #027a48;
+    background: #dcfce7;
+    color: #15803d;
   }
 
   &--cancelled {
-    background: #fef3f2;
-    color: #b42318;
+    background: #fee2e2;
+    color: #b91c1c;
   }
 }

@@ -280,33 +280,23 @@
   color: #535353;
 
   &--pending {
-    background: #fff4e5;
-    color: #b54708;
-  }
-
-  &--accepted {
-    background: #eef4ff;
-    color: #3538cd;
+    background: #f3f4f6;
+    color: #4b5563;
   }
 
   &--picked_up {
-    background: #f4ebff;
-    color: #6941c6;
-  }
-
-  &--in_transit {
-    background: #e0f2fe;
-    color: #026aa2;
+    background: #dbeafe;
+    color: #1e40af;
   }
 
   &--delivered {
-    background: #ecfdf3;
-    color: #027a48;
+    background: #dcfce7;
+    color: #15803d;
   }
 
   &--cancelled {
-    background: #fef3f2;
-    color: #b42318;
+    background: #fee2e2;
+    color: #b91c1c;
   }
 }
 

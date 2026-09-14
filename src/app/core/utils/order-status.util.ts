@@ -14,20 +14,10 @@ export const ORDER_STATUS_UI = {
     badgeClass: 'status-badge status-badge--pending',
     selectClass: 'status-select status-select--pending',
   },
-  accepted: {
-    labelKa: 'მიღებული',
-    badgeClass: 'status-badge status-badge--accepted',
-    selectClass: 'status-select status-select--accepted',
-  },
   picked_up: {
     labelKa: 'აღებული',
     badgeClass: 'status-badge status-badge--picked_up',
     selectClass: 'status-select status-select--picked_up',
-  },
-  in_transit: {
-    labelKa: 'გზაში',
-    badgeClass: 'status-badge status-badge--in_transit',
-    selectClass: 'status-select status-select--in_transit',
   },
   delivered: {
     labelKa: 'ჩაბარებული',
@@ -47,10 +37,28 @@ export const ORDER_STATUS_UI = {
 function resolveStatusKey(
   status: OrderStatus | string | null | undefined,
 ): OrderStatus {
-  if (status && status in ORDER_STATUS_UI) {
-    return status as OrderStatus;
+  return normalizeLegacyStatus(status) ?? 'pending';
+}
+
+/** Map legacy accepted/in_transit → picked_up for display + typed models. */
+export function normalizeLegacyStatus(
+  status: OrderStatus | string | null | undefined,
+): OrderStatus | null {
+  if (!status) {
+    return null;
   }
-  return 'pending';
+  if (status === 'accepted' || status === 'in_transit') {
+    return 'picked_up';
+  }
+  if (
+    status === 'pending' ||
+    status === 'picked_up' ||
+    status === 'delivered' ||
+    status === 'cancelled'
+  ) {
+    return status;
+  }
+  return null;
 }
 
 export function orderStatusLabelKey(status: OrderStatus | string | null | undefined): string {
@@ -123,13 +131,16 @@ export function parsePaymentMethod(value: unknown): PaymentMethod | null {
 
 export function parseCourierStatus(value: unknown): CourierStatus | null {
   if (
-    value === 'accepted' ||
+    value === 'pending' ||
     value === 'picked_up' ||
-    value === 'in_transit' ||
     value === 'delivered' ||
     value === 'cancelled'
   ) {
     return value;
+  }
+  // Legacy DB values until migration is applied
+  if (value === 'accepted' || value === 'in_transit') {
+    return 'picked_up';
   }
   return null;
 }
@@ -159,7 +170,7 @@ export function normalizeOrder(
     delivery_date: raw.delivery_date ?? '',
     notes: raw.notes ?? null,
     is_fragile: Boolean(raw.is_fragile),
-    status: (raw.status as OrderStatus) ?? 'pending',
+    status: normalizeLegacyStatus(raw.status) ?? 'pending',
     payment_method: parsePaymentMethod(raw.payment_method),
     amount_to_collect: centsToNumber(toCents(raw.amount_to_collect as number | string | null)),
     collected_amount: centsToNumber(toCents(raw.collected_amount as number | string | null)),

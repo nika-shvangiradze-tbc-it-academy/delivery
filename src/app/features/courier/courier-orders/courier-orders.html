@@ -182,68 +182,79 @@
               </dl>
 
               <div class="courier-card__complete">
-                <p class="courier-card__complete-label">გადახდა:</p>
-                <div class="courier-card__pay-toggle" role="group" aria-label="გადახდის მეთოდი">
+                @if (canMarkPickedUp(order)) {
                   <button
                     type="button"
-                    class="courier-card__pay-btn"
-                    [class.courier-card__pay-btn--active]="selectedPayment(order.id) === 'cash'"
+                    class="courier-card__btn courier-card__btn--picked-up"
                     [disabled]="savingId() === order.id"
-                    (click)="selectPayment(order.id, 'cash')"
+                    (click)="markPickedUp(order)"
                   >
-                    ქეში
+                    {{ savingId() === order.id ? 'ინახება...' : 'აღებულია' }}
                   </button>
-                  <button
-                    type="button"
-                    class="courier-card__pay-btn"
-                    [class.courier-card__pay-btn--active]="selectedPayment(order.id) === 'card'"
-                    [disabled]="savingId() === order.id"
-                    (click)="selectPayment(order.id, 'card')"
-                  >
-                    ბარათი
-                  </button>
-                </div>
-
-                <button
-                  type="button"
-                  class="courier-card__btn courier-card__btn--delivered"
-                  [disabled]="savingId() === order.id"
-                  (click)="markDelivered(order)"
-                >
-                  {{ savingId() === order.id ? 'ინახება...' : 'ჩაბარებულია' }}
-                </button>
-
-                @if (confirmingCancelId() === order.id) {
-                  <div class="courier-card__cancel-confirm">
-                    <p>ნამდვილად გსურთ შეკვეთის გაუქმება?</p>
-                    <div class="courier-card__cancel-actions">
-                      <button
-                        type="button"
-                        class="courier-card__btn courier-card__btn--danger"
-                        [disabled]="savingId() === order.id"
-                        (click)="confirmCancel(order)"
-                      >
-                        დიახ
-                      </button>
-                      <button
-                        type="button"
-                        class="courier-card__btn courier-card__btn--details"
-                        [disabled]="savingId() === order.id"
-                        (click)="dismissCancel()"
-                      >
-                        არა
-                      </button>
-                    </div>
-                  </div>
                 } @else {
+                  <p class="courier-card__complete-label">გადახდა:</p>
+                  <div class="courier-card__pay-toggle" role="group" aria-label="გადახდის მეთოდი">
+                    <button
+                      type="button"
+                      class="courier-card__pay-btn"
+                      [class.courier-card__pay-btn--active]="selectedPayment(order.id) === 'cash'"
+                      [disabled]="savingId() === order.id"
+                      (click)="selectPayment(order.id, 'cash')"
+                    >
+                      ქეში
+                    </button>
+                    <button
+                      type="button"
+                      class="courier-card__pay-btn"
+                      [class.courier-card__pay-btn--active]="selectedPayment(order.id) === 'card'"
+                      [disabled]="savingId() === order.id"
+                      (click)="selectPayment(order.id, 'card')"
+                    >
+                      ბარათი
+                    </button>
+                  </div>
+
                   <button
                     type="button"
-                    class="courier-card__btn courier-card__btn--danger"
+                    class="courier-card__btn courier-card__btn--delivered"
                     [disabled]="savingId() === order.id"
-                    (click)="requestCancel(order)"
+                    (click)="markDelivered(order)"
                   >
-                    გაუქმება
+                    {{ savingId() === order.id ? 'ინახება...' : 'ჩაბარებულია' }}
                   </button>
+
+                  @if (confirmingCancelId() === order.id) {
+                    <div class="courier-card__cancel-confirm">
+                      <p>ნამდვილად გსურთ შეკვეთის გაუქმება?</p>
+                      <div class="courier-card__cancel-actions">
+                        <button
+                          type="button"
+                          class="courier-card__btn courier-card__btn--danger"
+                          [disabled]="savingId() === order.id"
+                          (click)="confirmCancel(order)"
+                        >
+                          დიახ
+                        </button>
+                        <button
+                          type="button"
+                          class="courier-card__btn courier-card__btn--details"
+                          [disabled]="savingId() === order.id"
+                          (click)="dismissCancel()"
+                        >
+                          არა
+                        </button>
+                      </div>
+                    </div>
+                  } @else {
+                    <button
+                      type="button"
+                      class="courier-card__btn courier-card__btn--danger"
+                      [disabled]="savingId() === order.id"
+                      (click)="requestCancel(order)"
+                    >
+                      გაუქმება
+                    </button>
+                  }
                 }
               </div>
             </div>

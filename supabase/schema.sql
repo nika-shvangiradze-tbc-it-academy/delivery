@@ -29,7 +29,7 @@ create table if not exists public.orders (
   notes text,
   is_fragile boolean not null default false,
   status text not null default 'pending'
-    check (status in ('pending', 'accepted', 'picked_up', 'in_transit', 'delivered', 'cancelled')),
+    check (status in ('pending', 'picked_up', 'delivered', 'cancelled')),
   payment_method text check (payment_method is null or payment_method in ('cash', 'card')),
   collected_amount numeric(12, 2) not null default 0,
   delivered_at timestamptz,

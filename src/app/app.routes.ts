@@ -2,11 +2,13 @@ import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { adminGuard } from './core/guards/admin.guard';
 import { courierGuard } from './core/guards/courier.guard';
+import { roleHomeGuard } from './core/guards/role-home.guard';
 import { DeliveryMain } from './layout/delivery-main/delivery-main';
 
 export const routes: Routes = [
   {
     path: '',
+    canActivate: [roleHomeGuard],
     component: DeliveryMain,
   },
   {

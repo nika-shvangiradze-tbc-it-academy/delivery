@@ -307,20 +307,23 @@
   color: #535353;
   white-space: nowrap;
 
+  &--pending {
+    background: #f3f4f6;
+    color: #4b5563;
+  }
+
+  &--picked_up {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+
   &--delivered {
-    background: #ecfdf3;
-    color: #027a48;
+    background: #dcfce7;
+    color: #15803d;
   }
 
   &--cancelled {
-    background: #fef3f2;
-    color: #b42318;
-  }
-
-  &--accepted,
-  &--picked_up,
-  &--in_transit {
-    background: #eff6ff;
-    color: #1d4ed8;
+    background: #fee2e2;
+    color: #b91c1c;
   }
 }

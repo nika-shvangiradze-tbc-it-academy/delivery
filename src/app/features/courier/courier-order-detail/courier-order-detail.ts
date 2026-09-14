@@ -61,6 +61,10 @@ export class CourierOrderDetail implements OnInit {
     return this.courierService.isActiveStatus(status);
   }
 
+  canMarkPickedUp(status: Order['status']): boolean {
+    return status === 'pending';
+  }
+
   async ngOnInit(): Promise<void> {
     const id = Number(this.route.snapshot.paramMap.get('id'));
     if (!Number.isFinite(id)) {
@@ -105,6 +109,43 @@ export class CourierOrderDetail implements OnInit {
   selectPayment(payment: PaymentMethod): void {
     this.paymentMethod.set(payment);
     this.errorMessage.set(null);
+  }
+
+  async markPickedUp(): Promise<void> {
+    const current = this.order();
+    if (!current || current.status !== 'pending') return;
+
+    this.saving.set(true);
+    this.errorMessage.set(null);
+    this.successMessage.set(null);
+    this.confirmingCancel.set(false);
+
+    try {
+      const { data, error } = await this.courierService.changeOrderStatus(
+        current.id,
+        'picked_up',
+        null,
+        current.assigned_courier_id,
+      );
+
+      if (error || !data) {
+        console.error('CourierOrderDetail.markPickedUp failed:', error);
+        this.errorMessage.set(error ?? 'აღება ვერ მოხერხდა');
+        if (error?.includes('სესია არ არის აქტიური')) {
+          await this.router.navigateByUrl('/login');
+        }
+        return;
+      }
+
+      this.order.set({ ...current, ...data });
+      this.successMessage.set('შეკვეთა აღებულია');
+    } catch (err) {
+      console.error(err);
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      this.errorMessage.set(`აღება ვერ მოხერხდა: ${message}`);
+    } finally {
+      this.saving.set(false);
+    }
   }
 
   async markDelivered(): Promise<void> {

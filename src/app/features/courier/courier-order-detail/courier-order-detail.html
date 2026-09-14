@@ -52,68 +52,79 @@
 
     @if (isActiveStatus(o.status)) {
       <div class="courier-detail__complete">
-        <p class="courier-detail__complete-label">გადახდა:</p>
-        <div class="courier-detail__pay-toggle">
+        @if (canMarkPickedUp(o.status)) {
           <button
             type="button"
-            class="courier-detail__pay-btn"
-            [class.courier-detail__pay-btn--active]="paymentMethod() === 'cash'"
+            class="courier-detail__picked-up"
             [disabled]="saving()"
-            (click)="selectPayment('cash')"
+            (click)="markPickedUp()"
           >
-            ქეში
+            {{ saving() ? 'ინახება...' : 'აღებულია' }}
           </button>
-          <button
-            type="button"
-            class="courier-detail__pay-btn"
-            [class.courier-detail__pay-btn--active]="paymentMethod() === 'card'"
-            [disabled]="saving()"
-            (click)="selectPayment('card')"
-          >
-            ბარათი
-          </button>
-        </div>
-
-        <button
-          type="button"
-          class="courier-detail__delivered"
-          [disabled]="saving()"
-          (click)="markDelivered()"
-        >
-          {{ saving() ? 'ინახება...' : 'ჩაბარებულია' }}
-        </button>
-
-        @if (confirmingCancel()) {
-          <div class="courier-detail__cancel-confirm">
-            <p>ნამდვილად გსურთ შეკვეთის გაუქმება?</p>
-            <div class="courier-detail__cancel-actions">
-              <button
-                type="button"
-                class="courier-detail__danger"
-                [disabled]="saving()"
-                (click)="confirmCancel()"
-              >
-                დიახ
-              </button>
-              <button
-                type="button"
-                class="courier-detail__secondary"
-                [disabled]="saving()"
-                (click)="dismissCancel()"
-              >
-                არა
-              </button>
-            </div>
-          </div>
         } @else {
+          <p class="courier-detail__complete-label">გადახდა:</p>
+          <div class="courier-detail__pay-toggle">
+            <button
+              type="button"
+              class="courier-detail__pay-btn"
+              [class.courier-detail__pay-btn--active]="paymentMethod() === 'cash'"
+              [disabled]="saving()"
+              (click)="selectPayment('cash')"
+            >
+              ქეში
+            </button>
+            <button
+              type="button"
+              class="courier-detail__pay-btn"
+              [class.courier-detail__pay-btn--active]="paymentMethod() === 'card'"
+              [disabled]="saving()"
+              (click)="selectPayment('card')"
+            >
+              ბარათი
+            </button>
+          </div>
+
           <button
             type="button"
-            class="courier-detail__danger"
+            class="courier-detail__delivered"
             [disabled]="saving()"
-            (click)="requestCancel()"
+            (click)="markDelivered()"
           >
-            გაუქმება
+            {{ saving() ? 'ინახება...' : 'ჩაბარებულია' }}
           </button>
+
+          @if (confirmingCancel()) {
+            <div class="courier-detail__cancel-confirm">
+              <p>ნამდვილად გსურთ შეკვეთის გაუქმება?</p>
+              <div class="courier-detail__cancel-actions">
+                <button
+                  type="button"
+                  class="courier-detail__danger"
+                  [disabled]="saving()"
+                  (click)="confirmCancel()"
+                >
+                  დიახ
+                </button>
+                <button
+                  type="button"
+                  class="courier-detail__secondary"
+                  [disabled]="saving()"
+                  (click)="dismissCancel()"
+                >
+                  არა
+                </button>
+              </div>
+            </div>
+          } @else {
+            <button
+              type="button"
+              class="courier-detail__danger"
+              [disabled]="saving()"
+              (click)="requestCancel()"
+            >
+              გაუქმება
+            </button>
+          }
         }
       </div>
     }
