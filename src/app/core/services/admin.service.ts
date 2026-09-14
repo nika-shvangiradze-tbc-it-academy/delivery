@@ -1,9 +1,14 @@
 import { Injectable, inject } from '@angular/core';
 import {
+  ADMIN_ACTIVE_STATUSES,
+  ADMIN_COURIER_UNASSIGNED,
+  ADMIN_ORDER_LIST_COLUMNS,
   AdminDashboardStats,
+  AdminOrderFilters,
+  AdminStatusGroup,
   Order,
-  OrderFilters,
   OrderStatus,
+  PaginatedOrdersResult,
 } from '../models/order.model';
 import { CourierOption } from '../models/profile.model';
 import { SupabaseService } from './supabase.service';
@@ -70,62 +75,137 @@ export class AdminService {
   async getRecentOrders(limit = 8): Promise<{ data: Order[]; error: string | null }> {
     const { data, error } = await this.supabase.client
       .from('orders')
-      .select('*')
+      .select(ADMIN_ORDER_LIST_COLUMNS)
       .order('created_at', { ascending: false })
       .limit(limit);
 
     if (error) {
+      this.logSupabaseError('getRecentOrders', error);
       return { data: [], error: error.message };
     }
 
-    return { data: normalizeOrders(data), error: null };
+    return { data: normalizeOrders(data as unknown[]), error: null };
   }
 
-  async getAllOrders(filters: OrderFilters = {}): Promise<{ data: Order[]; error: string | null }> {
-    let query = this.supabase.client.from('orders').select('*').order('created_at', { ascending: false });
+  /**
+   * Server-side Admin Orders list: status group, filters, search, pagination.
+   * Never loads the full order history into memory.
+   */
+  async getAdminOrders(filters: AdminOrderFilters): Promise<PaginatedOrdersResult> {
+    const page = Math.max(1, filters.page || 1);
+    const pageSize = Math.max(1, Math.min(100, filters.pageSize || 50));
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
 
-    if (filters.status) {
-      query = query.eq('status', filters.status);
-    }
+    let query = this.supabase.client
+      .from('orders')
+      .select(ADMIN_ORDER_LIST_COLUMNS, { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range(from, to);
+
+    query = this.applyStatusGroup(query, filters.statusGroup);
 
     if (filters.pickupCity?.trim()) {
       query = query.eq('pickup_city', filters.pickupCity.trim());
     }
 
-    if (filters.deliveryCity?.trim()) {
-      query = query.eq('delivery_city', filters.deliveryCity.trim());
+    if (filters.city?.trim()) {
+      query = query.eq('delivery_city', filters.city.trim());
     }
 
-    if (filters.deliveryDate) {
-      query = query.eq('delivery_date', filters.deliveryDate);
+    if (filters.date?.trim()) {
+      query = query.eq('delivery_date', filters.date.trim());
     }
 
-    const { data, error } = await query;
+    const courierId = filters.courierId?.trim();
+    if (courierId === ADMIN_COURIER_UNASSIGNED) {
+      query = query.is('assigned_courier_id', null);
+    } else if (courierId) {
+      query = query.eq('assigned_courier_id', courierId);
+    }
+
+    const searchOr = this.buildSearchOrFilter(filters.search);
+    if (searchOr) {
+      query = query.or(searchOr);
+    }
+
+    const { data, error, count } = await query;
 
     if (error) {
-      return { data: [], error: error.message };
+      this.logSupabaseError('getAdminOrders', error);
+      return { data: [], total: 0, page, pageSize, error: error.message };
     }
 
-    let orders = normalizeOrders(data);
+    return {
+      data: normalizeOrders(data as unknown[]),
+      total: count ?? 0,
+      page,
+      pageSize,
+      error: null,
+    };
+  }
+
+  /** Whether an order matches the current Admin list filters (Realtime-ready). */
+  orderMatchesAdminFilters(order: Order, filters: AdminOrderFilters): boolean {
+    if (!this.statusMatchesGroup(order.status, filters.statusGroup)) {
+      return false;
+    }
+
+    if (filters.pickupCity?.trim() && order.pickup_city !== filters.pickupCity.trim()) {
+      return false;
+    }
+
+    if (filters.city?.trim() && order.delivery_city !== filters.city.trim()) {
+      return false;
+    }
+
+    if (filters.date?.trim() && order.delivery_date !== filters.date.trim()) {
+      return false;
+    }
+
+    const courierId = filters.courierId?.trim();
+    if (courierId === ADMIN_COURIER_UNASSIGNED) {
+      if (order.assigned_courier_id != null) return false;
+    } else if (courierId && order.assigned_courier_id !== courierId) {
+      return false;
+    }
 
     const search = filters.search?.trim().toLowerCase();
     if (search) {
-      orders = orders.filter((order) => {
-        const haystack = [
-          String(order.id),
-          order.recipient_name,
-          order.recipient_phone,
-          order.sender_name,
-          order.sender_phone,
-        ]
-          .filter(Boolean)
-          .join(' ')
-          .toLowerCase();
-        return haystack.includes(search);
-      });
+      if (/^\d+$/.test(search) && String(order.id) === search) {
+        return true;
+      }
+      const haystack = [
+        String(order.id),
+        order.recipient_name,
+        order.recipient_phone,
+        order.sender_name,
+        order.sender_phone,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      if (!haystack.includes(search)) {
+        return false;
+      }
     }
 
-    return { data: orders, error: null };
+    return true;
+  }
+
+  statusMatchesGroup(status: OrderStatus, group: AdminStatusGroup): boolean {
+    switch (group) {
+      case 'pending':
+        return status === 'pending';
+      case 'active':
+        return ADMIN_ACTIVE_STATUSES.includes(status);
+      case 'delivered':
+        return status === 'delivered';
+      case 'cancelled':
+        return status === 'cancelled';
+      case 'all':
+        return true;
+    }
   }
 
   async updateOrderStatus(
@@ -147,14 +227,15 @@ export class AdminService {
       .from('orders')
       .update(payload)
       .eq('id', orderId)
-      .select('*')
+      .select(ADMIN_ORDER_LIST_COLUMNS)
       .single();
 
     if (error) {
+      this.logSupabaseError('updateOrderStatus', error);
       return { data: null, error: error.message };
     }
 
-    return { data: normalizeOrder(data as Order), error: null };
+    return { data: normalizeOrder(data as unknown as Order), error: null };
   }
 
   async assignCourier(
@@ -187,13 +268,77 @@ export class AdminService {
       .from('orders')
       .update(payload)
       .in('id', uniqueIds)
-      .select('*');
+      .select(ADMIN_ORDER_LIST_COLUMNS);
 
     if (error) {
+      this.logSupabaseError('assignCouriersBulk', error);
       return { data: [], error: error.message };
     }
 
-    return { data: normalizeOrders(data), error: null };
+    return { data: normalizeOrders(data as unknown[]), error: null };
+  }
+
+  private applyStatusGroup(query: any, group: AdminStatusGroup) {
+    switch (group) {
+      case 'pending':
+        return query.eq('status', 'pending');
+      case 'active':
+        return query.in('status', [...ADMIN_ACTIVE_STATUSES]);
+      case 'delivered':
+        return query.eq('status', 'delivered');
+      case 'cancelled':
+        return query.eq('status', 'cancelled');
+      case 'all':
+      default:
+        return query;
+    }
+  }
+
+  /**
+   * Safe PostgREST `.or()` filter for Admin search.
+   * Never interpolates raw SQL — only sanitized PostgREST filter values.
+   */
+  private buildSearchOrFilter(rawSearch: string | undefined): string | null {
+    const search = rawSearch?.trim();
+    if (!search) return null;
+
+    if (/^\d+$/.test(search)) {
+      const id = Number(search);
+      if (Number.isSafeInteger(id) && id > 0) {
+        const phone = this.sanitizePostgrestValue(search);
+        return `id.eq.${id},recipient_phone.ilike.%${phone}%,sender_phone.ilike.%${phone}%`;
+      }
+    }
+
+    const value = this.sanitizePostgrestValue(search);
+    if (!value) return null;
+
+    return [
+      `recipient_name.ilike.%${value}%`,
+      `recipient_phone.ilike.%${value}%`,
+      `sender_name.ilike.%${value}%`,
+      `sender_phone.ilike.%${value}%`,
+    ].join(',');
+  }
+
+  /** Strip characters that break PostgREST filter / or() parsing. */
+  private sanitizePostgrestValue(value: string): string {
+    return value
+      .replace(/[%_,.()"'\\]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  private logSupabaseError(
+    context: string,
+    error: { message?: string; details?: string; hint?: string; code?: string },
+  ): void {
+    console.error(`[AdminService.${context}]`, {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+    });
   }
 
   private emptyStats(): AdminDashboardStats {

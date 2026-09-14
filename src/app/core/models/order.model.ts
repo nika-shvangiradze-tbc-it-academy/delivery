@@ -83,6 +83,90 @@ export const COURIER_ACTIVE_STATUSES: OrderStatus[] = [
 
 export const COURIER_HISTORY_STATUSES: OrderStatus[] = ['delivered', 'cancelled'];
 
+/** Admin Orders status tabs — maps to server-side status filters. */
+export type AdminStatusGroup = 'pending' | 'active' | 'delivered' | 'cancelled' | 'all';
+
+export const ADMIN_STATUS_GROUPS: AdminStatusGroup[] = [
+  'pending',
+  'active',
+  'delivered',
+  'cancelled',
+  'all',
+];
+
+export const ADMIN_ACTIVE_STATUSES: OrderStatus[] = [
+  'accepted',
+  'picked_up',
+  'in_transit',
+];
+
+export type AdminDatePreset = 'all' | 'today' | 'tomorrow' | 'custom';
+
+export const ADMIN_ORDER_PAGE_SIZES = [50, 100] as const;
+export type AdminOrderPageSize = (typeof ADMIN_ORDER_PAGE_SIZES)[number];
+
+/**
+ * Sentinel for "unassigned" courier filter.
+ * Empty / undefined = all couriers; uuid = specific courier.
+ */
+export const ADMIN_COURIER_UNASSIGNED = 'unassigned' as const;
+
+export interface AdminOrderFilters {
+  statusGroup: AdminStatusGroup;
+  /** Optional delivery_date filter. Null/empty = all dates. */
+  date?: string | null;
+  pickupCity?: string | null;
+  city?: string | null;
+  /**
+   * Courier filter:
+   * - undefined / '' → all couriers
+   * - 'unassigned' → assigned_courier_id IS NULL
+   * - uuid → assigned_courier_id = uuid
+   */
+  courierId?: string | null;
+  search?: string;
+  page: number;
+  pageSize: AdminOrderPageSize | number;
+}
+
+export interface PaginatedOrdersResult {
+  data: Order[];
+  total: number;
+  page: number;
+  pageSize: number;
+  error: string | null;
+}
+
+/** Columns required by Admin Orders list / edit / details. */
+export const ADMIN_ORDER_LIST_COLUMNS = [
+  'id',
+  'user_id',
+  'sender_name',
+  'sender_phone',
+  'pickup_city',
+  'pickup_district',
+  'pickup_address',
+  'recipient_name',
+  'recipient_phone',
+  'delivery_city',
+  'delivery_district',
+  'delivery_address',
+  'parcel_count',
+  'delivery_date',
+  'notes',
+  'status',
+  'assigned_courier_id',
+  'courier_sort_order',
+  'amount_to_collect',
+  'collected_amount',
+  'payment_method',
+  'is_fragile',
+  'created_at',
+  'updated_at',
+  'delivered_at',
+  'cancelled_at',
+].join(', ');
+
 export interface CreateOrderPayload {
   sender_name: string;
   sender_phone: string;
@@ -106,6 +190,7 @@ export type AdminOrderEditPayload = Omit<CreateOrderPayload, never> & {
   is_fragile: boolean;
 };
 
+/** @deprecated Use AdminOrderFilters for Admin Orders list queries. */
 export interface OrderFilters {
   search?: string;
   status?: OrderStatus | '';

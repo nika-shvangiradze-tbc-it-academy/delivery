@@ -4,18 +4,27 @@
   <div class="admin-orders__container">
     <h1 class="admin-orders__title">{{ 'admin.ordersTitle' | t }}</h1>
 
+    <div class="admin-orders__tabs" role="tablist" aria-label="Order status">
+      @for (group of statusGroups; track group) {
+        <button
+          type="button"
+          role="tab"
+          class="admin-orders__tab"
+          [class.is-active]="statusGroup() === group"
+          [attr.aria-selected]="statusGroup() === group"
+          (click)="selectStatusGroup(group)"
+        >
+          {{ tabLabels[group] }}
+        </button>
+      }
+    </div>
+
     <form class="admin-orders__filters" [formGroup]="filtersForm" (ngSubmit)="onFilter()">
       <input
         type="search"
         formControlName="search"
         [placeholder]="'admin.searchPlaceholder' | t"
       />
-      <select formControlName="status">
-        <option value="">{{ 'admin.allStatuses' | t }}</option>
-        @for (status of statuses; track status) {
-          <option [value]="status">{{ statusLabelKey(status) | t }}</option>
-        }
-      </select>
       <select formControlName="pickupCity">
         <option value="">ყველა ქალაქი (აღება)</option>
         @for (city of cities; track city) {
@@ -28,7 +37,26 @@
           <option [value]="city">{{ city }}</option>
         }
       </select>
-      <input type="date" formControlName="deliveryDate" />
+      <select formControlName="courierId">
+        <option value="">ყველა კურიერი</option>
+        <option [value]="unassignedCourier">{{ 'admin.unassigned' | t }}</option>
+        @for (courier of couriers(); track courier.id) {
+          <option [value]="courier.id">{{ courier.full_name }}</option>
+        }
+      </select>
+      <select
+        [ngModel]="datePreset()"
+        [ngModelOptions]="{ standalone: true }"
+        (ngModelChange)="onDatePresetChange($event)"
+      >
+        <option value="all">ყველა თარიღი</option>
+        <option value="today">დღეს</option>
+        <option value="tomorrow">ხვალ</option>
+        <option value="custom">არჩეული თარიღი</option>
+      </select>
+      @if (datePreset() === 'custom') {
+        <input type="date" formControlName="deliveryDate" />
+      }
       <button type="submit">{{ 'admin.applyFilters' | t }}</button>
     </form>
 
@@ -73,7 +101,7 @@
     @if (loading()) {
       <p class="admin-orders__muted">{{ 'common.loading' | t }}</p>
     } @else if (orders().length === 0) {
-      <p class="admin-orders__muted">{{ 'orders.empty' | t }}</p>
+      <p class="admin-orders__muted">{{ emptyMessage() }}</p>
     } @else {
       <div class="admin-orders__table-wrap">
         <table>
@@ -148,6 +176,38 @@
             }
           </tbody>
         </table>
+      </div>
+
+      <div class="admin-orders__pagination">
+        <p class="admin-orders__page-info">
+          {{ rangeFrom() }}–{{ rangeTo() }} / {{ total() }}
+        </p>
+        <div class="admin-orders__page-size">
+          <label for="admin-page-size">გვერდზე</label>
+          <select
+            id="admin-page-size"
+            [ngModel]="pageSize()"
+            [ngModelOptions]="{ standalone: true }"
+            (ngModelChange)="onPageSizeChange(+$event)"
+          >
+            @for (size of pageSizes; track size) {
+              <option [ngValue]="size">{{ size }}</option>
+            }
+          </select>
+        </div>
+        <div class="admin-orders__page-nav">
+          <button type="button" [disabled]="page() <= 1 || loading()" (click)="prevPage()">
+            ←
+          </button>
+          <span>გვერდი {{ page() }} / {{ totalPages() }}</span>
+          <button
+            type="button"
+            [disabled]="page() >= totalPages() || loading()"
+            (click)="nextPage()"
+          >
+            →
+          </button>
+        </div>
       </div>
     }
   </div>
