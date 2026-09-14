@@ -176,6 +176,14 @@ export function normalizeOrder(
     collected_amount: centsToNumber(toCents(raw.collected_amount as number | string | null)),
     delivered_at: raw.delivered_at ?? null,
     cancelled_at: raw.cancelled_at ?? null,
+    cancellation_reason: (() => {
+      const reason = raw.cancellation_reason;
+      if (reason == null) {
+        return null;
+      }
+      const trimmed = String(reason).trim();
+      return trimmed || null;
+    })(),
     courier_sort_order:
       raw.courier_sort_order === null || raw.courier_sort_order === undefined
         ? null
@@ -268,6 +276,29 @@ export function formatTbilisiDateTime(iso: string | null | undefined): string {
     minute: '2-digit',
     hour12: false,
   }).format(date);
+}
+
+/** Compact Asia/Tbilisi stamp: 14.09.2026 • 18:42 */
+export function formatTbilisiDotDateTime(iso: string | null | undefined): string {
+  if (!iso) {
+    return '—';
+  }
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return '—';
+  }
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Tbilisi',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(date);
+  const get = (type: Intl.DateTimeFormatPartTypes): string =>
+    parts.find((part) => part.type === type)?.value ?? '';
+  return `${get('day')}.${get('month')}.${get('year')} • ${get('hour')}:${get('minute')}`;
 }
 
 export function paymentMethodLabel(method: PaymentMethod | null | undefined): string {

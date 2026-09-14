@@ -49,6 +49,8 @@ export class CourierOrders implements OnInit {
   /** Only one order card details panel open at a time. */
   readonly expandedId = signal<number | null>(null);
   readonly confirmingCancelId = signal<number | null>(null);
+  readonly cancelReasonDraft = signal('');
+  readonly cancelReasonError = signal<string | null>(null);
   readonly paymentDrafts = signal<Record<number, PaymentMethod | null>>({});
   readonly summary = signal({
     cashTotal: '0.00',
@@ -264,21 +266,45 @@ export class CourierOrders implements OnInit {
 
   requestCancel(order: Order): void {
     this.confirmingCancelId.set(order.id);
+    this.cancelReasonDraft.set('');
+    this.cancelReasonError.set(null);
     this.errorMessage.set(null);
   }
 
   dismissCancel(): void {
     this.confirmingCancelId.set(null);
+    this.cancelReasonDraft.set('');
+    this.cancelReasonError.set(null);
+  }
+
+  onCancelReasonInput(event: Event): void {
+    const value = (event.target as HTMLTextAreaElement).value;
+    this.cancelReasonDraft.set(value);
+    if (this.cancelReasonError() && value.trim()) {
+      this.cancelReasonError.set(null);
+    }
   }
 
   async confirmCancel(order: Order): Promise<void> {
+    const reason = this.cancelReasonDraft().trim();
+    if (!reason) {
+      this.cancelReasonError.set('გთხოვთ მიუთითოთ გაუქმების მიზეზი');
+      return;
+    }
+
+    if (this.savingId() === order.id) {
+      return;
+    }
+
     this.savingId.set(order.id);
+    this.cancelReasonError.set(null);
     this.errorMessage.set(null);
     this.successMessage.set(null);
 
     try {
       const { data, error } = await this.courierService.cancelOrder(
         order.id,
+        reason,
         order.assigned_courier_id,
       );
 
@@ -292,6 +318,8 @@ export class CourierOrders implements OnInit {
       }
 
       this.confirmingCancelId.set(null);
+      this.cancelReasonDraft.set('');
+      this.cancelReasonError.set(null);
       this.removeFromActive(order.id);
       this.successMessage.set('შეკვეთა გაუქმდა');
       await this.refreshSummary();

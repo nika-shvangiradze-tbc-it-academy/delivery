@@ -109,7 +109,22 @@
 
           @if (confirmingCancel()) {
             <div class="courier-detail__cancel-confirm">
-              <p>ნამდვილად გსურთ შეკვეთის გაუქმება?</p>
+              <label class="courier-detail__cancel-label" for="cancel-reason-detail">
+                გაუქმების მიზეზი
+              </label>
+              <textarea
+                id="cancel-reason-detail"
+                class="courier-detail__cancel-reason"
+                rows="3"
+                maxlength="500"
+                [value]="cancelReasonDraft()"
+                [disabled]="saving()"
+                placeholder="მიუთითეთ გაუქმების მიზეზი..."
+                (input)="onCancelReasonInput($event)"
+              ></textarea>
+              @if (cancelReasonError()) {
+                <p class="courier-detail__cancel-error" role="alert">{{ cancelReasonError() }}</p>
+              }
               <div class="courier-detail__cancel-actions">
                 <button
                   type="button"
@@ -117,7 +132,7 @@
                   [disabled]="saving()"
                   (click)="confirmCancel()"
                 >
-                  დიახ
+                  {{ saving() ? 'ინახება...' : 'დიახ' }}
                 </button>
                 <button
                   type="button"

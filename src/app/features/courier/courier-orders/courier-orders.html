@@ -230,7 +230,22 @@
 
                   @if (confirmingCancelId() === order.id) {
                     <div class="courier-card__cancel-confirm">
-                      <p>ნამდვილად გსურთ შეკვეთის გაუქმება?</p>
+                      <label class="courier-card__cancel-label" [attr.for]="'cancel-reason-' + order.id">
+                        გაუქმების მიზეზი
+                      </label>
+                      <textarea
+                        class="courier-card__cancel-reason"
+                        [id]="'cancel-reason-' + order.id"
+                        rows="3"
+                        maxlength="500"
+                        [value]="cancelReasonDraft()"
+                        [disabled]="savingId() === order.id"
+                        placeholder="მიუთითეთ გაუქმების მიზეზი..."
+                        (input)="onCancelReasonInput($event)"
+                      ></textarea>
+                      @if (cancelReasonError()) {
+                        <p class="courier-card__cancel-error" role="alert">{{ cancelReasonError() }}</p>
+                      }
                       <div class="courier-card__cancel-actions">
                         <button
                           type="button"
@@ -238,7 +253,7 @@
                           [disabled]="savingId() === order.id"
                           (click)="confirmCancel(order)"
                         >
-                          დიახ
+                          {{ savingId() === order.id ? 'ინახება...' : 'დიახ' }}
                         </button>
                         <button
                           type="button"

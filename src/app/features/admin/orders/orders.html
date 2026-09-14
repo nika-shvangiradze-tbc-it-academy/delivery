@@ -349,10 +349,25 @@
           <dt>ჩაბარების დრო</dt>
           <dd>{{ order.delivered_at ? (order.delivered_at | date: 'd MMM y, HH:mm') : '—' }}</dd>
         </div>
-        <div>
-          <dt>გაუქმების დრო</dt>
-          <dd>{{ order.cancelled_at ? (order.cancelled_at | date: 'd MMM y, HH:mm') : '—' }}</dd>
-        </div>
+        @if (order.status === 'cancelled' || order.cancellation_reason) {
+          <div class="admin-orders__cancel-block">
+            <p class="admin-orders__cancel-title">გაუქმების მიზეზი</p>
+            <p class="admin-orders__cancel-reason">
+              {{ order.cancellation_reason || '—' }}
+            </p>
+            <p class="admin-orders__cancel-meta">
+              გააუქმა: {{ courierName(order.assigned_courier_id) }}
+            </p>
+            <p class="admin-orders__cancel-meta">
+              გაუქმების დრო: {{ formatCancelTime(order.cancelled_at) }}
+            </p>
+          </div>
+        } @else {
+          <div>
+            <dt>გაუქმების დრო</dt>
+            <dd>{{ order.cancelled_at ? formatCancelTime(order.cancelled_at) : '—' }}</dd>
+          </div>
+        }
       </dl>
       <button
         type="button"
@@ -405,6 +420,11 @@
                 }
                 <span [class]="statusClass(entry.new_status)">{{ statusLabelKa(entry.new_status) }}</span>
               </p>
+              @if (entry.new_status === 'cancelled' && order.cancellation_reason) {
+                <p class="admin-orders__audit-reason">
+                  გაუქმების მიზეზი: {{ order.cancellation_reason }}
+                </p>
+              }
             </li>
           }
         </ol>

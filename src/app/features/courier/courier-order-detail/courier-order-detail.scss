@@ -251,14 +251,43 @@
     padding: 12px;
     background: #fef2f2;
     border-radius: 12px;
+  }
 
-    p {
-      margin: 0;
-      text-align: center;
-      font-size: 14px;
-      font-weight: 700;
-      color: #991b1b;
+  &__cancel-label {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 700;
+    color: #991b1b;
+  }
+
+  &__cancel-reason {
+    width: 100%;
+    box-sizing: border-box;
+    resize: vertical;
+    min-height: 72px;
+    padding: 10px 12px;
+    border: 1px solid #fecaca;
+    border-radius: 10px;
+    background: #fff;
+    color: #1f2937;
+    font: inherit;
+    font-size: 14px;
+    line-height: 1.4;
+
+    &:disabled {
+      opacity: 0.7;
     }
+
+    &::placeholder {
+      color: #9ca3af;
+    }
+  }
+
+  &__cancel-error {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #b91c1c;
   }
 
   &__cancel-actions {

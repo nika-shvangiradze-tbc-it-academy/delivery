@@ -73,6 +73,13 @@
             </p>
           </div>
 
+          @if (order.cancellation_reason) {
+            <div class="history-card__cancel-reason" role="note">
+              <p class="history-card__cancel-reason-label">გაუქმების მიზეზი</p>
+              <p class="history-card__cancel-reason-text">{{ order.cancellation_reason }}</p>
+            </div>
+          }
+
           @if (editingId() === order.id) {
             <div class="history-card__correct">
               <p class="history-card__correct-label">ახალი სტატუსი</p>

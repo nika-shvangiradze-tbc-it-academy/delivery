@@ -46,6 +46,7 @@ import {
   auditRoleLabelKa,
   formatGel,
   formatTbilisiDateTime,
+  formatTbilisiDotDateTime,
   normalizeOrder,
   orderStatusClass,
   orderStatusLabelKey,
@@ -168,6 +169,7 @@ export class AdminOrders implements OnInit {
   readonly formatGel = formatGel;
   readonly paymentLabel = paymentMethodLabel;
   readonly formatAuditTime = formatTbilisiDateTime;
+  readonly formatCancelTime = formatTbilisiDotDateTime;
   readonly roleLabel = auditRoleLabelKa;
 
   readonly selectedCount = computed(() => this.selectedIds().size);

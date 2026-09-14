@@ -158,6 +158,30 @@
     }
   }
 
+  &__cancel-reason {
+    margin-top: 8px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+  }
+
+  &__cancel-reason-label {
+    margin: 0 0 4px;
+    font-size: 12px;
+    font-weight: 800;
+    color: #991b1b;
+  }
+
+  &__cancel-reason-text {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.4;
+    color: #7f1d1d;
+    white-space: pre-wrap;
+  }
+
   &__change {
     width: 100%;
     border: 1px solid rgba(83, 83, 83, 0.16);

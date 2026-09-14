@@ -23,6 +23,7 @@ export type OrderRealtimeRow = {
   delivery_date?: string | null;
   delivered_at?: string | null;
   cancelled_at?: string | null;
+  cancellation_reason?: string | null;
 };
 
 export type OrderRealtimeEventType = 'INSERT' | 'UPDATE' | 'DELETE';

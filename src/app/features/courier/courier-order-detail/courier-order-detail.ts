@@ -42,6 +42,8 @@ export class CourierOrderDetail implements OnInit {
   readonly successMessage = signal<string | null>(null);
   readonly paymentMethod = signal<PaymentMethod | null>(null);
   readonly confirmingCancel = signal(false);
+  readonly cancelReasonDraft = signal('');
+  readonly cancelReasonError = signal<string | null>(null);
 
   readonly statusClass = orderStatusClass;
   readonly formatGel = formatGel;
@@ -193,23 +195,47 @@ export class CourierOrderDetail implements OnInit {
 
   requestCancel(): void {
     this.confirmingCancel.set(true);
+    this.cancelReasonDraft.set('');
+    this.cancelReasonError.set(null);
   }
 
   dismissCancel(): void {
     this.confirmingCancel.set(false);
+    this.cancelReasonDraft.set('');
+    this.cancelReasonError.set(null);
+  }
+
+  onCancelReasonInput(event: Event): void {
+    const value = (event.target as HTMLTextAreaElement).value;
+    this.cancelReasonDraft.set(value);
+    if (this.cancelReasonError() && value.trim()) {
+      this.cancelReasonError.set(null);
+    }
   }
 
   async confirmCancel(): Promise<void> {
     const current = this.order();
     if (!current) return;
 
+    const reason = this.cancelReasonDraft().trim();
+    if (!reason) {
+      this.cancelReasonError.set('გთხოვთ მიუთითოთ გაუქმების მიზეზი');
+      return;
+    }
+
+    if (this.saving()) {
+      return;
+    }
+
     this.saving.set(true);
+    this.cancelReasonError.set(null);
     this.errorMessage.set(null);
     this.successMessage.set(null);
 
     try {
       const { data, error } = await this.courierService.cancelOrder(
         current.id,
+        reason,
         current.assigned_courier_id,
       );
 
@@ -222,6 +248,8 @@ export class CourierOrderDetail implements OnInit {
         return;
       }
 
+      this.confirmingCancel.set(false);
+      this.cancelReasonDraft.set('');
       this.order.set({ ...current, ...data });
       this.successMessage.set('შეკვეთა გაუქმდა');
       await this.router.navigateByUrl('/courier/history');

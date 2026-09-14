@@ -56,6 +56,8 @@ export interface Order {
   collected_amount: number;
   delivered_at: string | null;
   cancelled_at: string | null;
+  /** Courier cancellation reason — immutable after first write. */
+  cancellation_reason: string | null;
   /** Persistent manual route order for the assigned courier */
   courier_sort_order: number | null;
   created_at: string;
@@ -217,6 +219,7 @@ export const ADMIN_ORDER_LIST_COLUMNS = [
   'updated_at',
   'delivered_at',
   'cancelled_at',
+  'cancellation_reason',
 ].join(', ');
 
 export interface CreateOrderPayload {

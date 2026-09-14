@@ -22,7 +22,7 @@ import {
 } from '../utils/order-status.util';
 
 const COURIER_ORDER_COLUMNS =
-  'id, user_id, assigned_courier_id, recipient_name, recipient_phone, delivery_city, delivery_district, delivery_address, parcel_count, delivery_date, notes, is_fragile, status, payment_method, amount_to_collect, collected_amount, delivered_at, cancelled_at, courier_sort_order, created_at, updated_at, sender_name, sender_phone, pickup_city, pickup_district, pickup_address';
+  'id, user_id, assigned_courier_id, recipient_name, recipient_phone, delivery_city, delivery_district, delivery_address, parcel_count, delivery_date, notes, is_fragile, status, payment_method, amount_to_collect, collected_amount, delivered_at, cancelled_at, cancellation_reason, courier_sort_order, created_at, updated_at, sender_name, sender_phone, pickup_city, pickup_district, pickup_address';
 
 @Injectable({
   providedIn: 'root',
@@ -95,6 +95,7 @@ export class CourierService {
 
   async cancelOrder(
     orderId: number,
+    cancellationReason: string,
     assignedCourierId?: string | null,
   ): Promise<{ data: Order | null; error: string | null }> {
     const sessionCheck = await this.requireCourierSession(orderId, assignedCourierId);
@@ -102,8 +103,14 @@ export class CourierService {
       return { data: null, error: sessionCheck.error };
     }
 
+    const reason = cancellationReason.trim();
+    if (!reason) {
+      return { data: null, error: 'გთხოვთ მიუთითოთ გაუქმების მიზეზი' };
+    }
+
     const { data, error } = await this.supabase.client.rpc('courier_cancel_order', {
       p_order_id: orderId,
+      p_cancellation_reason: reason,
     });
 
     if (error) {
@@ -278,6 +285,9 @@ export class CourierService {
 
   private mapCourierRpcError(message: string): string {
     const lower = message.toLowerCase();
+    if (lower.includes('cancellation reason')) {
+      return 'გთხოვთ მიუთითოთ გაუქმების მიზეზი';
+    }
     if (lower.includes('payment method required') || lower.includes('invalid payment')) {
       return 'აირჩიეთ გადახდის მეთოდი — ქეში ან ბარათი.';
     }

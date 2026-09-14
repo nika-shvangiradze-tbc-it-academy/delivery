@@ -34,6 +34,7 @@ create table if not exists public.orders (
   collected_amount numeric(12, 2) not null default 0,
   delivered_at timestamptz,
   cancelled_at timestamptz,
+  cancellation_reason text,
   courier_sort_order integer,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
