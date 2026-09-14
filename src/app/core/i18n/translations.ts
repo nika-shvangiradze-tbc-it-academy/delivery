@@ -111,6 +111,8 @@ export const translationResources = {
         assignCourier: 'Assign courier',
         unassignCourier: 'Unassign',
         unassigned: 'Unassigned',
+        statusHistory: 'History',
+        statusHistoryEmpty: 'No status changes recorded yet.',
       },
       landing: {
         title: 'Reliable Delivery Across Georgia',
@@ -364,6 +366,8 @@ export const translationResources = {
         assignCourier: 'კურიერის მინიჭება',
         unassignCourier: 'მოხსნა',
         unassigned: 'არ არის მინიჭებული',
+        statusHistory: 'ისტორია',
+        statusHistoryEmpty: 'სტატუსის ცვლილებები ჯერ არ არის.',
       },
       landing: {
         title: 'საიმედო მიწოდება საქართველოს მასშტაბით',

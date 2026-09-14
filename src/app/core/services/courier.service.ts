@@ -130,6 +130,11 @@ export class CourierService {
       return { data: null, error: `არასწორი სტატუსი: ${String(newStatus)}` };
     }
 
+    // History corrections / RPC allow only picked_up | delivered | cancelled.
+    if (status === 'pending') {
+      return { data: null, error: 'მოლოდინში სტატუსზე დაბრუნება შეუძლებელია' };
+    }
+
     if (status === 'delivered') {
       const payment = parsePaymentMethod(paymentMethod);
       if (!payment) {

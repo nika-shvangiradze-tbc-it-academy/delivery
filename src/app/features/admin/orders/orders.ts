@@ -33,6 +33,7 @@ import {
   ORDER_STATUSES,
   Order,
   OrderStatus,
+  OrderStatusAuditEntry,
 } from '../../../core/models/order.model';
 import { CourierOption } from '../../../core/models/profile.model';
 import { AdminService } from '../../../core/services/admin.service';
@@ -42,7 +43,9 @@ import {
 } from '../../../core/services/order-realtime.service';
 import { OrdersService } from '../../../core/services/orders.service';
 import {
+  auditRoleLabelKa,
   formatGel,
+  formatTbilisiDateTime,
   normalizeOrder,
   orderStatusClass,
   orderStatusLabelKey,
@@ -50,6 +53,7 @@ import {
   paymentMethodLabel,
   centsToNumber,
   toCents,
+  courierStatusLabel,
 } from '../../../core/utils/order-status.util';
 import {
   GEORGIAN_CITIES,
@@ -137,6 +141,10 @@ export class AdminOrders implements OnInit {
   readonly couriers = signal<CourierOption[]>([]);
   readonly selectedOrder = signal<Order | null>(null);
   readonly editingOrder = signal<Order | null>(null);
+  readonly auditOrder = signal<Order | null>(null);
+  readonly auditEntries = signal<OrderStatusAuditEntry[]>([]);
+  readonly auditLoading = signal(false);
+  readonly auditError = signal<string | null>(null);
   readonly selectedIds = signal<Set<number>>(new Set());
   readonly bulkCourierId = signal<string | null>(null);
   readonly loading = signal(true);
@@ -156,8 +164,11 @@ export class AdminOrders implements OnInit {
   readonly statusClass = orderStatusClass;
   readonly statusSelectClass = orderStatusSelectClass;
   readonly statusLabelKey = orderStatusLabelKey;
+  readonly statusLabelKa = courierStatusLabel;
   readonly formatGel = formatGel;
   readonly paymentLabel = paymentMethodLabel;
+  readonly formatAuditTime = formatTbilisiDateTime;
+  readonly roleLabel = auditRoleLabelKa;
 
   readonly selectedCount = computed(() => this.selectedIds().size);
   readonly allSelected = computed(
@@ -405,6 +416,35 @@ export class AdminOrders implements OnInit {
 
   closeEdit(): void {
     this.editingOrder.set(null);
+  }
+
+  async openAuditHistory(order: Order): Promise<void> {
+    this.auditOrder.set(order);
+    this.auditEntries.set([]);
+    this.auditError.set(null);
+    this.auditLoading.set(true);
+
+    const { data, error } = await this.adminService.getOrderStatusAudit(order.id);
+    this.auditLoading.set(false);
+
+    if (this.auditOrder()?.id !== order.id) {
+      return;
+    }
+
+    if (error) {
+      this.auditError.set(error);
+      this.auditEntries.set([]);
+      return;
+    }
+
+    this.auditEntries.set(data);
+  }
+
+  closeAuditHistory(): void {
+    this.auditOrder.set(null);
+    this.auditEntries.set([]);
+    this.auditError.set(null);
+    this.auditLoading.set(false);
   }
 
   async saveEdit(): Promise<void> {

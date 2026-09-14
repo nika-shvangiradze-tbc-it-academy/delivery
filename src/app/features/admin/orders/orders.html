@@ -241,6 +241,14 @@
                   <button type="button" class="admin-orders__link-btn" (click)="openEdit(order)">
                     რედაქტირება
                   </button>
+                  <button
+                    type="button"
+                    class="admin-orders__link-btn admin-orders__link-btn--history"
+                    (click)="openAuditHistory(order)"
+                    [attr.aria-label]="'admin.statusHistory' | t"
+                  >
+                    {{ 'admin.statusHistory' | t }}
+                  </button>
                   <button type="button" class="admin-orders__link-btn" (click)="openDetails(order)">
                     {{ 'admin.viewDetails' | t }}
                   </button>
@@ -346,6 +354,61 @@
           <dd>{{ order.cancelled_at ? (order.cancelled_at | date: 'd MMM y, HH:mm') : '—' }}</dd>
         </div>
       </dl>
+      <button
+        type="button"
+        class="admin-orders__history-open"
+        (click)="closeDetails(); openAuditHistory(order)"
+      >
+        {{ 'admin.statusHistory' | t }}
+      </button>
+    </div>
+  </div>
+}
+
+@if (auditOrder(); as order) {
+  <div class="admin-orders__modal" (click)="closeAuditHistory()">
+    <div
+      class="admin-orders__modal-panel admin-orders__modal-panel--audit"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-label]="'admin.statusHistory' | t"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="admin-orders__modal-head">
+        <h2>{{ 'admin.statusHistory' | t }} · #{{ order.id }}</h2>
+        <button type="button" (click)="closeAuditHistory()" [attr.aria-label]="'landing.closeDialog' | t">
+          ×
+        </button>
+      </div>
+
+      @if (auditLoading()) {
+        <p class="admin-orders__muted">იტვირთება...</p>
+      } @else if (auditError()) {
+        <p class="admin-orders__error" role="alert">{{ auditError() }}</p>
+      } @else if (auditEntries().length === 0) {
+        <p class="admin-orders__muted">{{ 'admin.statusHistoryEmpty' | t }}</p>
+      } @else {
+        <ol class="admin-orders__audit-list">
+          @for (entry of auditEntries(); track entry.id) {
+            <li class="admin-orders__audit-item">
+              <time class="admin-orders__audit-time" [attr.datetime]="entry.changed_at">
+                {{ formatAuditTime(entry.changed_at) }}
+              </time>
+              <p class="admin-orders__audit-actor">
+                {{ entry.actor_name || '—' }}
+                <span>— {{ roleLabel(entry.changed_by_role) }}</span>
+              </p>
+              <p class="admin-orders__audit-change">
+                @if (entry.old_status) {
+                  <span [class]="statusClass(entry.old_status)">{{ statusLabelKa(entry.old_status) }}</span>
+                  <span class="admin-orders__audit-arrow" aria-hidden="true">→</span>
+                }
+                <span [class]="statusClass(entry.new_status)">{{ statusLabelKa(entry.new_status) }}</span>
+              </p>
+            </li>
+          }
+        </ol>
+      }
     </div>
   </div>
 }

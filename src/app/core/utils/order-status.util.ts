@@ -235,6 +235,41 @@ export function courierStatusLabel(status: OrderStatus | string): string {
   return ORDER_STATUS_UI[resolveStatusKey(status)].labelKa;
 }
 
+export function auditRoleLabelKa(role: string | null | undefined): string {
+  switch (role) {
+    case 'admin':
+      return 'ადმინი';
+    case 'courier':
+      return 'კურიერი';
+    case 'user':
+      return 'მომხმარებელი';
+    case 'system':
+      return 'სისტემა';
+    default:
+      return 'უცნობი';
+  }
+}
+
+/** Format instant in Asia/Tbilisi for admin audit timeline. */
+export function formatTbilisiDateTime(iso: string | null | undefined): string {
+  if (!iso) {
+    return '—';
+  }
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return '—';
+  }
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Tbilisi',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(date);
+}
+
 export function paymentMethodLabel(method: PaymentMethod | null | undefined): string {
   if (method === 'cash') return 'ქეში';
   if (method === 'card') return 'ბარათი';

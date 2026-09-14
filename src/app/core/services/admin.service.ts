@@ -11,11 +11,12 @@ import {
   AdminStatusGroup,
   Order,
   OrderStatus,
+  OrderStatusAuditEntry,
   PaginatedOrdersResult,
 } from '../models/order.model';
 import { CourierOption } from '../models/profile.model';
 import { SupabaseService } from './supabase.service';
-import { normalizeOrder, normalizeOrders } from '../utils/order-status.util';
+import { normalizeLegacyStatus, normalizeOrder, normalizeOrders } from '../utils/order-status.util';
 
 /** Georgia has no DST; align delivered_at day bounds with RPC Asia/Tbilisi. */
 const TBILISI_OFFSET = '+04:00';
@@ -446,6 +447,133 @@ export class AdminService {
     }
 
     return { data: normalizeOrders(data as unknown[]), error: null };
+  }
+
+  /**
+   * Lazy-load status history for one order (admin RLS). Newest first.
+   * Does not fetch audits for the whole list.
+   */
+  async getOrderStatusAudit(
+    orderId: number,
+  ): Promise<{ data: OrderStatusAuditEntry[]; error: string | null }> {
+    if (!Number.isFinite(orderId)) {
+      return { data: [], error: 'არასწორი შეკვეთის ID' };
+    }
+
+    const { data, error } = await this.supabase.client
+      .from('order_status_audit')
+      .select(
+        'id, order_id, changed_by, changed_by_role, old_status, new_status, source, changed_at, actor:profiles!order_status_audit_changed_by_fkey(full_name)',
+      )
+      .eq('order_id', orderId)
+      .order('changed_at', { ascending: false });
+
+    if (error) {
+      if (error.code === 'PGRST200' || error.message?.includes('Could not find')) {
+        return this.getOrderStatusAuditFallback(orderId);
+      }
+      this.logSupabaseError('getOrderStatusAudit', error);
+      return { data: [], error: error.message };
+    }
+
+    return { data: this.mapAuditRows(data as unknown[]), error: null };
+  }
+
+  private async getOrderStatusAuditFallback(
+    orderId: number,
+  ): Promise<{ data: OrderStatusAuditEntry[]; error: string | null }> {
+    const { data, error } = await this.supabase.client
+      .from('order_status_audit')
+      .select(
+        'id, order_id, changed_by, changed_by_role, old_status, new_status, source, changed_at',
+      )
+      .eq('order_id', orderId)
+      .order('changed_at', { ascending: false });
+
+    if (error) {
+      this.logSupabaseError('getOrderStatusAuditFallback', error);
+      return { data: [], error: error.message };
+    }
+
+    const rows = (data ?? []) as Array<{
+      id: number;
+      order_id: number;
+      changed_by: string | null;
+      changed_by_role: string | null;
+      old_status: string | null;
+      new_status: string;
+      source: string | null;
+      changed_at: string;
+    }>;
+
+    const actorIds = [
+      ...new Set(rows.map((r) => r.changed_by).filter((id): id is string => Boolean(id))),
+    ];
+
+    let nameById = new Map<string, string>();
+    if (actorIds.length > 0) {
+      const { data: profiles, error: profileError } = await this.supabase.client
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', actorIds);
+
+      if (profileError) {
+        this.logSupabaseError('getOrderStatusAuditFallback.profiles', profileError);
+      } else {
+        nameById = new Map(
+          (profiles ?? []).map((p: { id: string; full_name: string }) => [p.id, p.full_name]),
+        );
+      }
+    }
+
+    return {
+      data: rows.map((row) => ({
+        id: Number(row.id),
+        order_id: Number(row.order_id),
+        changed_by: row.changed_by,
+        changed_by_role: row.changed_by_role,
+        old_status: normalizeLegacyStatus(row.old_status) ?? row.old_status,
+        new_status: normalizeLegacyStatus(row.new_status) ?? row.new_status,
+        source: row.source,
+        changed_at: row.changed_at,
+        actor_name: row.changed_by ? (nameById.get(row.changed_by) ?? null) : null,
+      })),
+      error: null,
+    };
+  }
+
+  private mapAuditRows(rows: unknown[] | null | undefined): OrderStatusAuditEntry[] {
+    if (!rows?.length) {
+      return [];
+    }
+
+    return rows.map((raw) => {
+      const row = raw as {
+        id: number | string;
+        order_id: number | string;
+        changed_by: string | null;
+        changed_by_role: string | null;
+        old_status: string | null;
+        new_status: string;
+        source: string | null;
+        changed_at: string;
+        actor?: { full_name?: string } | { full_name?: string }[] | null;
+      };
+
+      const actor = Array.isArray(row.actor) ? row.actor[0] : row.actor;
+
+      return {
+        id: Number(row.id),
+        order_id: Number(row.order_id),
+        changed_by: row.changed_by,
+        changed_by_role: row.changed_by_role,
+        old_status: normalizeLegacyStatus(row.old_status) ?? row.old_status,
+        new_status: normalizeLegacyStatus(row.new_status) ?? row.new_status,
+        source: row.source,
+        changed_at: row.changed_at,
+        actor_name: actor?.full_name?.trim() || null,
+      };
+    });
   }
 
   private applyStatusGroup(query: any, group: AdminStatusGroup) {

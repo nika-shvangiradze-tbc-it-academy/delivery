@@ -20,13 +20,15 @@ export const COURIER_ALLOWED_STATUSES: CourierStatus[] = [
   'cancelled',
 ];
 
-/** Statuses a courier may restore/correct to from history. */
+/** Statuses a courier may restore/correct to from history (never pending). */
 export const COURIER_CORRECTION_STATUSES: CourierStatus[] = [
-  'pending',
   'picked_up',
   'delivered',
   'cancelled',
 ];
+
+/** @deprecated Prefer COURIER_CORRECTION_STATUSES — history must not offer pending. */
+export const COURIER_HISTORY_CORRECTION_STATUSES = COURIER_CORRECTION_STATUSES;
 export interface Order {
   id: number;
   user_id: string;
@@ -256,6 +258,22 @@ export interface AdminDashboardStats {
   pickedUpOrders: number;
   deliveredOrders: number;
   cancelledOrders: number;
+}
+
+/** Admin-facing order status audit row (trigger-written; read-only). */
+export type OrderStatusAuditRole = 'admin' | 'courier' | 'user' | 'system';
+export type OrderStatusAuditSource = 'admin' | 'courier' | 'user' | 'system';
+
+export interface OrderStatusAuditEntry {
+  id: number;
+  order_id: number;
+  changed_by: string | null;
+  changed_by_role: OrderStatusAuditRole | string | null;
+  old_status: OrderStatus | string | null;
+  new_status: OrderStatus | string;
+  source: OrderStatusAuditSource | string | null;
+  changed_at: string;
+  actor_name: string | null;
 }
 
 export interface CourierDailySummary {

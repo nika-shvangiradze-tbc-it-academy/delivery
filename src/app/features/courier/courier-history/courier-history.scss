@@ -195,26 +195,86 @@
 
   &__status-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 6px;
+    grid-template-columns: 1fr;
+    gap: 8px;
+
+    @media (min-width: 420px) {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
   }
 
   &__status-btn {
-    border: 1px solid #e5e7eb;
+    border: 2px solid #e5e7eb;
     background: #f9fafb;
     color: #374151;
-    border-radius: 10px;
-    padding: 10px 8px;
+    border-radius: 12px;
+    padding: 12px 10px;
     font: inherit;
-    font-size: 13px;
-    font-weight: 700;
-    min-height: 44px;
+    font-size: 14px;
+    font-weight: 800;
+    min-height: 48px;
     cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition:
+      background 0.15s ease,
+      border-color 0.15s ease,
+      color 0.15s ease,
+      box-shadow 0.15s ease;
 
-    &--active {
-      border-color: #16a34a;
-      background: #ecfdf3;
+    &--picked_up {
+      border-color: #93c5fd;
+      background: #eff6ff;
+      color: #1e40af;
+
+      &:hover:not(:disabled) {
+        background: #dbeafe;
+      }
+
+      &.history-card__status-btn--active {
+        border-color: #2563eb;
+        background: #2563eb;
+        color: #fff;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+      }
+    }
+
+    &--delivered {
+      border-color: #86efac;
+      background: #f0fdf4;
       color: #15803d;
+
+      &:hover:not(:disabled) {
+        background: #dcfce7;
+      }
+
+      &.history-card__status-btn--active {
+        border-color: #16a34a;
+        background: #16a34a;
+        color: #fff;
+        box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.25);
+      }
+    }
+
+    &--cancelled {
+      border-color: #fca5a5;
+      background: #fef2f2;
+      color: #b91c1c;
+
+      &:hover:not(:disabled) {
+        background: #fee2e2;
+      }
+
+      &.history-card__status-btn--active {
+        border-color: #dc2626;
+        background: #dc2626;
+        color: #fff;
+        box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.25);
+      }
+    }
+
+    &:focus-visible {
+      outline: 2px solid #111827;
+      outline-offset: 2px;
     }
 
     &:disabled {

@@ -80,8 +80,11 @@
                 @for (status of correctionStatuses; track status) {
                   <button
                     type="button"
-                    class="history-card__status-btn"
-                    [class.history-card__status-btn--active]="draftStatus() === status"
+                    [class]="
+                      'history-card__status-btn history-card__status-btn--' +
+                      status +
+                      (draftStatus() === status ? ' history-card__status-btn--active' : '')
+                    "
                     [disabled]="savingId() === order.id"
                     (click)="selectDraftStatus(status)"
                   >
