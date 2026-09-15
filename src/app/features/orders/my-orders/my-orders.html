@@ -15,9 +15,17 @@
           [class]="'my-orders-page__filter my-orders-page__filter--' + option.id"
           [class.is-active]="statusFilter() === option.id"
           [attr.aria-selected]="statusFilter() === option.id"
+          [attr.aria-controls]="'my-orders-panel'"
           (click)="selectStatusFilter(option.id)"
         >
-          {{ option.label }}
+          <span class="my-orders-page__filter-label">{{ option.labelKey | t }}</span>
+          @if (countsLoading()) {
+            <span class="my-orders-page__count my-orders-page__count--skeleton" aria-hidden="true"></span>
+          } @else {
+            <span class="my-orders-page__count" [attr.aria-label]="'count ' + countFor(option.id)">
+              {{ countFor(option.id) }}
+            </span>
+          }
         </button>
       }
     </div>
@@ -26,90 +34,254 @@
       <p class="my-orders-page__success" role="status">{{ successMessage() }}</p>
     }
 
-    @if (loading()) {
-      <p class="my-orders-page__muted">{{ 'common.loading' | t }}</p>
-    } @else if (errorMessage()) {
-      <p class="my-orders-page__error" role="alert">{{ errorMessage() }}</p>
-    } @else if (orders().length === 0) {
-      <p class="my-orders-page__muted">{{ emptyMessage() }}</p>
-    } @else {
-      <div class="my-orders-page__grid">
-        @for (order of orders(); track order.id) {
-          <article class="my-orders-page__card">
-            <div class="my-orders-page__card-top">
-              <div>
-                <p class="my-orders-page__id">#{{ order.id }}</p>
-                <h2>{{ order.recipient_name || '—' }}</h2>
-              </div>
-              <span [class]="statusClass(order.status)">
-                {{ statusLabelKey(order.status) | t }}
-              </span>
-            </div>
+    @if (showDeliveredAnalytics()) {
+      <section class="my-orders-page__analytics" aria-labelledby="my-orders-analytics-title">
+        <div class="my-orders-page__analytics-head">
+          <h2 id="my-orders-analytics-title" class="my-orders-page__analytics-title">
+            {{ 'orders.analyticsTitle' | t }}
+          </h2>
+          <button
+            type="button"
+            class="my-orders-page__clear-btn"
+            (click)="clearDeliveredFilters()"
+          >
+            {{ 'orders.clearFilters' | t }}
+          </button>
+        </div>
 
-            <dl class="my-orders-page__compact">
-              <div>
-                <dt>{{ 'orders.deliveryCity' | t }}</dt>
-                <dd>{{ order.delivery_city || '—' }}</dd>
-              </div>
-              <div>
-                <dt>{{ 'orders.deliveryDistrict' | t }}</dt>
-                <dd>{{ order.delivery_district || '—' }}</dd>
-              </div>
-              <div>
-                <dt>{{ 'orders.deliveryDate' | t }}</dt>
-                <dd>{{ order.delivery_date ? (order.delivery_date | date: 'mediumDate') : '—' }}</dd>
-              </div>
-              <div>
-                <dt>{{ 'orders.parcelCount' | t }}</dt>
-                <dd>{{ order.parcel_count }}</dd>
-              </div>
-              <div>
-                <dt>ასაღები თანხა</dt>
-                <dd>{{ formatGel(order.amount_to_collect) }} ₾</dd>
-              </div>
-            </dl>
-
-            <div class="my-orders-page__actions">
-              <button type="button" class="my-orders-page__details-btn" (click)="toggleDetails(order.id)">
-                {{ expandedId() === order.id ? 'დამალვა' : 'დეტალები' }}
+        <div class="my-orders-page__period" role="group" [attr.aria-label]="'orders.period' | t">
+          <span class="my-orders-page__period-label">{{ 'orders.period' | t }}</span>
+          <div class="my-orders-page__period-chips">
+            @for (preset of periodPresets; track preset.id) {
+              <button
+                type="button"
+                class="my-orders-page__chip"
+                [class.is-active]="isPeriodActive(preset.id)"
+                (click)="selectPeriodPreset(preset.id)"
+              >
+                {{ preset.labelKey | t }}
               </button>
-              @if (canEdit(order)) {
-                <button type="button" class="my-orders-page__edit-btn" (click)="openEdit(order)">
-                  რედაქტირება
-                </button>
-              }
-            </div>
+            }
+          </div>
+        </div>
 
-            @if (expandedId() === order.id) {
-              <dl class="my-orders-page__extra">
-                <div>
-                  <dt>{{ 'orders.recipientPhone' | t }}</dt>
-                  <dd>{{ order.recipient_phone || '—' }}</dd>
-                </div>
-                <div>
-                  <dt>{{ 'orders.deliveryAddress' | t }}</dt>
-                  <dd>{{ order.delivery_address || '—' }}</dd>
-                </div>
-                <div>
-                  <dt>{{ 'orders.senderName' | t }}</dt>
-                  <dd>{{ order.sender_name || '—' }}</dd>
-                </div>
-                <div>
-                  <dt>{{ 'orders.pickupCity' | t }}</dt>
-                  <dd>{{ order.pickup_city || '—' }}</dd>
-                </div>
-                @if (order.notes) {
-                  <div>
-                    <dt>{{ 'orders.notes' | t }}</dt>
-                    <dd>{{ order.notes }}</dd>
-                  </div>
-                }
-              </dl>
+        <div class="my-orders-page__month-year">
+          <label class="my-orders-page__select-field">
+            <span>{{ 'orders.month' | t }}</span>
+            <select
+              [value]="filterMonth() ?? ''"
+              (change)="onMonthChange($any($event.target).value)"
+            >
+              <option value="">—</option>
+              @for (month of months; track month.value) {
+                <option [value]="month.value">{{ month.label }}</option>
+              }
+            </select>
+          </label>
+          <label class="my-orders-page__select-field">
+            <span>{{ 'orders.year' | t }}</span>
+            <select
+              [value]="filterYear() ?? ''"
+              (change)="onYearChange($any($event.target).value)"
+            >
+              @for (year of yearOptions(); track year) {
+                <option [value]="year">{{ year }}</option>
+              }
+            </select>
+          </label>
+        </div>
+
+        @if (periodPreset() === 'custom') {
+          <div class="my-orders-page__custom-range">
+            <label class="my-orders-page__select-field">
+              <span>{{ 'orders.dateFrom' | t }}</span>
+              <input
+                type="date"
+                [value]="customFrom()"
+                (change)="onCustomFromChange($any($event.target).value)"
+              />
+            </label>
+            <label class="my-orders-page__select-field">
+              <span>{{ 'orders.dateTo' | t }}</span>
+              <input
+                type="date"
+                [value]="customTo()"
+                (change)="onCustomToChange($any($event.target).value)"
+              />
+            </label>
+          </div>
+        }
+
+        @if (dateRangeError(); as rangeErr) {
+          <p class="my-orders-page__error" role="alert">{{ rangeErr | t }}</p>
+        }
+
+        @if (analyticsError(); as analyticsErr) {
+          <div class="my-orders-page__analytics-error" role="alert">
+            <span>{{ analyticsErr | t }}</span>
+            <button type="button" class="my-orders-page__retry-btn" (click)="retryAnalytics()">
+              {{ 'orders.analyticsRetry' | t }}
+            </button>
+          </div>
+        }
+
+        <div class="my-orders-page__metrics" aria-live="polite">
+          <article class="my-orders-page__metric my-orders-page__metric--orders">
+            <p class="my-orders-page__metric-label">{{ 'orders.analyticsOrders' | t }}</p>
+            @if (analyticsLoading()) {
+              <p class="my-orders-page__metric-value my-orders-page__metric-value--skeleton" aria-hidden="true"></p>
+            } @else {
+              <p class="my-orders-page__metric-value">{{ analytics().order_count }}</p>
             }
           </article>
+          <article class="my-orders-page__metric my-orders-page__metric--parcels">
+            <p class="my-orders-page__metric-label">{{ 'orders.analyticsParcels' | t }}</p>
+            @if (analyticsLoading()) {
+              <p class="my-orders-page__metric-value my-orders-page__metric-value--skeleton" aria-hidden="true"></p>
+            } @else {
+              <p class="my-orders-page__metric-value">{{ analytics().parcel_count }}</p>
+            }
+          </article>
+          <article class="my-orders-page__metric my-orders-page__metric--amount">
+            <p class="my-orders-page__metric-label">{{ 'orders.analyticsAmount' | t }}</p>
+            @if (analyticsLoading()) {
+              <p class="my-orders-page__metric-value my-orders-page__metric-value--skeleton" aria-hidden="true"></p>
+            } @else {
+              <p class="my-orders-page__metric-value">{{ formatGelGrouped(analytics().amount_to_collect) }} ₾</p>
+            }
+          </article>
+        </div>
+
+        @if (!analyticsLoading() && !analyticsError() && analytics().order_count > 0) {
+          <p class="my-orders-page__avg">
+            {{ 'orders.analyticsAverage' | t }}:
+            <strong>{{ formatGelGrouped(averageAmount()) }} ₾</strong>
+          </p>
         }
-      </div>
+      </section>
     }
+
+    @if (showAllSummary() && !countsLoading()) {
+      <p class="my-orders-page__all-summary">
+        {{ 'orders.totalOrders' | t }}: <strong>{{ statusCounts().all }}</strong>
+      </p>
+    }
+
+    <div id="my-orders-panel" role="tabpanel">
+      @if (loading()) {
+        <div class="my-orders-page__skeleton-grid" aria-busy="true" aria-label="Loading">
+          @for (n of [1, 2, 3, 4]; track n) {
+            <div class="my-orders-page__skeleton-card"></div>
+          }
+        </div>
+      } @else if (errorMessage()) {
+        <p class="my-orders-page__error" role="alert">{{ errorMessage() }}</p>
+      } @else if (orders().length === 0) {
+        <p class="my-orders-page__muted">{{ emptyMessageKey() | t }}</p>
+      } @else {
+        <div class="my-orders-page__grid">
+          @for (order of orders(); track order.id) {
+            <article class="my-orders-page__card">
+              <div class="my-orders-page__card-top">
+                <div>
+                  <p class="my-orders-page__id">#{{ order.id }}</p>
+                  <h2>{{ order.recipient_name || '—' }}</h2>
+                </div>
+                <span [class]="statusClass(order.status)">
+                  {{ statusLabelKey(order.status) | t }}
+                </span>
+              </div>
+
+              <dl class="my-orders-page__compact">
+                <div>
+                  <dt>{{ 'orders.deliveryCity' | t }}</dt>
+                  <dd>{{ order.delivery_city || '—' }}</dd>
+                </div>
+                <div>
+                  <dt>{{ 'orders.deliveryDistrict' | t }}</dt>
+                  <dd>{{ order.delivery_district || '—' }}</dd>
+                </div>
+                <div>
+                  <dt>{{ 'orders.deliveryDate' | t }}</dt>
+                  <dd>{{ order.delivery_date ? (order.delivery_date | date: 'mediumDate') : '—' }}</dd>
+                </div>
+                @if (order.status === 'delivered' && order.delivered_at) {
+                  <div>
+                    <dt>{{ 'orders.deliveredAt' | t }}</dt>
+                    <dd>{{ formatDeliveredAt(order.delivered_at) }}</dd>
+                  </div>
+                }
+                <div>
+                  <dt>{{ 'orders.quantityUnits' | t }}</dt>
+                  <dd>{{ order.parcel_count }} {{ 'orders.units' | t }}</dd>
+                </div>
+                <div>
+                  <dt>ასაღები თანხა</dt>
+                  <dd>{{ formatGel(order.amount_to_collect) }} ₾</dd>
+                </div>
+              </dl>
+
+              <div class="my-orders-page__actions">
+                <button type="button" class="my-orders-page__details-btn" (click)="toggleDetails(order.id)">
+                  {{ expandedId() === order.id ? 'დამალვა' : 'დეტალები' }}
+                </button>
+                @if (canEdit(order)) {
+                  <button type="button" class="my-orders-page__edit-btn" (click)="openEdit(order)">
+                    რედაქტირება
+                  </button>
+                }
+              </div>
+
+              @if (expandedId() === order.id) {
+                <dl class="my-orders-page__extra">
+                  <div>
+                    <dt>{{ 'orders.recipientPhone' | t }}</dt>
+                    <dd>{{ order.recipient_phone || '—' }}</dd>
+                  </div>
+                  <div>
+                    <dt>{{ 'orders.deliveryAddress' | t }}</dt>
+                    <dd>{{ order.delivery_address || '—' }}</dd>
+                  </div>
+                  <div>
+                    <dt>{{ 'orders.senderName' | t }}</dt>
+                    <dd>{{ order.sender_name || '—' }}</dd>
+                  </div>
+                  <div>
+                    <dt>{{ 'orders.pickupCity' | t }}</dt>
+                    <dd>{{ order.pickup_city || '—' }}</dd>
+                  </div>
+                  @if (order.status === 'delivered' && order.delivered_at) {
+                    <div>
+                      <dt>{{ 'orders.deliveredAt' | t }}</dt>
+                      <dd>{{ formatDeliveredAt(order.delivered_at) }}</dd>
+                    </div>
+                  }
+                  @if (order.notes) {
+                    <div>
+                      <dt>{{ 'orders.notes' | t }}</dt>
+                      <dd>{{ order.notes }}</dd>
+                    </div>
+                  }
+                </dl>
+              }
+            </article>
+          }
+        </div>
+
+        @if (hasMore()) {
+          <div class="my-orders-page__load-more">
+            <button
+              type="button"
+              class="my-orders-page__load-more-btn"
+              [disabled]="loadingMore()"
+              (click)="loadMore()"
+            >
+              {{ loadingMore() ? ('common.loading' | t) : ('orders.loadMore' | t) }}
+            </button>
+          </div>
+        }
+      }
+    </div>
   </div>
 </section>
 

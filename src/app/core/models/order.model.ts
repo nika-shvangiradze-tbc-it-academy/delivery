@@ -183,6 +183,56 @@ export interface AdminDeliveredAnalytics {
   by_courier: AdminDeliveredCourierBreakdown[];
 }
 
+/** My Orders status tab including "all orders". */
+export type MyOrdersStatusFilter = OrderStatus | 'all';
+
+export const MY_ORDERS_PAGE_SIZE = 20;
+
+export type MyOrdersPeriodPreset =
+  | 'all'
+  | 'today'
+  | 'this_month'
+  | 'previous_month'
+  | 'this_year'
+  | 'custom'
+  | 'month_year'
+  | 'year_only';
+
+export interface MyOrdersQueryOptions {
+  status?: MyOrdersStatusFilter;
+  /** 1-based page for pagination. */
+  page?: number;
+  pageSize?: number;
+  /**
+   * Inclusive YYYY-MM-DD (Tbilisi calendar) for delivered_at filtering.
+   * Applied only when status is 'delivered'.
+   */
+  deliveredFrom?: string | null;
+  deliveredTo?: string | null;
+}
+
+export interface MyOrdersStatusCounts {
+  all: number;
+  pending: number;
+  picked_up: number;
+  delivered: number;
+  cancelled: number;
+}
+
+export interface UserDeliveredAnalyticsFilters {
+  dateFrom?: string | null;
+  dateTo?: string | null;
+  year?: number | null;
+  month?: number | null;
+}
+
+/** Owner delivered analytics — uses amount_to_collect (COD configured total). */
+export interface UserDeliveredAnalytics {
+  order_count: number;
+  parcel_count: number;
+  amount_to_collect: number;
+}
+
 export interface PaginatedOrdersResult {
   data: Order[];
   total: number;

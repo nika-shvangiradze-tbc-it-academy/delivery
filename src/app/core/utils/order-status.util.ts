@@ -96,6 +96,16 @@ export function formatGel(amount: number | string | null | undefined): string {
   return `${sign}${whole}.${frac}`;
 }
 
+/** Format GEL with thousands separators, e.g. 2,845.00 */
+export function formatGelGrouped(amount: number | string | null | undefined): string {
+  const formatted = formatGel(amount);
+  const negative = formatted.startsWith('-');
+  const raw = negative ? formatted.slice(1) : formatted;
+  const [whole, frac = '00'] = raw.split('.');
+  const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return `${negative ? '-' : ''}${grouped}.${frac}`;
+}
+
 /** Convert decimal amount to integer tetri/cents. */
 export function toCents(amount: number | string | null | undefined): number {
   if (amount === null || amount === undefined || amount === '') {
