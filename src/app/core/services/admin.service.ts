@@ -70,32 +70,33 @@ export class AdminService {
   private readonly supabase = inject(SupabaseService);
 
   async getDashboardStats(): Promise<{ data: AdminDashboardStats; error: string | null }> {
-    const [usersResult, ordersResult] = await Promise.all([
+    const [usersResult, statsResult] = await Promise.all([
       this.supabase.client.from('profiles').select('id', { count: 'exact', head: true }),
-      this.supabase.client.from('orders').select('status'),
+      this.supabase.client.rpc('admin_dashboard_stats'),
     ]);
 
     if (usersResult.error) {
       return { data: this.emptyStats(), error: usersResult.error.message };
     }
 
-    if (ordersResult.error) {
-      return { data: this.emptyStats(), error: ordersResult.error.message };
+    if (statsResult.error) {
+      this.logSupabaseError('getDashboardStats', statsResult.error);
+      return { data: this.emptyStats(), error: statsResult.error.message };
     }
 
-    const orders = (ordersResult.data ?? []) as { status: string }[];
+    const raw =
+      statsResult.data && typeof statsResult.data === 'object' && !Array.isArray(statsResult.data)
+        ? (statsResult.data as Record<string, unknown>)
+        : {};
 
     return {
       data: {
         totalUsers: usersResult.count ?? 0,
-        totalOrders: orders.length,
-        pendingOrders: orders.filter((o) => o.status === 'pending').length,
-        pickedUpOrders: orders.filter(
-          (o) =>
-            o.status === 'picked_up' || o.status === 'accepted' || o.status === 'in_transit',
-        ).length,
-        deliveredOrders: orders.filter((o) => o.status === 'delivered').length,
-        cancelledOrders: orders.filter((o) => o.status === 'cancelled').length,
+        totalOrders: asNumber(raw['total']),
+        pendingOrders: asNumber(raw['pending']),
+        pickedUpOrders: asNumber(raw['picked_up']),
+        deliveredOrders: asNumber(raw['delivered']),
+        cancelledOrders: asNumber(raw['cancelled']),
       },
       error: null,
     };
