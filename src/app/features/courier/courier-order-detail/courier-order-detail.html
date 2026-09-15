@@ -25,7 +25,7 @@
       <p><strong>ქალაქი:</strong> {{ o.delivery_city }}</p>
       <p><strong>უბანი:</strong> {{ o.delivery_district || '—' }}</p>
       <p><strong>მისამართი:</strong> {{ o.delivery_address }}</p>
-      <p><strong>ამანათები:</strong> {{ o.parcel_count }}</p>
+      <p><strong>გადასაცემი ერთეულების რაოდენობა:</strong> {{ o.parcel_count }}</p>
       @if (o.is_fragile) {
         <p class="courier-detail__fragile" role="status">⚠ მსხვრევადი</p>
       }

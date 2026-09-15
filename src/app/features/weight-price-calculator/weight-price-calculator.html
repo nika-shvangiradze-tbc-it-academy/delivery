@@ -1,0 +1,155 @@
+<section id="weight-calculator" class="wcalc" aria-labelledby="wcalc-title">
+  <div class="wcalc__bridge" aria-hidden="true"></div>
+
+  <div class="wcalc__inner">
+    <header class="wcalc__header">
+      <h3 id="wcalc-title" class="wcalc__title">{{ 'weightCalculator.title' | t }}</h3>
+      <p class="wcalc__subtitle">{{ 'weightCalculator.subtitle' | t }}</p>
+    </header>
+
+    <div class="wcalc__panel">
+      <div class="wcalc__layout">
+        <div class="wcalc__controls">
+          <div class="wcalc__field">
+            <label class="wcalc__label" for="wcalc-weight">{{ 'weightCalculator.weightLabel' | t }}</label>
+            <div class="wcalc__stepper" role="group" aria-labelledby="wcalc-weight-group-label">
+              <span id="wcalc-weight-group-label" class="visually-hidden">
+                {{ 'weightCalculator.weightLabel' | t }}
+              </span>
+              <button
+                type="button"
+                class="wcalc__stepper-btn"
+                (click)="decreaseWeight()"
+                [attr.aria-label]="'weightCalculator.decreaseWeight' | t"
+              >
+                −
+              </button>
+              <div class="wcalc__input-wrap">
+                <input
+                  id="wcalc-weight"
+                  class="wcalc__input"
+                  type="text"
+                  inputmode="decimal"
+                  autocomplete="off"
+                  [attr.aria-describedby]="'wcalc-unit'"
+                  [value]="weightInput()"
+                  (input)="onWeightInput($any($event.target).value)"
+                />
+                <span id="wcalc-unit" class="wcalc__unit">{{ 'weightCalculator.kg' | t }}</span>
+              </div>
+              <button
+                type="button"
+                class="wcalc__stepper-btn"
+                (click)="increaseWeight()"
+                [attr.aria-label]="'weightCalculator.increaseWeight' | t"
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          <div class="wcalc__quick" role="group" [attr.aria-label]="'weightCalculator.quickWeights' | t">
+            @for (kg of quickWeights; track kg) {
+              <button
+                type="button"
+                class="wcalc__chip"
+                [class.wcalc__chip--active]="isQuickActive(kg)"
+                (click)="setQuickWeight(kg)"
+              >
+                {{ kg }} {{ 'weightCalculator.kg' | t }}
+              </button>
+            }
+          </div>
+
+          <div class="wcalc__segments" aria-hidden="true">
+            <div class="wcalc__segments-track">
+              @for (band of bands; track band.labelKey; let i = $index) {
+                <div
+                  class="wcalc__segment"
+                  [class.wcalc__segment--active]="activeBandIndex() === i"
+                  [style.flex]="bandFlex(band)"
+                >
+                  <span class="wcalc__segment-label">{{ band.segmentLabel }}</span>
+                </div>
+              }
+            </div>
+            <div class="wcalc__marker-row">
+              <span
+                class="wcalc__marker"
+                [style.left.%]="markerPercent()"
+                [class.wcalc__marker--visible]="quote().status === 'ok' || quote().status === 'over_limit'"
+              ></span>
+            </div>
+            <div class="wcalc__scale">
+              <span>0</span>
+              <span>{{ maxKg }} {{ 'weightCalculator.kg' | t }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="wcalc__result" aria-live="polite">
+          @switch (quote().status) {
+            @case ('empty') {
+              <div class="wcalc__empty">
+                <span class="wcalc__empty-pulse" aria-hidden="true"></span>
+                <div class="wcalc__parcel wcalc__parcel--idle" aria-hidden="true">
+                  <svg viewBox="0 0 64 64" fill="none">
+                    <rect x="14" y="22" width="36" height="28" rx="4" stroke="currentColor" stroke-width="2" />
+                    <path d="M14 30h36M32 22v28" stroke="currentColor" stroke-width="2" />
+                  </svg>
+                </div>
+                <p>{{ 'weightCalculator.emptyState' | t }}</p>
+              </div>
+            }
+            @case ('invalid') {
+              <div class="wcalc__unsupported">
+                <p>{{ 'weightCalculator.invalidWeight' | t }}</p>
+              </div>
+            }
+            @case ('over_limit') {
+              <div class="wcalc__unsupported">
+                <div class="wcalc__parcel wcalc__parcel--heavy" aria-hidden="true">
+                  <svg viewBox="0 0 64 64" fill="none">
+                    <rect x="10" y="18" width="44" height="34" rx="4" stroke="currentColor" stroke-width="2" />
+                    <path d="M10 28h44M32 18v34" stroke="currentColor" stroke-width="2" />
+                    <path d="M22 12h20" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                  </svg>
+                </div>
+                <p>{{ 'weightCalculator.overLimit' | t }}</p>
+                <button type="button" class="wcalc__cta wcalc__cta--secondary" (click)="onContactForHeavy()">
+                  {{ 'landing.cta' | t }}
+                </button>
+              </div>
+            }
+            @case ('ok') {
+              <div class="wcalc__quote">
+                <div class="wcalc__parcel wcalc__parcel--active" aria-hidden="true">
+                  <svg viewBox="0 0 64 64" fill="none">
+                    <rect x="14" y="22" width="36" height="28" rx="4" stroke="currentColor" stroke-width="2" />
+                    <path d="M14 30h36M32 22v28" stroke="currentColor" stroke-width="2" />
+                  </svg>
+                </div>
+                <p class="wcalc__quote-weight">
+                  {{ quote().weight }} {{ 'weightCalculator.kg' | t }}
+                </p>
+                <p class="wcalc__quote-band">
+                  {{ 'weightCalculator.tariff' | t }}: {{ quote().band!.labelKey | t }}
+                </p>
+                <p class="wcalc__quote-label">{{ 'weightCalculator.deliveryCost' | t }}</p>
+                <p class="wcalc__quote-price">
+                  @for (price of [priceDisplay()]; track price) {
+                    <span class="wcalc__quote-amount">{{ price }}</span>
+                  }
+                  <span class="wcalc__quote-currency">₾</span>
+                </p>
+                <button type="button" class="wcalc__cta" (click)="onCreateOrder()">
+                  {{ 'weightCalculator.createOrder' | t }}
+                </button>
+              </div>
+            }
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

@@ -415,6 +415,22 @@ export class AdminService {
     return { data: result.data[0] ?? null, error: null };
   }
 
+  /** Permanently delete one order (admin RLS). Cascades status audit rows. */
+  async deleteOrder(orderId: number): Promise<{ error: string | null }> {
+    if (!Number.isFinite(orderId)) {
+      return { error: 'არასწორი შეკვეთის ID' };
+    }
+
+    const { error } = await this.supabase.client.from('orders').delete().eq('id', orderId);
+
+    if (error) {
+      this.logSupabaseError('deleteOrder', error);
+      return { error: error.message };
+    }
+
+    return { error: null };
+  }
+
   async assignCouriersBulk(
     orderIds: number[],
     courierId: string | null,

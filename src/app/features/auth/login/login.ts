@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslatePipe } from '../../../core/pipes/t.pipe';
 import { AuthService } from '../../../core/services/auth.service';
 import { DeliveryHeader } from '../../../layout/delivery-header/delivery-header';
@@ -16,6 +16,7 @@ export class Login implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   readonly loading = signal(false);
   readonly errorMessage = signal<string | null>(null);
@@ -29,7 +30,7 @@ export class Login implements OnInit {
   async ngOnInit(): Promise<void> {
     await this.auth.whenReady();
     if (this.auth.isAuthenticated()) {
-      await this.router.navigateByUrl(await this.auth.resolveHomePath());
+      await this.router.navigateByUrl(await this.resolvePostLoginPath());
     }
   }
 
@@ -52,6 +53,25 @@ export class Login implements OnInit {
       return;
     }
 
-    await this.router.navigateByUrl(await this.auth.resolveHomePath());
+    await this.router.navigateByUrl(await this.resolvePostLoginPath());
+  }
+
+  private async resolvePostLoginPath(): Promise<string> {
+    const home = await this.auth.resolveHomePath();
+    const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+    if (!this.isSafeInternalUrl(returnUrl)) {
+      return home;
+    }
+
+    // Admin/courier stay on role home; user pages are not for them.
+    if (home === '/admin' || home === '/courier') {
+      return home;
+    }
+
+    return returnUrl;
+  }
+
+  private isSafeInternalUrl(url: string | null): url is string {
+    return Boolean(url && url.startsWith('/') && !url.startsWith('//') && !url.includes('://'));
   }
 }

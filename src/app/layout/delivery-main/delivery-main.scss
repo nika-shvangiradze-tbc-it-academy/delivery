@@ -14,14 +14,32 @@ app-items,
 app-priorites,
 app-about,
 app-rate,
+app-delivery-price-calculator,
 app-size,
+app-how-it-works,
 app-delivery-footer {
   content-visibility: auto;
   contain-intrinsic-size: 700px;
 }
 
+app-size {
+  contain-intrinsic-size: 1100px;
+}
+
+app-how-it-works {
+  contain-intrinsic-size: 780px;
+}
+
 .main__defer-slot {
   min-height: 280px;
+}
+
+.main__defer-slot--calc {
+  min-height: 420px;
+}
+
+.main__defer-slot--hiw {
+  min-height: 520px;
 }
 
 .main__defer-slot--footer {

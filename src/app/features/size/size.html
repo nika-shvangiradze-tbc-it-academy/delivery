@@ -13,13 +13,12 @@
                 <p class="size__note">{{ 'size.note' | t }}</p>
 
                 <ul class="size__list">
-                    <li class="size__row"><span class="size__weight">{{ 'size.range1' | t }}</span><strong>5.00 <small>₾</small></strong></li>
-                    <li class="size__row"><span class="size__weight">{{ 'size.range2' | t }}</span><strong>7.00 <small>₾</small></strong></li>
-                    <li class="size__row"><span class="size__weight">{{ 'size.range3' | t }}</span><strong>9.00 <small>₾</small></strong></li>
-                    <li class="size__row"><span class="size__weight">{{ 'size.range4' | t }}</span><strong>11.00 <small>₾</small></strong></li>
-                    <li class="size__row"><span class="size__weight">{{ 'size.range5' | t }}</span><strong>14.00 <small>₾</small></strong></li>
-                    <li class="size__row"><span class="size__weight">{{ 'size.range6' | t }}</span><strong>16.00 <small>₾</small></strong></li>
-                    <li class="size__row"><span class="size__weight">{{ 'size.range7' | t }}</span><strong>20.00 <small>₾</small></strong></li>
+                    @for (band of weightTariffs; track band.labelKey) {
+                        <li class="size__row">
+                            <span class="size__weight">{{ band.labelKey | t }}</span>
+                            <strong>{{ formatPrice(band.price) }} <small>₾</small></strong>
+                        </li>
+                    }
                 </ul>
             </article>
 
@@ -27,6 +26,8 @@
                 <img src="/assets/main/size/kg.svg" [alt]="'size.altImage' | t" class="size__image" />
             </div>
         </div>
+
+        <app-weight-price-calculator></app-weight-price-calculator>
 
         <div class="size__contact-card">
             <p class="size__contact-text">{{ 'size.contactPrompt' | t }}</p>

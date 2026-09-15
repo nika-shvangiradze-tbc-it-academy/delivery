@@ -13,6 +13,10 @@ export interface RegisterPayload {
   rememberMe?: boolean;
 }
 
+const PROFILE_SELECT_FULL =
+  'id, full_name, phone, role, default_city, default_district, default_address, created_at';
+const PROFILE_SELECT_BASE = 'id, full_name, phone, role, created_at';
+
 @Injectable({
   providedIn: 'root',
 })
@@ -27,6 +31,12 @@ export class AuthService {
   private readonly readyPromise = new Promise<void>((resolve) => {
     this.readyResolve = resolve;
   });
+
+  /** Prevents duplicate profile fetches from getSession + onAuthStateChange. */
+  private profileInflight: Promise<Profile | null> | null = null;
+  private profileInflightUserId: string | null = null;
+  private appliedAccessToken: string | null = null;
+  private authListenerReady = false;
 
   readonly session = this.sessionSignal.asReadonly();
   readonly user = this.userSignal.asReadonly();
@@ -50,21 +60,49 @@ export class AuthService {
     await this.applySession(data.session);
 
     this.supabase.client.auth.onAuthStateChange((_event, session) => {
+      // Ignore the echo of the session we already applied during bootstrap.
+      if (!this.authListenerReady) {
+        return;
+      }
       void this.applySession(session);
     });
 
+    this.authListenerReady = true;
     this.readySignal.set(true);
     this.readyResolve();
   }
 
   private async applySession(session: Session | null): Promise<void> {
+    const nextToken = session?.access_token ?? null;
+    const nextUserId = session?.user?.id ?? null;
+
     this.sessionSignal.set(session);
     this.userSignal.set(session?.user ?? null);
 
-    if (session?.user) {
-      await this.loadProfile(session.user.id);
-    } else {
+    if (!session?.user || !nextUserId) {
+      this.appliedAccessToken = null;
       this.profileSignal.set(null);
+      this.profileInflight = null;
+      this.profileInflightUserId = null;
+      return;
+    }
+
+    // Profile already loaded for this user (incl. token refresh) → skip refetch.
+    if (nextUserId && this.profileSignal()?.id === nextUserId) {
+      this.appliedAccessToken = nextToken;
+      return;
+    }
+
+    // In-flight load for same user (getSession / auth echo) → await it, don't start another.
+    if (this.profileInflight && this.profileInflightUserId === nextUserId) {
+      await this.profileInflight;
+      this.appliedAccessToken = nextToken;
+      return;
+    }
+
+    const profile = await this.loadProfile(nextUserId);
+    if (profile) {
+      this.appliedAccessToken = nextToken;
     }
   }
 
@@ -82,14 +120,22 @@ export class AuthService {
     };
   }
 
-  async loadProfile(userId: string): Promise<Profile | null> {
-    const fullSelect =
-      'id, full_name, phone, role, default_city, default_district, default_address, created_at';
-    const baseSelect = 'id, full_name, phone, role, created_at';
+  private isTransientNetworkError(message: string | undefined): boolean {
+    if (!message) {
+      return false;
+    }
+    return /failed to fetch|networkerror|network request failed|load failed|connection|abort|econnreset|econnrefused|etimedout/i.test(
+      message,
+    );
+  }
 
+  private async fetchProfileOnce(userId: string): Promise<{
+    data: ProfileRow | null;
+    errorMessage: string | null;
+  }> {
     let { data, error } = await this.supabase.client
       .from('profiles')
-      .select(fullSelect)
+      .select(PROFILE_SELECT_FULL)
       .eq('id', userId)
       .maybeSingle();
 
@@ -97,26 +143,74 @@ export class AuthService {
     if (error && /default_city|default_district|default_address/i.test(error.message)) {
       ({ data, error } = await this.supabase.client
         .from('profiles')
-        .select(baseSelect)
+        .select(PROFILE_SELECT_BASE)
         .eq('id', userId)
         .maybeSingle());
     }
 
-    if (error) {
-      console.error('Failed to load profile', error.message);
-      this.profileSignal.set(null);
-      return null;
+    return {
+      data: (data as ProfileRow | null) ?? null,
+      errorMessage: error?.message ?? null,
+    };
+  }
+
+  async loadProfile(userId: string): Promise<Profile | null> {
+    if (this.profileInflight && this.profileInflightUserId === userId) {
+      return this.profileInflight;
     }
 
-    if (!data) {
-      this.profileSignal.set(null);
-      return null;
+    this.profileInflightUserId = userId;
+    this.profileInflight = this.loadProfileInternal(userId).finally(() => {
+      if (this.profileInflightUserId === userId) {
+        this.profileInflight = null;
+        this.profileInflightUserId = null;
+      }
+    });
+
+    return this.profileInflight;
+  }
+
+  private async loadProfileInternal(userId: string): Promise<Profile | null> {
+    const maxAttempts = 3;
+    let lastError: string | null = null;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const { data, errorMessage } = await this.fetchProfileOnce(userId);
+
+        if (!errorMessage) {
+          if (!data) {
+            this.profileSignal.set(null);
+            return null;
+          }
+
+          const email = this.userSignal()?.email ?? '';
+          const profile = this.toProfile(data, email);
+          this.profileSignal.set(profile);
+          return profile;
+        }
+
+        lastError = errorMessage;
+        if (!this.isTransientNetworkError(errorMessage) || attempt === maxAttempts) {
+          break;
+        }
+      } catch (err) {
+        lastError = err instanceof Error ? err.message : String(err);
+        if (!this.isTransientNetworkError(lastError) || attempt === maxAttempts) {
+          break;
+        }
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 250 * attempt));
     }
 
-    const email = this.userSignal()?.email ?? '';
-    const profile = this.toProfile(data as ProfileRow, email);
-    this.profileSignal.set(profile);
-    return profile;
+    // Keep existing profile if a refresh failed transiently; otherwise clear.
+    if (!this.profileSignal() || this.profileSignal()?.id !== userId) {
+      this.profileSignal.set(null);
+    }
+
+    void lastError;
+    return this.profileSignal()?.id === userId ? this.profileSignal() : null;
   }
 
   async register(payload: RegisterPayload): Promise<{ error: string | null }> {
@@ -189,6 +283,9 @@ export class AuthService {
 
   async logout(): Promise<{ error: string | null }> {
     const { error } = await this.supabase.client.auth.signOut();
+    this.appliedAccessToken = null;
+    this.profileInflight = null;
+    this.profileInflightUserId = null;
     this.profileSignal.set(null);
     this.userSignal.set(null);
     this.sessionSignal.set(null);
@@ -197,6 +294,9 @@ export class AuthService {
 
   setProfile(profile: Profile | null): void {
     this.profileSignal.set(profile);
+    if (profile) {
+      this.appliedAccessToken = this.sessionSignal()?.access_token ?? this.appliedAccessToken;
+    }
   }
 
   homePathForRole(role?: UserRole | null): string {

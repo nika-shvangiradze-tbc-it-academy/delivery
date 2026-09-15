@@ -120,7 +120,7 @@
               <div class="courier-card__meta">
                 <span class="courier-card__qty">
                   <span aria-hidden="true">📦</span>
-                  {{ order.parcel_count }}
+                  რაოდენობა: {{ order.parcel_count }} ერთეული
                 </span>
                 <strong class="courier-card__amount">
                   {{ formatGel(order.amount_to_collect) }} ₾
@@ -158,6 +158,10 @@
               </header>
 
               <dl class="courier-card__info">
+                <div>
+                  <dt>გადასაცემი ერთეულების რაოდენობა</dt>
+                  <dd>{{ order.parcel_count }}</dd>
+                </div>
                 <div>
                   <dt>მიწოდების თარიღი</dt>
                   <dd>

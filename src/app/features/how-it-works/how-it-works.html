@@ -1,0 +1,185 @@
+<section
+  id="how-it-works"
+  class="hiw"
+  #sectionRoot
+  aria-labelledby="how-it-works-heading"
+>
+  <div class="hiw__bg" aria-hidden="true">
+    <svg class="hiw__decor" viewBox="0 0 1200 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M40 280 C180 210, 320 330, 480 250 C640 170, 780 300, 960 220 C1080 170, 1140 200, 1180 240"
+        stroke="currentColor"
+        stroke-width="1.25"
+        stroke-dasharray="6 14"
+        stroke-linecap="round"
+      />
+      <circle cx="180" cy="232" r="3.5" fill="currentColor" />
+      <circle cx="480" cy="250" r="3" fill="currentColor" />
+      <circle cx="780" cy="268" r="3.5" fill="currentColor" />
+      <circle cx="1040" cy="208" r="3" fill="currentColor" />
+      <path
+        d="M980 90 l18 -10 18 10 v22 l-18 10 -18 -10 z"
+        stroke="currentColor"
+        stroke-width="1.2"
+        fill="none"
+        opacity="0.7"
+      />
+    </svg>
+  </div>
+
+  <div class="hiw__inner">
+    <header class="hiw__header">
+      <p class="hiw__eyebrow">{{ 'howItWorks.eyebrow' | t }}</p>
+      <h2 id="how-it-works-heading" class="hiw__title">{{ 'howItWorks.title' | t }}</h2>
+      <p class="hiw__subtitle">{{ 'howItWorks.subtitle' | t }}</p>
+    </header>
+
+    <div class="hiw__process">
+      <div class="hiw__route hiw__route--desktop" aria-hidden="true">
+        <div class="hiw__route-line">
+          <span class="hiw__route-base"></span>
+          <span class="hiw__route-progress"></span>
+        </div>
+        @for (step of steps; track step.number; let i = $index) {
+          <span class="hiw__node" [attr.data-step]="i + 1">
+            <span class="hiw__node-ring"></span>
+            <span class="hiw__node-dot"></span>
+          </span>
+        }
+        <span class="hiw__parcel hiw__parcel--h">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="M3.5 8.2 12 3.5l8.5 4.7v9.1L12 22.1 3.5 17.3V8.2Z"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linejoin="round"
+            />
+            <path d="M3.5 8.2 12 13l8.5-4.8M12 13v9.1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+          </svg>
+        </span>
+      </div>
+
+      <div class="hiw__timeline" #timelineRoot>
+        <div class="hiw__route hiw__route--mobile" #mobileRoute aria-hidden="true">
+          <span class="hiw__route-base hiw__route-base--v"></span>
+          <span class="hiw__route-progress hiw__route-progress--v"></span>
+          <span class="hiw__parcel hiw__parcel--v">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M3.5 8.2 12 3.5l8.5 4.7v9.1L12 22.1 3.5 17.3V8.2Z"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linejoin="round"
+              />
+              <path d="M3.5 8.2 12 13l8.5-4.8M12 13v9.1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+            </svg>
+          </span>
+        </div>
+
+        <ol class="hiw__steps">
+          @for (step of steps; track step.number; let i = $index) {
+            <li
+              class="hiw__step"
+              [attr.data-step]="i + 1"
+              (pointerenter)="onCardEnter(i + 1)"
+              (pointerleave)="onCardLeave()"
+              (focusin)="onCardEnter(i + 1)"
+              (focusout)="onCardLeave()"
+            >
+              <div class="hiw__step-rail" aria-hidden="true">
+                <span class="hiw__step-bullet">
+                  <span class="hiw__step-bullet-ring"></span>
+                  <span class="hiw__step-bullet-dot"></span>
+                </span>
+              </div>
+
+              <article class="hiw__card" tabindex="0">
+                <div class="hiw__card-top">
+                  <span class="hiw__number">{{ step.number }}</span>
+                  <span class="hiw__icon" aria-hidden="true">
+                    @switch (step.icon) {
+                      @case ('order') {
+                        <svg viewBox="0 0 24 24" fill="none">
+                          <path
+                            d="M8 3.5h8a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2Z"
+                            stroke="currentColor"
+                            stroke-width="1.65"
+                          />
+                          <path d="M9 8h6M9 12h6M9 16h3.5" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" />
+                          <circle cx="17.5" cy="17.5" r="3.2" fill="#fffaf4" stroke="currentColor" stroke-width="1.5" />
+                          <path d="M17.5 16v3M16 17.5h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                        </svg>
+                      }
+                      @case ('pickup') {
+                        <svg viewBox="0 0 24 24" fill="none">
+                          <path
+                            d="M4.5 10.5 12 6l7.5 4.5v7L12 22l-7.5-4.5v-7Z"
+                            stroke="currentColor"
+                            stroke-width="1.65"
+                            stroke-linejoin="round"
+                          />
+                          <path d="M4.5 10.5 12 15l7.5-4.5M12 15v7" stroke="currentColor" stroke-width="1.65" />
+                          <path d="M12 3.2v3.2" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" />
+                          <path d="M9.8 5.2 12 7.2l2.2-2" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                      }
+                      @case ('transit') {
+                        <svg viewBox="0 0 24 24" fill="none">
+                          <path
+                            d="M3 16.5h10.5V8.2H3v8.3Z"
+                            stroke="currentColor"
+                            stroke-width="1.65"
+                            stroke-linejoin="round"
+                          />
+                          <path
+                            d="M13.5 11.2h4.1l2.9 3.1v2.2H13.5v-5.3Z"
+                            stroke="currentColor"
+                            stroke-width="1.65"
+                            stroke-linejoin="round"
+                          />
+                          <circle cx="7" cy="17.8" r="1.55" stroke="currentColor" stroke-width="1.5" />
+                          <circle cx="16.8" cy="17.8" r="1.55" stroke="currentColor" stroke-width="1.5" />
+                          <path d="M3.5 6.2h5.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                          <path d="M4.8 4.6 7.2 6.2 4.8 7.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                      }
+                      @case ('delivered') {
+                        <svg viewBox="0 0 24 24" fill="none">
+                          <path
+                            d="M4.5 10.5 12 6l7.5 4.5v7L12 22l-7.5-4.5v-7Z"
+                            stroke="currentColor"
+                            stroke-width="1.65"
+                            stroke-linejoin="round"
+                          />
+                          <path d="M4.5 10.5 12 15l7.5-4.5M12 15v7" stroke="currentColor" stroke-width="1.65" />
+                          <path
+                            d="M9.2 12.6 11.1 14.4 15.1 10.2"
+                            stroke="currentColor"
+                            stroke-width="1.7"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          />
+                        </svg>
+                      }
+                    }
+                  </span>
+                </div>
+                <h3 class="hiw__card-title">{{ step.titleKey | t }}</h3>
+                <p class="hiw__card-desc">{{ step.descriptionKey | t }}</p>
+              </article>
+            </li>
+          }
+        </ol>
+      </div>
+    </div>
+
+    <div class="hiw__cta">
+      <button type="button" class="hiw__cta-btn" (click)="onCreateOrder()">
+        <span>{{ 'howItWorks.cta' | t }}</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M5 12h14M13 6l6 6-6 6" />
+        </svg>
+      </button>
+    </div>
+  </div>
+</section>

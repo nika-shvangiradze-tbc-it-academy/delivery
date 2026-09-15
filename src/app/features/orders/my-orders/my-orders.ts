@@ -237,7 +237,7 @@ export class MyOrders implements OnInit {
       return 'ასაღები თანხა უნდა იყოს 0 ან მეტი.';
     }
     if (c.parcel_count.invalid) {
-      return 'ამანათების რაოდენობა უნდა იყოს 1 ან მეტი.';
+      return 'გადასაცემი ერთეულების რაოდენობა უნდა იყოს 1 ან მეტი.';
     }
     return 'გთხოვთ შეავსოთ ყველა სავალდებულო ველი.';
   }

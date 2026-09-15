@@ -10,10 +10,13 @@
   }
 
   @defer (on viewport; prefetch on idle) {
-    <app-items></app-items>
+    <app-how-it-works></app-how-it-works>
   } @placeholder {
-    <div class="main__defer-slot" aria-hidden="true"></div>
+    <div class="main__defer-slot main__defer-slot--hiw" aria-hidden="true"></div>
   }
+
+
+
 
   @defer (on viewport; prefetch on idle) {
     <app-priorites></app-priorites>
@@ -22,10 +25,11 @@
   }
 
   @defer (on viewport; prefetch on idle) {
-    <app-about></app-about>
+    <app-items></app-items>
   } @placeholder {
     <div class="main__defer-slot" aria-hidden="true"></div>
   }
+
 
   @defer (on viewport; prefetch on idle) {
     <app-rate></app-rate>
@@ -34,7 +38,19 @@
   }
 
   @defer (on viewport; prefetch on idle) {
+    <app-delivery-price-calculator></app-delivery-price-calculator>
+  } @placeholder {
+    <div class="main__defer-slot main__defer-slot--calc" aria-hidden="true"></div>
+  }
+
+  @defer (on viewport; prefetch on idle) {
     <app-size></app-size>
+  } @placeholder {
+    <div class="main__defer-slot" aria-hidden="true"></div>
+  }
+
+  @defer (on viewport; prefetch on idle) {
+    <app-about></app-about>
   } @placeholder {
     <div class="main__defer-slot" aria-hidden="true"></div>
   }

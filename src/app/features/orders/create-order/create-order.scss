@@ -1,4 +1,8 @@
 .order-form-page {
+  --order-error: #b42318;
+  --order-error-border: rgba(180, 35, 24, 0.45);
+  --order-error-bg: #fff8f7;
+
   min-height: 100vh;
   padding: calc(var(--app-header-h, 60px) + 28px) 20px 60px;
   background: #fff;
@@ -23,7 +27,7 @@
 
   &__error {
     background: #fff1f0;
-    color: #b42318;
+    color: var(--order-error);
     border-radius: 12px;
     padding: 12px 14px;
     margin-bottom: 16px;
@@ -55,6 +59,7 @@
       color: #535353;
       font-size: 14px;
       font-weight: 600;
+      min-width: 0;
     }
 
     input,
@@ -67,12 +72,46 @@
       color: #3f3f3f;
       outline: none;
       background: #fff;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
 
       &:focus {
         border-color: #db7623;
         box-shadow: 0 0 0 3px rgba(219, 118, 35, 0.15);
       }
     }
+  }
+
+  &__field {
+    scroll-margin-top: calc(var(--app-header-h, 60px) + 24px);
+
+    &--invalid {
+      input,
+      select,
+      textarea {
+        border-color: var(--order-error-border);
+        background: var(--order-error-bg);
+
+        &:focus {
+          border-color: var(--order-error);
+          box-shadow: 0 0 0 3px rgba(180, 35, 24, 0.14);
+        }
+      }
+    }
+  }
+
+  &__field-error {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin-top: -2px;
+    font-size: 12.5px;
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--order-error);
+    word-break: break-word;
   }
 
   &__grid {
@@ -83,6 +122,15 @@
 
   &__full {
     grid-column: 1 / -1;
+  }
+
+  &__hint {
+    display: block;
+    margin-top: -2px;
+    font-size: 0.8125rem;
+    font-weight: 400;
+    line-height: 1.45;
+    color: #757575;
   }
 
   &__check {
@@ -120,5 +168,16 @@
 @media (max-width: 720px) {
   .order-form-page__grid {
     grid-template-columns: 1fr;
+  }
+
+  .order-form-page__title {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .order-form-page {
+    padding-left: 12px;
+    padding-right: 12px;
   }
 }

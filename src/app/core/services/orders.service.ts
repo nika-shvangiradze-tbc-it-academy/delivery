@@ -28,8 +28,8 @@ export class OrdersService {
     }
 
     const amount = centsToNumber(toCents(payload.amount_to_collect));
-    if (!(amount > 0)) {
-      return { data: null, error: 'ასაღები თანხა უნდა იყოს 0-ზე მეტი.' };
+    if (!(amount >= 0)) {
+      return { data: null, error: 'ასაღები თანხა უნდა იყოს 0 ან მეტი.' };
     }
 
     const { data, error } = await this.supabase.client
@@ -78,12 +78,12 @@ export class OrdersService {
     }
 
     if (payload.parcel_count < 1) {
-      return { data: null, error: 'ამანათების რაოდენობა უნდა იყოს 1 ან მეტი.' };
+      return { data: null, error: 'გადასაცემი ერთეულების რაოდენობა უნდა იყოს 1 ან მეტი.' };
     }
 
     const amount = centsToNumber(toCents(payload.amount_to_collect));
-    if (!(amount > 0)) {
-      return { data: null, error: 'ასაღები თანხა უნდა იყოს 0-ზე მეტი.' };
+    if (!(amount >= 0)) {
+      return { data: null, error: 'ასაღები თანხა უნდა იყოს 0 ან მეტი.' };
     }
 
     const { data, error } = await this.supabase.client
@@ -141,7 +141,7 @@ export class OrdersService {
     }
 
     if (payload.parcel_count < 1) {
-      return { data: null, error: 'ამანათების რაოდენობა უნდა იყოს 1 ან მეტი.' };
+      return { data: null, error: 'გადასაცემი ერთეულების რაოდენობა უნდა იყოს 1 ან მეტი.' };
     }
 
     const amount = centsToNumber(toCents(payload.amount_to_collect));

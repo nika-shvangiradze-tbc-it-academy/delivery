@@ -1,0 +1,178 @@
+<section id="price-calculator" class="calc" aria-labelledby="calc-title">
+  <div class="calc__bridge" aria-hidden="true"></div>
+
+  <div class="calc__inner">
+    <header class="calc__header">
+      <h3 id="calc-title" class="calc__title">{{ 'calculator.title' | t }}</h3>
+      <p class="calc__subtitle">{{ 'calculator.subtitle' | t }}</p>
+    </header>
+
+    <div class="calc__panel">
+      <div class="calc__route">
+        <div class="calc__field">
+          <label class="calc__label" for="calc-origin">{{ 'calculator.from' | t }}</label>
+          <select
+            id="calc-origin"
+            class="calc__select"
+            [value]="originCity()"
+            (change)="onOriginChange($any($event.target).value)"
+          >
+            <option value="" disabled>{{ 'calculator.cityPlaceholder' | t }}</option>
+            @for (city of cities; track city) {
+              <option [value]="city">{{ city }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="calc__connector" aria-hidden="true">
+          @for (key of [routeAnimKey()]; track key) {
+            <div class="calc__track calc__track--h">
+              <span class="calc__track-line"></span>
+              <span class="calc__track-courier" title="">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path
+                    d="M3 7.5h11.5v8H3z"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    stroke-linejoin="round"
+                  />
+                  <path
+                    d="M14.5 10.5H18l2.5 3v2h-6v-5z"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    stroke-linejoin="round"
+                  />
+                  <circle cx="7" cy="16.5" r="1.6" fill="currentColor" />
+                  <circle cx="17.5" cy="16.5" r="1.6" fill="currentColor" />
+                </svg>
+              </span>
+            
+            </div>
+            <div class="calc__track calc__track--v">
+              <span class="calc__track-line"></span>
+              <span class="calc__track-courier">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path
+                    d="M3 7.5h11.5v8H3z"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    stroke-linejoin="round"
+                  />
+                  <path
+                    d="M14.5 10.5H18l2.5 3v2h-6v-5z"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    stroke-linejoin="round"
+                  />
+                  <circle cx="7" cy="16.5" r="1.6" fill="currentColor" />
+                  <circle cx="17.5" cy="16.5" r="1.6" fill="currentColor" />
+                </svg>
+              </span>
+              <span class="calc__track-arrow">↓</span>
+            </div>
+          }
+        </div>
+
+        <div class="calc__field">
+          <label class="calc__label" for="calc-destination">{{ 'calculator.to' | t }}</label>
+          <select
+            id="calc-destination"
+            class="calc__select"
+            [value]="destinationCity()"
+            (change)="onDestinationChange($any($event.target).value)"
+          >
+            <option value="" disabled>{{ 'calculator.cityPlaceholder' | t }}</option>
+            @for (city of cities; track city) {
+              <option [value]="city">{{ city }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <div class="calc__parcels">
+        <span class="calc__label" id="calc-parcels-label">{{ 'calculator.parcelCount' | t }}</span>
+        <div class="calc__stepper" role="group" aria-labelledby="calc-parcels-label">
+          <button
+            type="button"
+            class="calc__stepper-btn"
+            (click)="decreaseParcels()"
+            [disabled]="parcelCount() <= 1"
+            [attr.aria-label]="'calculator.decreaseParcels' | t"
+          >
+            −
+          </button>
+          <span class="calc__stepper-value" aria-live="polite">{{ parcelCount() }}</span>
+          <button
+            type="button"
+            class="calc__stepper-btn"
+            (click)="increaseParcels()"
+            [attr.aria-label]="'calculator.increaseParcels' | t"
+          >
+            +
+          </button>
+        </div>
+      </div>
+
+      <div class="calc__result" aria-live="polite">
+        @switch (quote().status) {
+          @case ('incomplete') {
+            <div class="calc__empty">
+              <span class="calc__empty-pulse" aria-hidden="true"></span>
+              <p>{{ 'calculator.emptyState' | t }}</p>
+            </div>
+          }
+          @case ('unsupported') {
+            <div class="calc__unsupported">
+              <p class="calc__unsupported-route">
+                <span>{{ quote().origin }}</span>
+                <span class="calc__unsupported-arrow" aria-hidden="true">→</span>
+                <span>{{ quote().destination }}</span>
+              </p>
+              <p>{{ 'calculator.unsupported' | t }}</p>
+            </div>
+          }
+          @case ('ok') {
+            <div class="calc__quote">
+              <div class="calc__quote-route">
+                <span>{{ quote().origin }}</span>
+                <span class="calc__quote-arrow" aria-hidden="true">↓</span>
+                <span>{{ quote().destination }}</span>
+              </div>
+              <p class="calc__quote-label">{{ 'calculator.deliveryCost' | t }}</p>
+              <p class="calc__quote-price">
+                @for (price of [priceDisplay()]; track price) {
+                  <span class="calc__quote-amount">{{ price }}</span>
+                }
+                <span class="calc__quote-currency">₾</span>
+              </p>
+              <p class="calc__quote-parcels">
+                {{ quote().parcelCount }}
+                {{ quote().parcelCount === 1 ? ('calculator.parcelOne' | t) : ('calculator.parcelMany' | t) }}
+              </p>
+              <ul class="calc__meta">
+                <li>
+                  <span aria-hidden="true">📦</span>
+                  <span>
+                    {{ quote().parcelCount }}
+                    {{ quote().parcelCount === 1 ? ('calculator.parcelOne' | t) : ('calculator.parcelMany' | t) }}
+                  </span>
+                </li>
+                <li>
+                  <span aria-hidden="true">📍</span>
+                  <span>{{ quote().origin }} → {{ quote().destination }}</span>
+                </li>
+                <li>
+                  <span aria-hidden="true">💰</span>
+                  <span>{{ priceDisplay() }} ₾</span>
+                </li>
+              </ul>
+              <button type="button" class="calc__cta" (click)="onCreateOrder()">
+                {{ 'calculator.createOrder' | t }}
+              </button>
+            </div>
+          }
+        }
+      </div>
+    </div>
+  </div>
+</section>

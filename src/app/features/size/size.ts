@@ -1,14 +1,22 @@
 import { ChangeDetectionStrategy, Component, HostListener, signal } from '@angular/core';
 import { TranslatePipe } from '../../core/pipes/t.pipe';
+import {
+  WEIGHT_TARIFF_BANDS,
+  formatWeightPrice,
+} from '../../core/constants/weight-tariffs';
+import { WeightPriceCalculator } from '../weight-price-calculator/weight-price-calculator';
 
 @Component({
   selector: 'app-size',
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, WeightPriceCalculator],
   templateUrl: './size.html',
   styleUrl: './size.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Size {
+  readonly weightTariffs = WEIGHT_TARIFF_BANDS;
+  readonly formatPrice = formatWeightPrice;
+
   readonly contactModalOpen = signal(false);
 
   readonly phoneDisplay = '551 099 081';

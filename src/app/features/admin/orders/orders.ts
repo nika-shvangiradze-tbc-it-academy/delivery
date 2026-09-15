@@ -37,6 +37,7 @@ import {
 } from '../../../core/models/order.model';
 import { CourierOption } from '../../../core/models/profile.model';
 import { AdminService } from '../../../core/services/admin.service';
+import { I18nService } from '../../../core/services/i18n.service';
 import {
   OrderRealtimeChange,
   OrderRealtimeService,
@@ -64,9 +65,9 @@ import {
 } from '../../../core/constants/cities';
 import { DeliveryHeader } from '../../../layout/delivery-header/delivery-header';
 
-function amountPositiveValidator(control: AbstractControl): ValidationErrors | null {
+function amountNonNegativeValidator(control: AbstractControl): ValidationErrors | null {
   const amount = centsToNumber(toCents(control.value));
-  return amount > 0 ? null : { amountInvalid: true };
+  return amount >= 0 ? null : { amountInvalid: true };
 }
 
 function readStoredPageSize(): AdminOrderPageSize {
@@ -121,6 +122,7 @@ export class AdminOrders implements OnInit {
   private readonly adminService = inject(AdminService);
   private readonly ordersService = inject(OrdersService);
   private readonly orderRealtime = inject(OrderRealtimeService);
+  private readonly i18n = inject(I18nService);
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -210,7 +212,7 @@ export class AdminOrders implements OnInit {
     delivery_address: ['', Validators.required],
     parcel_count: [1, [Validators.required, Validators.min(1)]],
     delivery_date: ['', Validators.required],
-    amount_to_collect: ['', [Validators.required, amountPositiveValidator]],
+    amount_to_collect: ['', [Validators.required, amountNonNegativeValidator]],
     notes: [''],
     is_fragile: [false],
   });
@@ -447,6 +449,42 @@ export class AdminOrders implements OnInit {
     this.auditEntries.set([]);
     this.auditError.set(null);
     this.auditLoading.set(false);
+  }
+
+  async deleteOrder(order: Order): Promise<void> {
+    const confirmed = window.confirm(
+      `${this.i18n.t('admin.deleteOrderConfirm')}\n#${order.id}`,
+    );
+    if (!confirmed) return;
+
+    this.updating.set(true);
+    this.errorMessage.set(null);
+    this.successMessage.set(null);
+
+    const { error } = await this.adminService.deleteOrder(order.id);
+    this.updating.set(false);
+
+    if (error) {
+      this.errorMessage.set(error || this.i18n.t('admin.deleteOrderFailed'));
+      return;
+    }
+
+    this.orders.update((list) => list.filter((item) => item.id !== order.id));
+    this.total.update((n) => Math.max(0, n - 1));
+    this.selectedIds.update((ids) => {
+      if (!ids.has(order.id)) return ids;
+      const next = new Set(ids);
+      next.delete(order.id);
+      return next;
+    });
+    this.closeModalsForOrder(order.id);
+    this.successMessage.set(`${this.i18n.t('admin.deleteOrderSuccess')} #${order.id}`);
+
+    if (this.statusGroup() === 'delivered') {
+      void this.loadDeliveredAnalytics(this.currentFilters());
+    }
+
+    await this.softReloadCurrentPage();
   }
 
   async saveEdit(): Promise<void> {
@@ -703,6 +741,9 @@ export class AdminOrders implements OnInit {
     }
     if (this.editingOrder()?.id === orderId) {
       this.editingOrder.set(null);
+    }
+    if (this.auditOrder()?.id === orderId) {
+      this.closeAuditHistory();
     }
   }
 

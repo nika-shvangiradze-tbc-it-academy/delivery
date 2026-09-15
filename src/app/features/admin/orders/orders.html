@@ -99,7 +99,9 @@
           <article class="admin-orders__summary-card">
             <p class="admin-orders__summary-label">ჩაბარებული შეკვეთები</p>
             <p class="admin-orders__summary-value">{{ analytics().summary.order_count }}</p>
-            <p class="admin-orders__summary-sub">ამანათები: {{ analytics().summary.parcel_count }}</p>
+            <p class="admin-orders__summary-sub">
+              გადასაცემი ერთეულები: {{ analytics().summary.parcel_count }}
+            </p>
           </article>
           <article class="admin-orders__summary-card">
             <p class="admin-orders__summary-label">სულ თანხა</p>
@@ -252,6 +254,14 @@
                   <button type="button" class="admin-orders__link-btn" (click)="openDetails(order)">
                     {{ 'admin.viewDetails' | t }}
                   </button>
+                  <button
+                    type="button"
+                    class="admin-orders__link-btn admin-orders__link-btn--danger"
+                    (click)="deleteOrder(order)"
+                    [disabled]="updating()"
+                  >
+                    {{ 'admin.deleteOrder' | t }}
+                  </button>
                 </td>
               </tr>
             }
@@ -330,6 +340,10 @@
         <div><dt>{{ 'orders.recipientPhone' | t }}</dt><dd>{{ order.recipient_phone || '—' }}</dd></div>
         <div><dt>{{ 'orders.deliveryCity' | t }}</dt><dd>{{ order.delivery_city || '—' }}</dd></div>
         <div><dt>{{ 'orders.deliveryAddress' | t }}</dt><dd>{{ order.delivery_address || '—' }}</dd></div>
+        <div>
+          <dt>გადასაცემი ერთეულების რაოდენობა</dt>
+          <dd>{{ order.parcel_count }}</dd>
+        </div>
         @if (order.is_fragile) {
           <div>
             <dt>ამანათი</dt>
@@ -469,7 +483,10 @@
           <label><span>მიწოდების უბანი</span><input formControlName="delivery_district" /></label>
           <label class="full"><span>მიწოდების მისამართი</span><input formControlName="delivery_address" /></label>
 
-          <label><span>ამანათები</span><input type="number" min="1" formControlName="parcel_count" /></label>
+          <label>
+            <span>გადასაცემი ერთეულების რაოდენობა</span>
+            <input type="number" min="1" formControlName="parcel_count" />
+          </label>
           <label>
             <span>მიწოდების თარიღი</span>
             <input type="date" [attr.min]="minDeliveryDate" formControlName="delivery_date" />
