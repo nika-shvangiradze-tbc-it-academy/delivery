@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, isDevMode } from '@angular/core';
 import {
   ADMIN_ACTIVE_STATUS_FILTER,
   ADMIN_ACTIVE_STATUSES,
@@ -648,6 +648,9 @@ export class AdminService {
     context: string,
     error: { message?: string; details?: string; hint?: string; code?: string },
   ): void {
+    if (!isDevMode()) {
+      return;
+    }
     console.error(`[AdminService.${context}]`, {
       message: error.message,
       details: error.details,

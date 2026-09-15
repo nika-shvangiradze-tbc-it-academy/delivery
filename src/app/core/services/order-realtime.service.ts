@@ -268,12 +268,9 @@ export class OrderRealtimeService {
       } else if (status === 'CLOSED') {
         this.log('CLOSED', { channel: channelName, role });
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-        console.error('[OrderRealtime] channel error', {
-          status,
-          err,
-          channel: channelName,
-          role,
-        });
+        // Transient Realtime failures are expected; reconnect handles recovery.
+        // Dev-only log — do not spam production console on network blips.
+        this.log('channel error', { status, err, channel: channelName, role });
         this.scheduleReconnect(role, userId, generation);
       }
     });

@@ -20,6 +20,8 @@ export class I18nService {
       fallbackLng: 'ka',
       resources: translationResources,
       interpolation: { escapeValue: false },
+      // i18next v25 prints a Locize promo via console.info unless disabled.
+      showSupportNotice: false,
     });
 
     this.initialized = true;

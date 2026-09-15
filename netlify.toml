@@ -1,8 +1,16 @@
 # Netlify: SPA + security headers (compatible with Supabase Auth / Realtime)
 # Static files (robots.txt, sitemap.xml, assets) are served before SPA rewrite.
+#
+# Production only — never `ng serve`, never development configuration.
+# Publish MUST be the application-builder browser output (not dist/delivery).
 [build]
-  publish = "dist/delivery/browser"
   command = "npm run build"
+  publish = "dist/delivery/browser"
+
+# Do NOT set NODE_ENV=production here: npm may skip devDependencies
+# (@angular/cli, @angular/build) and break the build.
+[build.environment]
+  NODE_VERSION = "22"
 
 [[redirects]]
   from = "/*"

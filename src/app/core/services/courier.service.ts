@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, isDevMode } from '@angular/core';
 import {
   COURIER_ACTIVE_STATUS_FILTER,
   COURIER_ACTIVE_STATUSES,
@@ -237,29 +237,25 @@ export class CourierService {
       } = await this.supabase.client.auth.getSession();
 
       if (sessionError) {
-        console.error('Courier session check failed:', sessionError);
+        this.logDevError('Courier session check failed', sessionError);
         return { error: sessionError.message || 'Session check failed' };
       }
 
       if (!session?.user) {
-        console.warn('Courier action aborted: no active session');
+        // Expected auth expiry — UI shows message / redirects to login.
         return { error: 'სესია არ არის აქტიური. გთხოვთ თავიდან შეხვიდეთ.' };
       }
 
       const userId = session.user.id;
 
       if (assignedCourierId && assignedCourierId !== userId) {
-        console.warn('Courier action aborted: order not assigned to current user', {
-          orderId,
-          assignedCourierId,
-          userId,
-        });
+        // Expected authorization rejection — caller surfaces UI feedback.
         return { error: 'ამ შეკვეთის შეცვლის უფლება არ გაქვთ.' };
       }
 
       return { error: null };
     } catch (err) {
-      console.error('Courier session check unexpected error:', err);
+      this.logDevError('Courier session check unexpected error', err);
       const message = err instanceof Error ? err.message : 'Unexpected session error';
       return { error: message };
     }
@@ -273,7 +269,7 @@ export class CourierService {
     const normalized = normalizeOrder(row as Order);
 
     if (!normalized) {
-      console.error(`${rpcName} returned empty data`, { data });
+      this.logDevError(`${rpcName} returned empty data`, data);
       return {
         data: null,
         error: 'შეკვეთის განახლება ვერ მოხერხდა. სცადეთ თავიდან.',
@@ -314,12 +310,23 @@ export class CourierService {
     rpcName: string,
     error: { message?: string; details?: string; hint?: string; code?: string },
   ): void {
-    console.error(`${rpcName} failed:`, {
+    this.logDevError(`${rpcName} failed`, {
       message: error.message,
       details: error.details,
       hint: error.hint,
       code: error.code,
     });
+  }
+
+  private logDevError(context: string, details?: unknown): void {
+    if (!isDevMode()) {
+      return;
+    }
+    if (details !== undefined) {
+      console.error(`[CourierService] ${context}:`, details);
+    } else {
+      console.error(`[CourierService] ${context}`);
+    }
   }
 
   private async getMyOrdersByStatuses(

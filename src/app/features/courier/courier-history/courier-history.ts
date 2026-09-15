@@ -188,7 +188,6 @@ export class CourierHistory implements OnInit {
       );
 
       if (error || !data) {
-        console.error('CourierHistory.saveCorrection failed:', error);
         this.errorMessage.set(error ?? 'სტატუსის შეცვლა ვერ მოხერხდა');
         if (error?.includes('სესია არ არის აქტიური')) {
           await this.router.navigateByUrl('/login');
@@ -208,7 +207,6 @@ export class CourierHistory implements OnInit {
         this.successMessage.set('შეკვეთა დაბრუნდა აქტიურებში');
       }
     } catch (err) {
-      console.error(err);
       const message = err instanceof Error ? err.message : 'Unknown error';
       this.errorMessage.set(`სტატუსის შეცვლა ვერ მოხერხდა: ${message}`);
     } finally {

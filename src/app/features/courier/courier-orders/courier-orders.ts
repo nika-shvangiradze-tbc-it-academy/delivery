@@ -195,7 +195,6 @@ export class CourierOrders implements OnInit {
       );
 
       if (error || !data) {
-        console.error('CourierOrders.markPickedUp failed:', error);
         this.errorMessage.set(error ?? 'აღება ვერ მოხერხდა');
         if (error?.includes('სესია არ არის აქტიური')) {
           await this.router.navigateByUrl('/login');
@@ -208,7 +207,6 @@ export class CourierOrders implements OnInit {
       );
       this.successMessage.set('შეკვეთა აღებულია');
     } catch (err) {
-      console.error(err);
       const message = err instanceof Error ? err.message : 'Unknown error';
       this.errorMessage.set(`აღება ვერ მოხერხდა: ${message}`);
     } finally {
@@ -244,7 +242,6 @@ export class CourierOrders implements OnInit {
       );
 
       if (error || !data) {
-        console.error('CourierOrders.markDelivered failed:', error);
         this.errorMessage.set(error ?? 'ჩაბარება ვერ მოხერხდა');
         if (error?.includes('სესია არ არის აქტიური')) {
           await this.router.navigateByUrl('/login');
@@ -256,7 +253,6 @@ export class CourierOrders implements OnInit {
       this.successMessage.set('შეკვეთა ჩაბარდა');
       await this.refreshSummary();
     } catch (err) {
-      console.error(err);
       const message = err instanceof Error ? err.message : 'Unknown error';
       this.errorMessage.set(`ჩაბარება ვერ მოხერხდა: ${message}`);
     } finally {
@@ -314,7 +310,6 @@ export class CourierOrders implements OnInit {
       );
 
       if (error || !data) {
-        console.error('CourierOrders.confirmCancel failed:', error);
         this.errorMessage.set(error ?? 'გაუქმება ვერ მოხერხდა');
         if (error?.includes('სესია არ არის აქტიური')) {
           await this.router.navigateByUrl('/login');
@@ -329,7 +324,6 @@ export class CourierOrders implements OnInit {
       this.successMessage.set('შეკვეთა გაუქმდა');
       await this.refreshSummary();
     } catch (err) {
-      console.error(err);
       const message = err instanceof Error ? err.message : 'Unknown error';
       this.errorMessage.set(`გაუქმება ვერ მოხერხდა: ${message}`);
     } finally {

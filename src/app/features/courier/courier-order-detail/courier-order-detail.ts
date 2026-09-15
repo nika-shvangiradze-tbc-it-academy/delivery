@@ -131,7 +131,6 @@ export class CourierOrderDetail implements OnInit {
       );
 
       if (error || !data) {
-        console.error('CourierOrderDetail.markPickedUp failed:', error);
         this.errorMessage.set(error ?? 'აღება ვერ მოხერხდა');
         if (error?.includes('სესია არ არის აქტიური')) {
           await this.router.navigateByUrl('/login');
@@ -142,7 +141,6 @@ export class CourierOrderDetail implements OnInit {
       this.order.set({ ...current, ...data });
       this.successMessage.set('შეკვეთა აღებულია');
     } catch (err) {
-      console.error(err);
       const message = err instanceof Error ? err.message : 'Unknown error';
       this.errorMessage.set(`აღება ვერ მოხერხდა: ${message}`);
     } finally {
@@ -173,7 +171,6 @@ export class CourierOrderDetail implements OnInit {
       );
 
       if (error || !data) {
-        console.error('CourierOrderDetail.markDelivered failed:', error);
         this.errorMessage.set(error ?? 'ჩაბარება ვერ მოხერხდა');
         if (error?.includes('სესია არ არის აქტიური')) {
           await this.router.navigateByUrl('/login');
@@ -185,7 +182,6 @@ export class CourierOrderDetail implements OnInit {
       this.successMessage.set('შეკვეთა ჩაბარდა');
       await this.router.navigateByUrl('/courier/history');
     } catch (err) {
-      console.error(err);
       const message = err instanceof Error ? err.message : 'Unknown error';
       this.errorMessage.set(`ჩაბარება ვერ მოხერხდა: ${message}`);
     } finally {
@@ -245,7 +241,6 @@ export class CourierOrderDetail implements OnInit {
       );
 
       if (error || !data) {
-        console.error('CourierOrderDetail.confirmCancel failed:', error);
         this.errorMessage.set(error ?? 'გაუქმება ვერ მოხერხდა');
         if (error?.includes('სესია არ არის აქტიური')) {
           await this.router.navigateByUrl('/login');
@@ -259,7 +254,6 @@ export class CourierOrderDetail implements OnInit {
       this.successMessage.set('შეკვეთა გაუქმდა');
       await this.router.navigateByUrl('/courier/history');
     } catch (err) {
-      console.error(err);
       const message = err instanceof Error ? err.message : 'Unknown error';
       this.errorMessage.set(`გაუქმება ვერ მოხერხდა: ${message}`);
     } finally {
