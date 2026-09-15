@@ -1,9 +1,10 @@
-import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, Signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnDestroy, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { ImageLoaderService } from './core/services/image-loader.service';
 import { I18nService } from './core/services/i18n.service';
 import { OrderRealtimeService } from './core/services/order-realtime.service';
 import { PageLoaderService } from './core/services/page-loader.service';
+import { SeoService } from './core/services/seo.service';
 
 @Component({
   selector: 'app-root',
@@ -13,20 +14,18 @@ import { PageLoaderService } from './core/services/page-loader.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class App implements OnInit, OnDestroy {
-  readonly isPageLoading: Signal<boolean>;
-
   constructor(
     private readonly pageLoaderService: PageLoaderService,
     private readonly imageLoaderService: ImageLoaderService,
     private readonly i18nService: I18nService,
+    private readonly seoService: SeoService,
     /** Eagerly construct so auth-driven Realtime channels bind at app start. */
     _orderRealtime: OrderRealtimeService,
-  ) {
-    this.isPageLoading = this.pageLoaderService.isLoading;
-  }
+  ) {}
 
   ngOnInit(): void {
     void this.i18nService.init();
+    this.seoService.init();
     this.pageLoaderService.init();
     this.imageLoaderService.init();
   }

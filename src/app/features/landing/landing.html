@@ -61,10 +61,24 @@
             <div class="hero-viz__scene" #heroScene>
                 <div class="hero-viz__live">
                 <picture>
-                    <source srcset="assets/main/georgia-logistics.webp" type="image/webp" />
+                    <source
+                        type="image/webp"
+                        srcset="
+                          assets/main/georgia-logistics-640.webp 640w,
+                          assets/main/georgia-logistics-960.webp 960w,
+                          assets/main/georgia-logistics-1400.webp 1400w
+                        "
+                        sizes="(max-width: 640px) 100vw, (max-width: 900px) min(640px, 92vw), min(980px, 58vw)"
+                    />
                     <img
                         class="hero-viz__img"
-                        src="assets/main/georgia-logistics.jpg"
+                        src="assets/main/georgia-logistics-960.jpg"
+                        srcset="
+                          assets/main/georgia-logistics-640.jpg 640w,
+                          assets/main/georgia-logistics-960.jpg 960w,
+                          assets/main/georgia-logistics-1400.jpg 1400w
+                        "
+                        sizes="(max-width: 640px) 100vw, (max-width: 900px) min(640px, 92vw), min(980px, 58vw)"
                         alt=""
                         width="1400"
                         height="744"

@@ -1,13 +1,13 @@
 <section id="cities" class="rate">
     <div class="rate__title">
-        <h3>{{ 'rate.title' | t }}</h3>
+        <h2>{{ 'rate.title' | t }}</h2>
     </div>
     <div class="rate__content">
         <div class="rate__grid">
             @for (card of cards(); track card.from) {
                 <article class="rate__card">
                     <div class="rate__card-body">
-                        <h4 class="rate__card-heading">{{ card.headingKey | t }}</h4>
+                        <h3 class="rate__card-heading">{{ card.headingKey | t }}</h3>
                         <ul class="rate__list">
                             @for (route of card.routes; track route) {
                                 <li>{{ route }}</li>
@@ -21,6 +21,8 @@
                                 [src]="card.imageJpg"
                                 [alt]="card.imageAlt"
                                 class="rate__card-image"
+                                width="480"
+                                height="320"
                                 loading="lazy"
                                 decoding="async"
                             />

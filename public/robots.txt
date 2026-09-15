@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /
+
+# Authenticated / app routes — not marketing landing pages
+Disallow: /admin
+Disallow: /admin/
+Disallow: /courier
+Disallow: /courier/
+Disallow: /my-orders
+Disallow: /profile
+Disallow: /create-order
+Disallow: /login
+Disallow: /register
+Disallow: /orders
+
+Sitemap: https://location-georgia.netlify.app/sitemap.xml

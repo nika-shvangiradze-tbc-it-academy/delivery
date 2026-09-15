@@ -6,7 +6,7 @@ const STORAGE_KEY = 'app-language';
 
 @Injectable({ providedIn: 'root' })
 export class I18nService {
-  readonly currentLanguage = signal<AppLanguage>('en');
+  readonly currentLanguage = signal<AppLanguage>('ka');
 
   private initialized = false;
 
@@ -17,7 +17,7 @@ export class I18nService {
 
     await i18next.init({
       lng: savedLanguage,
-      fallbackLng: 'en',
+      fallbackLng: 'ka',
       resources: translationResources,
       interpolation: { escapeValue: false },
     });
@@ -45,8 +45,8 @@ export class I18nService {
       return storedLanguage;
     }
 
-    const browserLanguage = navigator.language.toLowerCase();
-    return browserLanguage.startsWith('ka') ? 'ka' : 'en';
+    // Georgian is the default production language.
+    return 'ka';
   }
 
   private updateDocumentLanguage(language: AppLanguage): void {

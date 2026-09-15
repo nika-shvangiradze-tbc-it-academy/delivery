@@ -57,8 +57,7 @@
     margin: 0;
     align-self: center;
 
-    h1,
-    p,
+    /* LCP candidates (h1 + lead) paint immediately — do not opacity-gate them. */
     .main__cta,
     .main__pills {
       opacity: 0;
@@ -174,24 +173,12 @@
       opacity: 1;
     }
 
-    .main__content h1 {
-      animation: heroReveal 0.8s var(--ease) 60ms both;
-    }
-
-    .main__content p {
-      animation: heroReveal 0.75s var(--ease) 160ms both;
-    }
-
     .main__cta {
-      animation: heroReveal 0.7s var(--ease) 280ms both;
+      animation: heroReveal 0.7s var(--ease) 120ms both;
     }
 
     .main__pills {
-      animation: heroReveal 0.65s var(--ease) 380ms both;
-    }
-
-    .hero-viz {
-      animation: heroReveal 0.85s var(--ease) 320ms both;
+      animation: heroReveal 0.65s var(--ease) 220ms both;
     }
   }
 }
@@ -216,7 +203,8 @@
   align-items: center;
   justify-content: center;
   align-self: center;
-  opacity: 0;
+  /* Visible immediately for LCP — decorative FX may still animate. */
+  opacity: 1;
   user-select: none;
   touch-action: pan-y;
 
@@ -765,11 +753,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .main__hero--ready .main__content h1,
-  .main__hero--ready .main__content p,
   .main__hero--ready .main__cta,
-  .main__hero--ready .main__pills,
-  .main__hero--ready .hero-viz {
+  .main__hero--ready .main__pills {
     animation: none !important;
     opacity: 1 !important;
     filter: none !important;

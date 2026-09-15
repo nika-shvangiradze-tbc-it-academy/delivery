@@ -32,6 +32,12 @@ export class ImageLoaderService {
       image.decoding = 'async';
     }
 
+    // Never fade LCP / high-priority images — opacity gating delays paint.
+    if (hasHighPriority || image.classList.contains('hero-viz__img')) {
+      image.classList.add('img-loaded');
+      return;
+    }
+
     image.classList.add('img-loading');
     image.classList.remove('img-loaded');
 
