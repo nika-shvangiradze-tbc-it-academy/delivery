@@ -144,8 +144,8 @@
   }
 }
 
-/* ორ სვეტი 800px-იდან */
-@media (min-width: 800px) {
+/* Tablet+: exactly two equal-width tariff cards per row */
+@media (min-width: 768px) {
   .rate {
     &__grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -153,8 +153,8 @@
   }
 }
 
-
-@media (max-width: 799px) {
+/* Mobile + tablet: stack like mobile (tariff content above image), not desktop side-by-side */
+@media (max-width: 1024px) {
   .rate {
     &__card {
       flex-direction: column;

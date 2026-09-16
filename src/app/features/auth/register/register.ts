@@ -3,6 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { TranslatePipe } from '../../../core/pipes/t.pipe';
 import { AuthService } from '../../../core/services/auth.service';
+import { passwordMatchValidator } from '../../../core/validators/password-match.validator';
 import { DeliveryHeader } from '../../../layout/delivery-header/delivery-header';
 
 @Component({
@@ -19,20 +20,75 @@ export class Register implements OnInit {
 
   readonly loading = signal(false);
   readonly errorMessage = signal<string | null>(null);
+  readonly showPassword = signal(false);
+  readonly showConfirmPassword = signal(false);
 
-  readonly form = this.fb.nonNullable.group({
-    fullName: ['', [Validators.required, Validators.minLength(2)]],
-    phone: ['', [Validators.required, Validators.minLength(6)]],
-    email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(6)]],
-    rememberMe: [true],
-  });
+  readonly form = this.fb.nonNullable.group(
+    {
+      fullName: ['', [Validators.required, Validators.minLength(2)]],
+      phone: ['', [Validators.required, Validators.minLength(6)]],
+      email: ['', [Validators.required, Validators.email]],
+      password: ['', [Validators.required, Validators.minLength(6)]],
+      confirmPassword: ['', Validators.required],
+      rememberMe: [true],
+    },
+    { validators: passwordMatchValidator('password', 'confirmPassword') },
+  );
 
   async ngOnInit(): Promise<void> {
     await this.auth.whenReady();
     if (this.auth.isAuthenticated()) {
       await this.router.navigateByUrl(await this.auth.resolveHomePath());
     }
+  }
+
+  togglePasswordVisibility(): void {
+    this.showPassword.update((v) => !v);
+  }
+
+  toggleConfirmPasswordVisibility(): void {
+    this.showConfirmPassword.update((v) => !v);
+  }
+
+  isPasswordInvalid(): boolean {
+    const control = this.form.controls.password;
+    return control.invalid && control.touched;
+  }
+
+  isConfirmPasswordInvalid(): boolean {
+    const control = this.form.controls.confirmPassword;
+    if (!control.touched) {
+      return false;
+    }
+    return control.invalid || this.form.hasError('passwordMismatch');
+  }
+
+  passwordErrorKey(): string | null {
+    const control = this.form.controls.password;
+    if (!control.touched) {
+      return null;
+    }
+    if (control.hasError('required')) {
+      return 'auth.passwordRequired';
+    }
+    if (control.hasError('minlength')) {
+      return 'auth.passwordMinLength';
+    }
+    return null;
+  }
+
+  confirmPasswordErrorKey(): string | null {
+    const control = this.form.controls.confirmPassword;
+    if (!control.touched) {
+      return null;
+    }
+    if (control.hasError('required')) {
+      return 'auth.confirmPasswordRequired';
+    }
+    if (this.form.hasError('passwordMismatch')) {
+      return 'auth.passwordsMismatch';
+    }
+    return null;
   }
 
   async onSubmit(): Promise<void> {

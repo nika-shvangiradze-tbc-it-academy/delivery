@@ -292,6 +292,26 @@ export class AuthService {
     return { error: error?.message ?? null };
   }
 
+  /**
+   * Updates the password for the currently authenticated Supabase Auth user only.
+   * Does not write to profiles or any custom table. Never logs the password.
+   */
+  async updatePassword(newPassword: string): Promise<{ error: string | null }> {
+    if (!this.userSignal() || !this.sessionSignal()) {
+      return { error: 'auth.passwordChangeUnauthorized' };
+    }
+
+    const { error } = await this.supabase.client.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (error) {
+      return { error: 'auth.passwordChangeFailed' };
+    }
+
+    return { error: null };
+  }
+
   setProfile(profile: Profile | null): void {
     this.profileSignal.set(profile);
     if (profile) {

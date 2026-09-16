@@ -57,6 +57,35 @@
     margin-bottom: 16px;
   }
 
+  &__card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+
+    h2 {
+      margin-bottom: 0;
+    }
+  }
+
+  &__text-btn {
+    border: none;
+    background: transparent;
+    color: #db7623;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 4px 0;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
   &__form {
     display: grid;
     gap: 12px;
@@ -76,14 +105,102 @@
       padding: 11px 12px;
       font: inherit;
       background: #fff;
+      width: 100%;
+      box-sizing: border-box;
     }
 
-    button {
+    button.profile-page__cta {
       border: none;
       justify-content: center;
       cursor: pointer;
       margin-top: 4px;
     }
+
+    button.profile-page__cta:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+  }
+
+  &__password-field {
+    display: grid;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #575757;
+
+    &--invalid input {
+      border-color: #d92d20;
+    }
+  }
+
+  &__password-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+
+    input {
+      border: 1px solid rgba(83, 83, 83, 0.18);
+      border-radius: 12px;
+      padding: 11px 46px 11px 12px;
+      font: inherit;
+      background: #fff;
+      width: 100%;
+      box-sizing: border-box;
+      outline: none;
+
+      &:focus {
+        border-color: #db7623;
+        box-shadow: 0 0 0 3px rgba(219, 118, 35, 0.15);
+      }
+    }
+  }
+
+  &__password-field--invalid &__password-wrap input:focus {
+    border-color: #d92d20;
+    box-shadow: 0 0 0 3px rgba(217, 45, 32, 0.12);
+  }
+
+  &__visibility {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: #757575;
+    cursor: pointer;
+    padding: 0;
+
+    svg {
+      width: 18px;
+      height: 18px;
+      display: block;
+    }
+
+    &:hover {
+      color: #db7623;
+      background: rgba(219, 118, 35, 0.08);
+    }
+
+    &:focus-visible {
+      outline: 2px solid #db7623;
+      outline-offset: 1px;
+    }
+  }
+
+  &__field-error {
+    margin: 0;
+    color: #b42318;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.35;
   }
 
   &__hint {
@@ -222,6 +339,7 @@
     color: #b42318;
     border-radius: 12px;
     padding: 12px 14px;
+    margin-bottom: 12px;
   }
 }
 
@@ -275,5 +393,10 @@
 
   .profile-page__stat:last-child {
     grid-column: auto;
+  }
+
+  .profile-page__card-head {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }

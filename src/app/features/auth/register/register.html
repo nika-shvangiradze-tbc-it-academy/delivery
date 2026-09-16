@@ -25,17 +25,84 @@
         <input type="email" formControlName="email" autocomplete="email" />
       </label>
 
-      <label class="auth-page__field">
+      <div class="auth-page__field" [class.auth-page__field--invalid]="isPasswordInvalid()">
         <span>{{ 'auth.password' | t }}</span>
-        <input type="password" formControlName="password" autocomplete="new-password" />
-      </label>
+        <div class="auth-page__password-wrap">
+          <input
+            [type]="showPassword() ? 'text' : 'password'"
+            formControlName="password"
+            autocomplete="new-password"
+            [attr.aria-invalid]="isPasswordInvalid()"
+            [attr.aria-describedby]="passwordErrorKey() ? 'register-password-error' : null"
+          />
+          <button
+            type="button"
+            class="auth-page__visibility"
+            (click)="togglePasswordVisibility()"
+            [attr.aria-label]="(showPassword() ? 'auth.hidePassword' : 'auth.showPassword') | t"
+          >
+            @if (showPassword()) {
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+                <line x1="1" y1="1" x2="23" y2="23" />
+              </svg>
+            } @else {
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+            }
+          </button>
+        </div>
+        @if (passwordErrorKey(); as errKey) {
+          <p id="register-password-error" class="auth-page__field-error" role="alert">{{ errKey | t }}</p>
+        }
+      </div>
+
+      <div class="auth-page__field" [class.auth-page__field--invalid]="isConfirmPasswordInvalid()">
+        <span>{{ 'auth.confirmPassword' | t }}</span>
+        <div class="auth-page__password-wrap">
+          <input
+            [type]="showConfirmPassword() ? 'text' : 'password'"
+            formControlName="confirmPassword"
+            autocomplete="new-password"
+            [attr.aria-invalid]="isConfirmPasswordInvalid()"
+            [attr.aria-describedby]="confirmPasswordErrorKey() ? 'register-confirm-password-error' : null"
+          />
+          <button
+            type="button"
+            class="auth-page__visibility"
+            (click)="toggleConfirmPasswordVisibility()"
+            [attr.aria-label]="(showConfirmPassword() ? 'auth.hidePassword' : 'auth.showPassword') | t"
+          >
+            @if (showConfirmPassword()) {
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+                <line x1="1" y1="1" x2="23" y2="23" />
+              </svg>
+            } @else {
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+            }
+          </button>
+        </div>
+        @if (confirmPasswordErrorKey(); as errKey) {
+          <p id="register-confirm-password-error" class="auth-page__field-error" role="alert">{{ errKey | t }}</p>
+        }
+      </div>
 
       <label class="auth-page__remember">
         <input type="checkbox" formControlName="rememberMe" />
         <span>{{ 'auth.rememberMe' | t }}</span>
       </label>
 
-      <button class="auth-page__submit" type="submit" [disabled]="loading()">
+      <button class="auth-page__submit" type="submit" [disabled]="loading() || form.invalid">
         {{ loading() ? ('auth.loading' | t) : ('auth.registerAction' | t) }}
       </button>
     </form>

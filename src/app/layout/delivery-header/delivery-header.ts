@@ -40,9 +40,10 @@ export class DeliveryHeader implements AfterViewInit, OnDestroy {
   /** Public site nav for guests and normal users (not admin/courier). */
   readonly showPublicNav = computed(() => !this.isAdmin() && !this.isCourier());
 
-  private readonly sectionIds: SectionId[] = ['home', 'about', 'pricing', 'cities', 'contact'];
+  private readonly sectionIds: SectionId[] = ['home', 'pricing', 'cities', 'about', 'contact'];
   private sectionElements: HTMLElement[] = [];
   private rafId = 0;
+  private scrollRetryTimer: ReturnType<typeof setTimeout> | null = null;
 
   async onLanguageChange(language: AppLanguage): Promise<void> {
     await this.i18nService.setLanguage(language);
@@ -69,6 +70,7 @@ export class DeliveryHeader implements AfterViewInit, OnDestroy {
     window.removeEventListener('scroll', this.onScroll);
     window.removeEventListener('resize', this.onScroll);
     if (this.rafId) window.cancelAnimationFrame(this.rafId);
+    if (this.scrollRetryTimer) clearTimeout(this.scrollRetryTimer);
   }
 
   @HostListener('document:keydown.escape')
@@ -122,6 +124,10 @@ export class DeliveryHeader implements AfterViewInit, OnDestroy {
   }
 
   private updateActiveSection(): void {
+    // Nav-target sections may load after idle — keep the cache fresh.
+    if (this.sectionElements.length < this.sectionIds.length) {
+      this.refreshSections();
+    }
     if (this.sectionElements.length === 0) return;
 
     const headerEl = document.querySelector<HTMLElement>('.header-fixed');
@@ -152,9 +158,25 @@ export class DeliveryHeader implements AfterViewInit, OnDestroy {
     this.activeSection.set(closestId);
   }
 
-  private scrollToSection(sectionId: SectionId): void {
+  private scrollToSection(sectionId: SectionId, attempt = 0): void {
+    this.refreshSections();
     const el = document.getElementById(sectionId);
-    if (!el) return;
+
+    // Deferred homepage sections may not be in the DOM yet — retry briefly.
+    if (!el) {
+      if (attempt < 25) {
+        if (this.scrollRetryTimer) clearTimeout(this.scrollRetryTimer);
+        this.scrollRetryTimer = setTimeout(() => {
+          this.scrollToSection(sectionId, attempt + 1);
+        }, 100);
+      }
+      return;
+    }
+
+    if (this.scrollRetryTimer) {
+      clearTimeout(this.scrollRetryTimer);
+      this.scrollRetryTimer = null;
+    }
 
     history.replaceState(null, '', `/#${sectionId}`);
 
