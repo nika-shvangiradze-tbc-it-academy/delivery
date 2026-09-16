@@ -9,7 +9,12 @@
         <button
           type="button"
           role="tab"
-          [class]="'admin-orders__tab ' + statusFilterClass(group)"
+          class="admin-orders__tab status-filter"
+          [class.status-filter--pending]="group === 'pending'"
+          [class.status-filter--active]="group === 'active'"
+          [class.status-filter--delivered]="group === 'delivered'"
+          [class.status-filter--cancelled]="group === 'cancelled'"
+          [class.status-filter--all]="group === 'all'"
           [class.is-active]="statusGroup() === group"
           [attr.aria-selected]="statusGroup() === group"
           (click)="selectStatusGroup(group)"
@@ -227,7 +232,11 @@
                 <td>{{ order.delivery_date ? (order.delivery_date | date: 'mediumDate') : '—' }}</td>
                 <td>
                   <select
-                    [class]="statusSelectClass(order.status)"
+                    class="status-select"
+                    [class.status-select--pending]="order.status === 'pending'"
+                    [class.status-select--active]="order.status === 'picked_up'"
+                    [class.status-select--delivered]="order.status === 'delivered'"
+                    [class.status-select--cancelled]="order.status === 'cancelled'"
                     [disabled]="updating()"
                     [ngModel]="order.status"
                     [ngModelOptions]="{ standalone: true }"

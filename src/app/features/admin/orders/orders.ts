@@ -51,8 +51,6 @@ import {
   normalizeOrder,
   orderStatusClass,
   orderStatusLabelKey,
-  orderStatusSelectClass,
-  adminStatusFilterClass,
   paymentMethodLabel,
   centsToNumber,
   toCents,
@@ -166,8 +164,6 @@ export class AdminOrders implements OnInit {
   readonly analytics = signal<AdminDeliveredAnalytics>(EMPTY_ANALYTICS);
 
   readonly statusClass = orderStatusClass;
-  readonly statusSelectClass = orderStatusSelectClass;
-  readonly statusFilterClass = adminStatusFilterClass;
   readonly statusLabelKey = orderStatusLabelKey;
   readonly statusLabelKa = courierStatusLabel;
   readonly formatGel = formatGel;
