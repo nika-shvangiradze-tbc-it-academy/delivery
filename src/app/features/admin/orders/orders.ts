@@ -52,6 +52,7 @@ import {
   orderStatusClass,
   orderStatusLabelKey,
   orderStatusSelectClass,
+  adminStatusFilterClass,
   paymentMethodLabel,
   centsToNumber,
   toCents,
@@ -166,6 +167,7 @@ export class AdminOrders implements OnInit {
 
   readonly statusClass = orderStatusClass;
   readonly statusSelectClass = orderStatusSelectClass;
+  readonly statusFilterClass = adminStatusFilterClass;
   readonly statusLabelKey = orderStatusLabelKey;
   readonly statusLabelKa = courierStatusLabel;
   readonly formatGel = formatGel;

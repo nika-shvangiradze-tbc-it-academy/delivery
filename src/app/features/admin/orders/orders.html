@@ -9,7 +9,7 @@
         <button
           type="button"
           role="tab"
-          [class]="'admin-orders__tab admin-orders__tab--' + group"
+          [class]="'admin-orders__tab ' + statusFilterClass(group)"
           [class.is-active]="statusGroup() === group"
           [attr.aria-selected]="statusGroup() === group"
           (click)="selectStatusGroup(group)"
@@ -333,56 +333,127 @@
         <h2>{{ 'admin.orderDetails' | t }}</h2>
         <button type="button" (click)="closeDetails()">×</button>
       </div>
-      <dl>
-        <div><dt>{{ 'orders.id' | t }}</dt><dd>#{{ order.id }}</dd></div>
-        <div><dt>{{ 'admin.courier' | t }}</dt><dd>{{ courierName(order.assigned_courier_id) }}</dd></div>
-        <div><dt>{{ 'orders.recipientName' | t }}</dt><dd>{{ order.recipient_name || '—' }}</dd></div>
-        <div><dt>{{ 'orders.recipientPhone' | t }}</dt><dd>{{ order.recipient_phone || '—' }}</dd></div>
-        <div><dt>{{ 'orders.deliveryCity' | t }}</dt><dd>{{ order.delivery_city || '—' }}</dd></div>
-        <div><dt>{{ 'orders.deliveryAddress' | t }}</dt><dd>{{ order.delivery_address || '—' }}</dd></div>
-        <div>
-          <dt>გადასაცემი ერთეულების რაოდენობა</dt>
-          <dd>{{ order.parcel_count }}</dd>
-        </div>
-        @if (order.is_fragile) {
-          <div>
-            <dt>ამანათი</dt>
-            <dd><span class="admin-orders__fragile">⚠ მსხვრევადი</span></dd>
-          </div>
-        }
-        <div><dt>ასაღები თანხა</dt><dd>{{ formatGel(order.amount_to_collect) }} ₾</dd></div>
-        <div><dt>აღებული თანხა</dt><dd>{{ formatGel(order.collected_amount) }} ₾</dd></div>
-        <div><dt>გადახდა</dt><dd>{{ paymentLabel(order.payment_method) }}</dd></div>
-        <div>
-          <dt>{{ 'orders.statusLabel' | t }}</dt>
-          <dd>
-            <span [class]="statusClass(order.status)">{{ statusLabelKey(order.status) | t }}</span>
-          </dd>
-        </div>
-        <div>
-          <dt>ჩაბარების დრო</dt>
-          <dd>{{ order.delivered_at ? (order.delivered_at | date: 'd MMM y, HH:mm') : '—' }}</dd>
-        </div>
+
+      <div class="admin-orders__detail-sections">
+        <section class="admin-orders__detail-section admin-orders__detail-section--meta">
+          <h3 class="admin-orders__detail-heading">შეკვეთა</h3>
+          <dl class="admin-orders__detail-grid">
+            <div>
+              <dt>{{ 'orders.id' | t }}</dt>
+              <dd>#{{ order.id }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'orders.statusLabel' | t }}</dt>
+              <dd>
+                <span [class]="statusClass(order.status)">{{ statusLabelKey(order.status) | t }}</span>
+              </dd>
+            </div>
+            <div>
+              <dt>{{ 'admin.courier' | t }}</dt>
+              <dd>{{ courierName(order.assigned_courier_id) }}</dd>
+            </div>
+            <div>
+              <dt>ჩაბარების დრო</dt>
+              <dd>{{ order.delivered_at ? (order.delivered_at | date: 'd MMM y, HH:mm') : '—' }}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="admin-orders__detail-section admin-orders__detail-section--sender">
+          <h3 class="admin-orders__detail-heading">{{ 'orders.senderInfo' | t }}</h3>
+          <dl class="admin-orders__detail-grid">
+            <div>
+              <dt>{{ 'orders.senderName' | t }}</dt>
+              <dd>{{ order.sender_name || '—' }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'orders.senderPhone' | t }}</dt>
+              <dd>{{ order.sender_phone || '—' }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'orders.pickupCity' | t }}</dt>
+              <dd>{{ order.pickup_city || '—' }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'orders.pickupDistrict' | t }}</dt>
+              <dd>{{ order.pickup_district || '—' }}</dd>
+            </div>
+            <div class="admin-orders__detail-span">
+              <dt>{{ 'orders.pickupAddress' | t }}</dt>
+              <dd>{{ order.pickup_address || '—' }}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="admin-orders__detail-section admin-orders__detail-section--recipient">
+          <h3 class="admin-orders__detail-heading">{{ 'orders.recipientInfo' | t }}</h3>
+          <dl class="admin-orders__detail-grid">
+            <div>
+              <dt>{{ 'orders.recipientName' | t }}</dt>
+              <dd>{{ order.recipient_name || '—' }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'orders.recipientPhone' | t }}</dt>
+              <dd>{{ order.recipient_phone || '—' }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'orders.deliveryCity' | t }}</dt>
+              <dd>{{ order.delivery_city || '—' }}</dd>
+            </div>
+            <div class="admin-orders__detail-span">
+              <dt>{{ 'orders.deliveryAddress' | t }}</dt>
+              <dd>{{ order.delivery_address || '—' }}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="admin-orders__detail-section admin-orders__detail-section--parcel">
+          <h3 class="admin-orders__detail-heading">ამანათი და გადახდა</h3>
+          <dl class="admin-orders__detail-grid">
+            <div>
+              <dt>გადასაცემი ერთეულები</dt>
+              <dd>{{ order.parcel_count }}</dd>
+            </div>
+            @if (order.is_fragile) {
+              <div>
+                <dt>ამანათი</dt>
+                <dd><span class="admin-orders__fragile">⚠ მსხვრევადი</span></dd>
+              </div>
+            }
+            <div>
+              <dt>ასაღები თანხა</dt>
+              <dd>{{ formatGel(order.amount_to_collect) }} ₾</dd>
+            </div>
+            <div>
+              <dt>აღებული თანხა</dt>
+              <dd>{{ formatGel(order.collected_amount) }} ₾</dd>
+            </div>
+            <div>
+              <dt>გადახდა</dt>
+              <dd>{{ paymentLabel(order.payment_method) }}</dd>
+            </div>
+          </dl>
+        </section>
+
         @if (order.status === 'cancelled' || order.cancellation_reason) {
-          <div class="admin-orders__cancel-block">
-            <p class="admin-orders__cancel-title">გაუქმების მიზეზი</p>
-            <p class="admin-orders__cancel-reason">
-              {{ order.cancellation_reason || '—' }}
-            </p>
-            <p class="admin-orders__cancel-meta">
-              გააუქმა: {{ courierName(order.assigned_courier_id) }}
-            </p>
-            <p class="admin-orders__cancel-meta">
-              გაუქმების დრო: {{ formatCancelTime(order.cancelled_at) }}
-            </p>
-          </div>
-        } @else {
-          <div>
-            <dt>გაუქმების დრო</dt>
-            <dd>{{ order.cancelled_at ? formatCancelTime(order.cancelled_at) : '—' }}</dd>
-          </div>
+          <section class="admin-orders__detail-section admin-orders__detail-section--cancel">
+            <h3 class="admin-orders__detail-heading">გაუქმება</h3>
+            <div class="admin-orders__cancel-block">
+              <p class="admin-orders__cancel-title">გაუქმების მიზეზი</p>
+              <p class="admin-orders__cancel-reason">
+                {{ order.cancellation_reason || '—' }}
+              </p>
+              <p class="admin-orders__cancel-meta">
+                გააუქმა: {{ courierName(order.assigned_courier_id) }}
+              </p>
+              <p class="admin-orders__cancel-meta">
+                გაუქმების დრო: {{ formatCancelTime(order.cancelled_at) }}
+              </p>
+            </div>
+          </section>
         }
-      </dl>
+      </div>
+
       <button
         type="button"
         class="admin-orders__history-open"

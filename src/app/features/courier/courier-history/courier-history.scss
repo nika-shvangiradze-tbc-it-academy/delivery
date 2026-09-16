@@ -392,10 +392,11 @@
   white-space: nowrap;
 
   &--pending {
-    background: #f3f4f6;
-    color: #4b5563;
+    background: #fff7ed;
+    color: #9a3412;
   }
 
+  &--active,
   &--picked_up {
     background: #dbeafe;
     color: #1e40af;

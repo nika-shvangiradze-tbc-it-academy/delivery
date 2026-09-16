@@ -1,4 +1,5 @@
 import {
+  AdminStatusGroup,
   Order,
   OrderStatus,
   PaymentMethod,
@@ -7,27 +8,73 @@ import {
 } from '../models/order.model';
 import { UserRole } from '../models/profile.model';
 
-/** Shared status → UI mapping (labels + CSS modifiers). DB values stay unchanged. */
+/** Visual tone keys shared by Admin filters, badges, and status selects. */
+export type StatusTone = 'pending' | 'active' | 'delivered' | 'cancelled' | 'all';
+
+/**
+ * Central status color/class mapping — single source of truth for Admin UI.
+ * Order status `picked_up` uses the same `active` tone (blue).
+ */
+export const STATUS_STYLES = {
+  pending: {
+    badgeClass: 'status-badge status-badge--pending',
+    selectClass: 'status-select status-select--pending',
+    filterClass: 'status-filter status-filter--pending',
+  },
+  active: {
+    badgeClass: 'status-badge status-badge--active',
+    selectClass: 'status-select status-select--active',
+    filterClass: 'status-filter status-filter--active',
+  },
+  delivered: {
+    badgeClass: 'status-badge status-badge--delivered',
+    selectClass: 'status-select status-select--delivered',
+    filterClass: 'status-filter status-filter--delivered',
+  },
+  cancelled: {
+    badgeClass: 'status-badge status-badge--cancelled',
+    selectClass: 'status-select status-select--cancelled',
+    filterClass: 'status-filter status-filter--cancelled',
+  },
+  all: {
+    badgeClass: 'status-badge status-badge--pending',
+    selectClass: 'status-select status-select--pending',
+    filterClass: 'status-filter status-filter--all',
+  },
+} as const satisfies Record<
+  StatusTone,
+  { badgeClass: string; selectClass: string; filterClass: string }
+>;
+
+/** Order DB status → visual tone (picked_up ≡ active). */
+const ORDER_STATUS_TONE: Record<OrderStatus, Exclude<StatusTone, 'all'>> = {
+  pending: 'pending',
+  picked_up: 'active',
+  delivered: 'delivered',
+  cancelled: 'cancelled',
+};
+
+/** @deprecated Prefer STATUS_STYLES — kept for labelKa lookup compatibility. */
 export const ORDER_STATUS_UI = {
   pending: {
     labelKa: 'მოლოდინში',
-    badgeClass: 'status-badge status-badge--pending',
-    selectClass: 'status-select status-select--pending',
+    badgeClass: STATUS_STYLES.pending.badgeClass,
+    selectClass: STATUS_STYLES.pending.selectClass,
   },
   picked_up: {
     labelKa: 'აღებული',
-    badgeClass: 'status-badge status-badge--picked_up',
-    selectClass: 'status-select status-select--picked_up',
+    badgeClass: STATUS_STYLES.active.badgeClass,
+    selectClass: STATUS_STYLES.active.selectClass,
   },
   delivered: {
     labelKa: 'ჩაბარებული',
-    badgeClass: 'status-badge status-badge--delivered',
-    selectClass: 'status-select status-select--delivered',
+    badgeClass: STATUS_STYLES.delivered.badgeClass,
+    selectClass: STATUS_STYLES.delivered.selectClass,
   },
   cancelled: {
     labelKa: 'გაუქმებული',
-    badgeClass: 'status-badge status-badge--cancelled',
-    selectClass: 'status-select status-select--cancelled',
+    badgeClass: STATUS_STYLES.cancelled.badgeClass,
+    selectClass: STATUS_STYLES.cancelled.selectClass,
   },
 } as const satisfies Record<
   OrderStatus,
@@ -67,7 +114,7 @@ export function orderStatusLabelKey(status: OrderStatus | string | null | undefi
 
 /** CSS classes for status badge/pill. Alias: getStatusClass */
 export function orderStatusClass(status: OrderStatus | string | null | undefined): string {
-  return ORDER_STATUS_UI[resolveStatusKey(status)].badgeClass;
+  return STATUS_STYLES[ORDER_STATUS_TONE[resolveStatusKey(status)]].badgeClass;
 }
 
 export const getStatusClass = orderStatusClass;
@@ -76,7 +123,12 @@ export const getStatusClass = orderStatusClass;
 export function orderStatusSelectClass(
   status: OrderStatus | string | null | undefined,
 ): string {
-  return ORDER_STATUS_UI[resolveStatusKey(status)].selectClass;
+  return STATUS_STYLES[ORDER_STATUS_TONE[resolveStatusKey(status)]].selectClass;
+}
+
+/** CSS classes for Admin status filter tabs (pending / active / … / all). */
+export function adminStatusFilterClass(group: AdminStatusGroup): string {
+  return STATUS_STYLES[group].filterClass;
 }
 
 export function parseRole(role: string | null | undefined): UserRole {
