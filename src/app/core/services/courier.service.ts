@@ -8,6 +8,8 @@ import {
   Order,
   OrderStatus,
   PaymentMethod,
+  PickupTask,
+  PickupTaskLocation,
 } from '../models/order.model';
 import { AuthService } from './auth.service';
 import { SupabaseService } from './supabase.service';
@@ -24,6 +26,21 @@ import {
 const COURIER_ORDER_COLUMNS =
   'id, user_id, assigned_courier_id, recipient_name, recipient_phone, delivery_city, delivery_district, delivery_address, parcel_count, delivery_date, notes, is_fragile, status, payment_method, amount_to_collect, collected_amount, delivered_at, cancelled_at, cancellation_reason, courier_sort_order, created_at, updated_at, sender_name, sender_phone, pickup_city, pickup_district, pickup_address';
 
+/** Pickup tasks only — never joins delivery order columns. */
+const PICKUP_TASKS_EMBED = `
+  *,
+  pickup_task_locations (
+    id,
+    city,
+    district,
+    address,
+    parcel_count
+  )
+`;
+
+const PICKUP_TASKS_FLAT = '*';
+const PICKUP_LOCATIONS_COLUMNS = 'id, pickup_task_id, city, district, address, parcel_count';
+
 @Injectable({
   providedIn: 'root',
 })
@@ -33,6 +50,138 @@ export class CourierService {
 
   async getMyActiveOrders(): Promise<{ data: Order[]; error: string | null }> {
     return this.getMyOrdersByStatuses([...COURIER_ACTIVE_STATUS_FILTER], 'active');
+  }
+
+  /**
+   * Active pickup tasks for the logged-in courier.
+   * Source of truth: pickup_tasks + pickup_task_locations (not orders).
+   */
+  async getMyPickupTasks(): Promise<{ data: PickupTask[]; error: string | null }> {
+    await this.auth.whenReady();
+
+    const { data: sessionData, error: sessionError } = await this.supabase.client.auth.getSession();
+    if (sessionError) {
+      console.error('[Pickup] session error', sessionError);
+      return { data: [], error: sessionError.message };
+    }
+
+    const userId = sessionData.session?.user?.id ?? this.auth.user()?.id ?? null;
+    console.log('[Pickup] USER ID', userId);
+
+    if (!userId) {
+      const message = 'No authenticated courier session';
+      console.error('[Pickup]', message);
+      return { data: [], error: message };
+    }
+
+    // Preferred: single embed query (as designed).
+    const embedded = await this.supabase.client
+      .from('pickup_tasks')
+      .select(PICKUP_TASKS_EMBED)
+      .eq('assigned_courier_id', userId)
+      .eq('status', 'assigned')
+      .order('created_at', { ascending: true })
+      .order('id', { ascending: true });
+
+    console.log('[Pickup] Supabase data:', embedded.data);
+    console.log('[Pickup] Supabase error:', embedded.error);
+
+    if (!embedded.error) {
+      const normalizedTasks = (embedded.data ?? [])
+        .map((row) => this.normalizePickupTask(row))
+        .filter((t): t is PickupTask => t !== null);
+      console.log('[Pickup] normalized:', normalizedTasks);
+      return { data: normalizedTasks, error: null };
+    }
+
+    // Do not hide embed failures — log, then try two-step fetch (no schema change).
+    console.error('[Pickup] embed query failed, trying two-step fetch', embedded.error);
+
+    const flat = await this.supabase.client
+      .from('pickup_tasks')
+      .select(PICKUP_TASKS_FLAT)
+      .eq('assigned_courier_id', userId)
+      .eq('status', 'assigned')
+      .order('created_at', { ascending: true })
+      .order('id', { ascending: true });
+
+    console.log('[Pickup] flat Supabase data:', flat.data);
+    console.log('[Pickup] flat Supabase error:', flat.error);
+
+    if (flat.error) {
+      console.error('[Pickup] flat query failed', flat.error);
+      return { data: [], error: flat.error.message };
+    }
+
+    const taskRows = flat.data ?? [];
+    const taskIds = taskRows
+      .map((row) => Number((row as { id?: number | string }).id))
+      .filter((id) => Number.isFinite(id) && id > 0);
+
+    let locationsByTask = new Map<number, unknown[]>();
+    if (taskIds.length > 0) {
+      const locs = await this.supabase.client
+        .from('pickup_task_locations')
+        .select(PICKUP_LOCATIONS_COLUMNS)
+        .in('pickup_task_id', taskIds);
+
+      console.log('[Pickup] locations Supabase data:', locs.data);
+      console.log('[Pickup] locations Supabase error:', locs.error);
+
+      if (locs.error) {
+        console.error('[Pickup] locations query failed', locs.error);
+        // Still return tasks; locations may be empty but cards must show.
+      } else {
+        locationsByTask = new Map();
+        for (const loc of locs.data ?? []) {
+          const taskId = Number((loc as { pickup_task_id?: number | string }).pickup_task_id);
+          if (!Number.isFinite(taskId)) continue;
+          const list = locationsByTask.get(taskId) ?? [];
+          list.push(loc);
+          locationsByTask.set(taskId, list);
+        }
+      }
+    }
+
+    const merged = taskRows.map((row) => {
+      const id = Number((row as { id?: number | string }).id);
+      return {
+        ...(row as Record<string, unknown>),
+        pickup_task_locations: locationsByTask.get(id) ?? [],
+      };
+    });
+
+    const normalizedTasks = merged
+      .map((row) => this.normalizePickupTask(row))
+      .filter((t): t is PickupTask => t !== null);
+
+    console.log('[Pickup] normalized:', normalizedTasks);
+    return { data: normalizedTasks, error: null };
+  }
+
+  async completePickup(pickupTaskId: number): Promise<{ updated: number; error: string | null }> {
+    if (!Number.isFinite(pickupTaskId) || pickupTaskId <= 0) {
+      return { updated: 0, error: 'აღების დავალება არასწორია' };
+    }
+
+    const sessionCheck = await this.requireCourierSession(0);
+    if (sessionCheck.error) {
+      return { updated: 0, error: sessionCheck.error };
+    }
+
+    const { data, error } = await this.supabase.client.rpc('courier_complete_pickup', {
+      p_pickup_task_id: pickupTaskId,
+    });
+
+    if (error) {
+      this.logRpcError('courier_complete_pickup', error);
+      return { updated: 0, error: this.mapCourierRpcError(error.message) };
+    }
+
+    const root = (data && typeof data === 'object' ? data : {}) as Record<string, unknown>;
+    const updated =
+      typeof root['updated'] === 'number' ? root['updated'] : Number(root['updated'] ?? 0) || 0;
+    return { updated, error: null };
   }
 
   async getMyHistoryOrders(): Promise<{ data: Order[]; error: string | null }> {
@@ -369,5 +518,128 @@ export class CourierService {
     }
 
     return { data: orders, error: null };
+  }
+
+  private normalizePickupTask(raw: unknown): PickupTask | null {
+    if (!raw || typeof raw !== 'object') {
+      console.error('[CourierService] normalizePickupTask: non-object row', raw);
+      return null;
+    }
+    const r = raw as Record<string, unknown>;
+    const id = Number(r['id']);
+    if (!Number.isFinite(id) || id <= 0) {
+      console.error('[CourierService] normalizePickupTask: invalid id', r['id'], raw);
+      return null;
+    }
+    const statusRaw = r['status'];
+    // Preserve DB status; never drop 'assigned' rows.
+    const normalizedStatus: PickupTask['status'] =
+      statusRaw === 'completed' || statusRaw === 'cancelled' || statusRaw === 'assigned'
+        ? statusRaw
+        : 'assigned';
+
+    const locationsRaw = r['pickup_task_locations'] ?? r['locations'];
+    let locations: PickupTaskLocation[] = [];
+    if (Array.isArray(locationsRaw)) {
+      locations = locationsRaw
+        .map((loc) => this.normalizePickupTaskLocation(loc, id))
+        .filter((loc): loc is PickupTaskLocation => loc !== null)
+        .sort((a, b) => a.id - b.id);
+    } else if (locationsRaw && typeof locationsRaw === 'object') {
+      // PostgREST occasionally returns a single object for one-to-one mis-detect.
+      const one = this.normalizePickupTaskLocation(locationsRaw, id);
+      if (one) {
+        locations = [one];
+      }
+    }
+    // Legacy single-address fallback when locations table is empty/missing
+    if (
+      locations.length === 0 &&
+      (r['pickup_city'] || r['pickup_district'] || r['pickup_address'])
+    ) {
+      locations = [
+        {
+          id: 0,
+          pickup_task_id: id,
+          city:
+            typeof r['pickup_city'] === 'string' && r['pickup_city'].trim()
+              ? r['pickup_city'].trim()
+              : null,
+          district:
+            typeof r['pickup_district'] === 'string' && r['pickup_district'].trim()
+              ? r['pickup_district'].trim()
+              : null,
+          address:
+            typeof r['pickup_address'] === 'string' && r['pickup_address'].trim()
+              ? r['pickup_address'].trim()
+              : null,
+          parcel_count: Number(r['parcel_count'] ?? 0) || 0,
+          created_at: typeof r['created_at'] === 'string' ? r['created_at'] : '',
+        },
+      ];
+    }
+
+    return {
+      id,
+      customer_id: String(r['customer_id'] ?? ''),
+      assigned_courier_id: String(r['assigned_courier_id'] ?? ''),
+      status: normalizedStatus,
+      order_count: Number(r['order_count'] ?? 0) || 0,
+      parcel_count: Number(r['parcel_count'] ?? 0) || 0,
+      customer_name:
+        typeof r['customer_name'] === 'string' && r['customer_name'].trim()
+          ? r['customer_name'].trim()
+          : null,
+      pickup_phone:
+        typeof r['pickup_phone'] === 'string' && r['pickup_phone'].trim()
+          ? r['pickup_phone'].trim()
+          : null,
+      pickup_city:
+        typeof r['pickup_city'] === 'string' && r['pickup_city'].trim()
+          ? r['pickup_city'].trim()
+          : null,
+      pickup_district:
+        typeof r['pickup_district'] === 'string' && r['pickup_district'].trim()
+          ? r['pickup_district'].trim()
+          : null,
+      pickup_address:
+        typeof r['pickup_address'] === 'string' && r['pickup_address'].trim()
+          ? r['pickup_address'].trim()
+          : null,
+      location_key:
+        typeof r['location_key'] === 'string' && r['location_key'].trim()
+          ? r['location_key'].trim()
+          : null,
+      completed_at: typeof r['completed_at'] === 'string' ? r['completed_at'] : null,
+      created_at: typeof r['created_at'] === 'string' ? r['created_at'] : '',
+      updated_at: typeof r['updated_at'] === 'string' ? r['updated_at'] : '',
+      locations,
+      pickup_task_locations: locations,
+    };
+  }
+
+  private normalizePickupTaskLocation(
+    raw: unknown,
+    fallbackTaskId: number,
+  ): PickupTaskLocation | null {
+    if (!raw || typeof raw !== 'object') {
+      return null;
+    }
+    const r = raw as Record<string, unknown>;
+    const id = Number(r['id']);
+    if (!Number.isFinite(id)) {
+      return null;
+    }
+    return {
+      id,
+      pickup_task_id: Number(r['pickup_task_id'] ?? fallbackTaskId) || fallbackTaskId,
+      city: typeof r['city'] === 'string' && r['city'].trim() ? r['city'].trim() : null,
+      district:
+        typeof r['district'] === 'string' && r['district'].trim() ? r['district'].trim() : null,
+      address:
+        typeof r['address'] === 'string' && r['address'].trim() ? r['address'].trim() : null,
+      parcel_count: Number(r['parcel_count'] ?? 0) || 0,
+      created_at: typeof r['created_at'] === 'string' ? r['created_at'] : '',
+    };
   }
 }

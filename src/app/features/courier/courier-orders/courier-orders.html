@@ -41,10 +41,82 @@
     <p class="courier-active__success" role="status">{{ successMessage() }}</p>
   }
 
+  @if (pickupTasks().length > 0) {
+    <section class="courier-pickup" aria-label="აღების დავალებები">
+      <div class="courier-pickup__heading">
+        <h2>🟠 აღების დავალებები</h2>
+        <p>{{ pickupTasks().length }} დავალება</p>
+      </div>
+
+      <div class="courier-pickup__list">
+        @for (task of pickupTasks(); track task.id) {
+          <article class="courier-pickup__card">
+            <p class="courier-pickup__badge">🟠 აღების დავალება</p>
+
+            <dl class="courier-pickup__fields">
+              <div>
+                <dt>Customer:</dt>
+                <dd>{{ task.customer_name || '—' }}</dd>
+              </div>
+              <div>
+                <dt>Phone:</dt>
+                <dd>
+                  @if (task.pickup_phone) {
+                    <a [href]="telHref(task.pickup_phone)" (click)="$event.stopPropagation()">{{
+                      formatPhone(task.pickup_phone)
+                    }}</a>
+                  } @else {
+                    —
+                  }
+                </dd>
+              </div>
+              <div>
+                <dt>Parcels:</dt>
+                <dd>{{ task.parcel_count }}</dd>
+              </div>
+            </dl>
+
+            @if ((task.locations ?? task.pickup_task_locations ?? [])[0]; as loc) {
+              <div class="courier-pickup__locations">
+                <p class="courier-pickup__locations-title">Pickup location</p>
+                <p class="courier-pickup__loc-single">
+                  <span class="courier-pickup__pin" aria-hidden="true">📍</span>
+                  <span>{{ locationLabel(loc) }}</span>
+                </p>
+              </div>
+            } @else if (pickupAddressLine(task) !== '—') {
+              <div class="courier-pickup__locations">
+                <p class="courier-pickup__locations-title">Pickup location</p>
+                <p class="courier-pickup__loc-single">
+                  <span class="courier-pickup__pin" aria-hidden="true">📍</span>
+                  <span>{{ pickupAddressLine(task) }}</span>
+                </p>
+              </div>
+            }
+
+            <button
+              type="button"
+              class="courier-pickup__complete"
+              [disabled]="completingPickupId() === task.id"
+              (click)="completePickupTask(task)"
+            >
+              {{
+                completingPickupId() === task.id ? 'ინახება…' : 'აღება შესრულებულია'
+              }}
+            </button>
+          </article>
+        }
+      </div>
+    </section>
+  }
+
+  <!-- Delivery orders (separate from pickupTasks) -->
   @if (loading()) {
     <p class="courier-active__muted">იტვირთება...</p>
-  } @else if (orders().length === 0) {
+  } @else if (orders().length === 0 && pickupTasks().length === 0) {
     <p class="courier-active__muted">მიმდინარე შეკვეთები არ არის.</p>
+  } @else if (orders().length === 0) {
+    <p class="courier-active__muted">მიწოდების შეკვეთები არ არის — მხოლოდ აღების დავალებები.</p>
   } @else {
     <div
       class="courier-active__list"

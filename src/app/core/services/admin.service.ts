@@ -4,10 +4,15 @@ import {
   ADMIN_ACTIVE_STATUSES,
   ADMIN_COURIER_UNASSIGNED,
   ADMIN_ORDER_LIST_COLUMNS,
+  AdminCustomerTypeFilter,
   AdminDashboardStats,
   AdminDeliveredAnalytics,
   AdminDeliveredAnalyticsFilters,
   AdminOrderFilters,
+  AdminOrderGroupBy,
+  AdminPlanningBreakdown,
+  AdminPlanningBucket,
+  AdminPlanningPickupLocation,
   AdminStatusGroup,
   Order,
   OrderStatus,
@@ -15,6 +20,7 @@ import {
   PaginatedOrdersResult,
 } from '../models/order.model';
 import { CourierOption } from '../models/profile.model';
+import { ADMIN_COMPANY_SENDER_OR, isCompanyCustomer } from '../utils/admin-customer.util';
 import { SupabaseService } from './supabase.service';
 import { normalizeLegacyStatus, normalizeOrder, normalizeOrders } from '../utils/order-status.util';
 
@@ -145,6 +151,12 @@ export class AdminService {
   async getAdminOrders(filters: AdminOrderFilters): Promise<PaginatedOrdersResult> {
     const page = Math.max(1, filters.page || 1);
     const pageSize = Math.max(1, Math.min(100, filters.pageSize || 50));
+    const customerType = this.normalizeCustomerType(filters.customerType);
+
+    if (customerType === 'company' || customerType === 'individual') {
+      return this.getAdminOrdersViaCustomerTypeRpc(filters, page, pageSize, customerType);
+    }
+
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
 
@@ -155,48 +167,7 @@ export class AdminService {
       .order('id', { ascending: false })
       .range(from, to);
 
-    query = this.applyStatusGroup(query, filters.statusGroup);
-
-    if (filters.pickupCity?.trim()) {
-      query = query.eq('pickup_city', filters.pickupCity.trim());
-    }
-
-    if (filters.city?.trim()) {
-      query = query.eq('delivery_city', filters.city.trim());
-    }
-
-    // Delivered tab: date range on visible delivery_date column (not delivered_at).
-    // Analytics RPC still uses delivered_at separately.
-    // Other tabs: single delivery_date via date preset.
-    if (filters.statusGroup === 'delivered') {
-      const fromDate = filters.deliveredDateFrom?.trim() ?? '';
-      const toDate = filters.deliveredDateTo?.trim() ?? '';
-      if (isIsoDateOnly(fromDate)) {
-        query = query.gte('delivery_date', fromDate);
-      }
-      if (isIsoDateOnly(toDate)) {
-        query = query.lte('delivery_date', toDate);
-      }
-    } else if (filters.date?.trim()) {
-      query = query.eq('delivery_date', filters.date.trim());
-    }
-
-    const courierId = filters.courierId?.trim();
-    if (courierId === ADMIN_COURIER_UNASSIGNED) {
-      query = query.is('assigned_courier_id', null);
-    } else if (courierId) {
-      query = query.eq('assigned_courier_id', courierId);
-    }
-
-    const payment = filters.paymentMethod;
-    if (payment === 'cash' || payment === 'card') {
-      query = query.eq('payment_method', payment);
-    }
-
-    const searchOr = this.buildSearchOrFilter(filters.search);
-    if (searchOr) {
-      query = query.or(searchOr);
-    }
+    query = this.applyAdminListFilters(query, filters);
 
     const { data, error, count } = await query;
 
@@ -205,11 +176,389 @@ export class AdminService {
       return { data: [], total: 0, page, pageSize, error: error.message };
     }
 
+    const orders = await this.enrichOrdersWithOwners(normalizeOrders(data as unknown[]));
+
     return {
-      data: normalizeOrders(data as unknown[]),
+      data: orders,
       total: count ?? 0,
       page,
       pageSize,
+      error: null,
+    };
+  }
+
+  /**
+   * Dispatcher planning aggregates (customer / pickup city / pickup location).
+   * Requires admin_order_planning_breakdown RPC migration.
+   */
+  async getOrderPlanningBreakdown(
+    filters: AdminOrderFilters,
+    groupBy: Exclude<AdminOrderGroupBy, 'none'>,
+  ): Promise<{ data: AdminPlanningBreakdown; error: string | null }> {
+    const payment =
+      filters.paymentMethod === 'cash' || filters.paymentMethod === 'card'
+        ? filters.paymentMethod
+        : null;
+    const courierRaw = filters.courierId?.trim() || null;
+    const customerType = this.normalizeCustomerType(filters.customerType);
+    const isDelivered = filters.statusGroup === 'delivered';
+
+    const { data, error } = await this.supabase.client.rpc('admin_order_planning_breakdown', {
+      p_status_group: filters.statusGroup,
+      p_group_by: groupBy,
+      p_delivery_date: !isDelivered && isIsoDateOnly(filters.date) ? filters.date!.trim() : null,
+      p_delivered_date_from:
+        isDelivered && isIsoDateOnly(filters.deliveredDateFrom)
+          ? filters.deliveredDateFrom!.trim()
+          : null,
+      p_delivered_date_to:
+        isDelivered && isIsoDateOnly(filters.deliveredDateTo)
+          ? filters.deliveredDateTo!.trim()
+          : null,
+      p_pickup_city: filters.pickupCity?.trim() || null,
+      p_delivery_city: filters.city?.trim() || null,
+      p_courier_id: courierRaw,
+      p_customer_type: customerType,
+      p_customer_user_id: filters.customerUserId?.trim() || null,
+      p_payment_method: payment,
+    });
+
+    if (error) {
+      this.logSupabaseError('getOrderPlanningBreakdown', error);
+      return { data: { total: 0, groups: [] }, error: error.message };
+    }
+
+    return { data: this.normalizePlanningBreakdown(data), error: null };
+  }
+
+  /** Role=user accounts for the customer filter dropdown (narrow columns only). */
+  async getOrderCustomers(): Promise<{
+    data: Array<{ id: string; full_name: string }>;
+    error: string | null;
+  }> {
+    const { data, error } = await this.supabase.client
+      .from('profiles')
+      .select('id, full_name')
+      .eq('role', 'user')
+      .order('full_name', { ascending: true })
+      .limit(500);
+
+    if (error) {
+      this.logSupabaseError('getOrderCustomers', error);
+      return { data: [], error: error.message };
+    }
+
+    return {
+      data: ((data ?? []) as Array<{ id: string; full_name: string | null }>).map((row) => ({
+        id: row.id,
+        full_name: (row.full_name ?? '').trim() || '—',
+      })),
+      error: null,
+    };
+  }
+
+  private async getAdminOrdersViaCustomerTypeRpc(
+    filters: AdminOrderFilters,
+    page: number,
+    pageSize: number,
+    customerType: 'company' | 'individual',
+  ): Promise<PaginatedOrdersResult> {
+    const payment =
+      filters.paymentMethod === 'cash' || filters.paymentMethod === 'card'
+        ? filters.paymentMethod
+        : null;
+    const isDelivered = filters.statusGroup === 'delivered';
+
+    const { data: rpcData, error: rpcError } = await this.supabase.client.rpc(
+      'admin_orders_ids_for_customer_type',
+      {
+        p_status_group: filters.statusGroup,
+        p_customer_type: customerType,
+        p_delivery_date: !isDelivered && isIsoDateOnly(filters.date) ? filters.date!.trim() : null,
+        p_delivered_date_from:
+          isDelivered && isIsoDateOnly(filters.deliveredDateFrom)
+            ? filters.deliveredDateFrom!.trim()
+            : null,
+        p_delivered_date_to:
+          isDelivered && isIsoDateOnly(filters.deliveredDateTo)
+            ? filters.deliveredDateTo!.trim()
+            : null,
+        p_pickup_city: filters.pickupCity?.trim() || null,
+        p_delivery_city: filters.city?.trim() || null,
+        p_courier_id: filters.courierId?.trim() || null,
+        p_customer_user_id: filters.customerUserId?.trim() || null,
+        p_payment_method: payment,
+        p_search: filters.search?.trim() || null,
+        p_page: page,
+        p_page_size: pageSize,
+      },
+    );
+
+    if (rpcError) {
+      this.logSupabaseError('getAdminOrdersViaCustomerTypeRpc', rpcError);
+      // Fallback until migration is applied: sender-name legal-entity markers only.
+      return this.getAdminOrdersCustomerTypeFallback(filters, page, pageSize, customerType);
+    }
+
+    const root = (rpcData && typeof rpcData === 'object' ? rpcData : {}) as Record<
+      string,
+      unknown
+    >;
+    const total = asNumber(root['total']);
+    const ids = Array.isArray(root['ids'])
+      ? root['ids'].map((id) => Number(id)).filter((id) => Number.isFinite(id) && id > 0)
+      : [];
+
+    if (ids.length === 0) {
+      return { data: [], total, page, pageSize, error: null };
+    }
+
+    const { data, error } = await this.supabase.client
+      .from('orders')
+      .select(ADMIN_ORDER_LIST_COLUMNS)
+      .in('id', ids);
+
+    if (error) {
+      this.logSupabaseError('getAdminOrdersViaCustomerTypeRpc.select', error);
+      return { data: [], total: 0, page, pageSize, error: error.message };
+    }
+
+    const byId = new Map(
+      normalizeOrders(data as unknown[]).map((order) => [order.id, order] as const),
+    );
+    const ordered = ids.map((id) => byId.get(id)).filter((o): o is Order => Boolean(o));
+    const enriched = await this.enrichOrdersWithOwners(ordered);
+
+    return { data: enriched, total, page, pageSize, error: null };
+  }
+
+  private async getAdminOrdersCustomerTypeFallback(
+    filters: AdminOrderFilters,
+    page: number,
+    pageSize: number,
+    customerType: 'company' | 'individual',
+  ): Promise<PaginatedOrdersResult> {
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+    const companyOr = ADMIN_COMPANY_SENDER_OR;
+
+    let query = this.supabase.client
+      .from('orders')
+      .select(ADMIN_ORDER_LIST_COLUMNS, { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+      .range(from, to);
+
+    query = this.applyAdminListFilters(query, filters);
+
+    if (customerType === 'company') {
+      query = query.or(companyOr);
+    } else {
+      for (const pattern of [
+        '%შპს%',
+        '%სს.%',
+        '%სს %',
+        '%LLC%',
+        '%LTD%',
+        '%კომპანია%',
+        '%ი/მ%',
+        '%Company%',
+      ]) {
+        query = query.not('sender_name', 'ilike', pattern);
+      }
+    }
+
+    const { data, error, count } = await query;
+    if (error) {
+      this.logSupabaseError('getAdminOrdersCustomerTypeFallback', error);
+      return { data: [], total: 0, page, pageSize, error: error.message };
+    }
+
+    return {
+      data: await this.enrichOrdersWithOwners(normalizeOrders(data as unknown[])),
+      total: count ?? 0,
+      page,
+      pageSize,
+      error: null,
+    };
+  }
+
+  private applyAdminListFilters(query: any, filters: AdminOrderFilters): any {
+    let next = this.applyStatusGroup(query, filters.statusGroup);
+
+    if (filters.pickupCity?.trim()) {
+      next = next.eq('pickup_city', filters.pickupCity.trim());
+    }
+
+    if (filters.city?.trim()) {
+      next = next.eq('delivery_city', filters.city.trim());
+    }
+
+    if (filters.customerUserId?.trim()) {
+      next = next.eq('user_id', filters.customerUserId.trim());
+    }
+
+    if (filters.statusGroup === 'delivered') {
+      const fromDate = filters.deliveredDateFrom?.trim() ?? '';
+      const toDate = filters.deliveredDateTo?.trim() ?? '';
+      if (isIsoDateOnly(fromDate)) {
+        next = next.gte('delivery_date', fromDate);
+      }
+      if (isIsoDateOnly(toDate)) {
+        next = next.lte('delivery_date', toDate);
+      }
+    } else if (filters.date?.trim()) {
+      next = next.eq('delivery_date', filters.date.trim());
+    }
+
+    const courierId = filters.courierId?.trim();
+    if (courierId === ADMIN_COURIER_UNASSIGNED) {
+      next = next.is('assigned_courier_id', null);
+    } else if (courierId) {
+      next = next.eq('assigned_courier_id', courierId);
+    }
+
+    const payment = filters.paymentMethod;
+    if (payment === 'cash' || payment === 'card') {
+      next = next.eq('payment_method', payment);
+    }
+
+    const searchOr = this.buildSearchOrFilter(filters.search);
+    if (searchOr) {
+      next = next.or(searchOr);
+    }
+
+    return next;
+  }
+
+  private async enrichOrdersWithOwners(orders: Order[]): Promise<Order[]> {
+    if (orders.length === 0) return orders;
+
+    const userIds = [...new Set(orders.map((o) => o.user_id).filter(Boolean))];
+    if (userIds.length === 0) return orders;
+
+    const { data, error } = await this.supabase.client
+      .from('profiles')
+      .select('id, full_name')
+      .in('id', userIds);
+
+    if (error) {
+      this.logSupabaseError('enrichOrdersWithOwners', error);
+      return orders;
+    }
+
+    const nameById = new Map(
+      ((data ?? []) as Array<{ id: string; full_name: string | null }>).map((row) => [
+        row.id,
+        (row.full_name ?? '').trim() || null,
+      ]),
+    );
+
+    return orders.map((order) => ({
+      ...order,
+      owner_name: nameById.get(order.user_id) ?? order.owner_name ?? null,
+    }));
+  }
+
+  private normalizeCustomerType(
+    value: AdminCustomerTypeFilter | null | undefined,
+  ): AdminCustomerTypeFilter {
+    return value === 'company' || value === 'individual' ? value : 'all';
+  }
+
+  private normalizePlanningBreakdown(raw: unknown): AdminPlanningBreakdown {
+    const root = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+    const groupsRaw = Array.isArray(root['groups']) ? root['groups'] : [];
+    return {
+      total: asNumber(root['total']),
+      groups: groupsRaw.map((row) => this.normalizePlanningBucket(row)).filter(Boolean) as AdminPlanningBucket[],
+    };
+  }
+
+  private normalizePlanningBucket(raw: unknown): AdminPlanningBucket | null {
+    if (!raw || typeof raw !== 'object') return null;
+    const r = raw as Record<string, unknown>;
+    const childrenRaw = Array.isArray(r['children']) ? r['children'] : [];
+    const locationsRaw = Array.isArray(r['pickup_locations']) ? r['pickup_locations'] : [];
+    const citiesRaw = Array.isArray(r['cities']) ? r['cities'] : [];
+    return {
+      key: typeof r['key'] === 'string' ? r['key'] : String(r['key'] ?? ''),
+      label: typeof r['label'] === 'string' && r['label'].trim() ? r['label'] : '—',
+      order_count: asNumber(r['order_count']),
+      user_id: typeof r['user_id'] === 'string' ? r['user_id'] : null,
+      pickup_city: typeof r['pickup_city'] === 'string' ? r['pickup_city'] : null,
+      is_company: typeof r['is_company'] === 'boolean' ? r['is_company'] : undefined,
+      phone: typeof r['phone'] === 'string' && r['phone'].trim() ? r['phone'].trim() : null,
+      parcel_count: r['parcel_count'] != null ? asNumber(r['parcel_count']) : undefined,
+      total_amount: r['total_amount'] != null ? asNumber(r['total_amount']) : undefined,
+      location_count: r['location_count'] != null ? asNumber(r['location_count']) : undefined,
+      cities: citiesRaw
+        .filter((c): c is string => typeof c === 'string' && c.trim().length > 0)
+        .map((c) => c.trim()),
+      pickup_locations: locationsRaw
+        .map((loc) => this.normalizePickupLocation(loc))
+        .filter((loc): loc is NonNullable<typeof loc> => loc !== null),
+      children: childrenRaw
+        .map((child) => this.normalizePlanningBucket(child))
+        .filter((child): child is AdminPlanningBucket => child !== null),
+    };
+  }
+
+  private normalizePickupLocation(raw: unknown): AdminPlanningPickupLocation | null {
+    if (!raw || typeof raw !== 'object') return null;
+    const r = raw as Record<string, unknown>;
+    const key = typeof r['key'] === 'string' ? r['key'] : '';
+    const label = typeof r['label'] === 'string' && r['label'].trim() ? r['label'].trim() : '';
+    if (!key && !label) return null;
+    return {
+      key: key || label,
+      label: label || key || '—',
+      city: typeof r['city'] === 'string' ? r['city'] : null,
+      district: typeof r['district'] === 'string' ? r['district'] : null,
+      address: typeof r['address'] === 'string' ? r['address'] : null,
+      order_count: asNumber(r['order_count']),
+      parcel_count: r['parcel_count'] != null ? asNumber(r['parcel_count']) : undefined,
+      total_amount: r['total_amount'] != null ? asNumber(r['total_amount']) : undefined,
+    };
+  }
+
+  /**
+   * Assign or reassign a Pickup Task for a customer.
+   * One customer → one active pickup_task → one profile pickup location.
+   * Does not create or reassign delivery orders.
+   */
+  async assignPickup(params: {
+    customerUserId: string;
+    courierId: string;
+    filters: AdminOrderFilters;
+  }): Promise<{
+    updated: number;
+    tasksCreated: number;
+    tasksUpdated: number;
+    error: string | null;
+  }> {
+    const { data, error } = await this.supabase.client.rpc('admin_assign_pickup', {
+      p_customer_user_id: params.customerUserId,
+      p_courier_id: params.courierId,
+      p_status_group: params.filters.statusGroup,
+      p_delivery_date:
+        params.filters.statusGroup !== 'delivered' && isIsoDateOnly(params.filters.date)
+          ? params.filters.date!.trim()
+          : null,
+      p_pickup_city: params.filters.pickupCity?.trim() || null,
+      p_delivery_city: params.filters.city?.trim() || null,
+    });
+
+    if (error) {
+      this.logSupabaseError('assignPickup', error);
+      return { updated: 0, tasksCreated: 0, tasksUpdated: 0, error: error.message };
+    }
+
+    const root = (data && typeof data === 'object' ? data : {}) as Record<string, unknown>;
+    return {
+      updated: asNumber(root['updated'] ?? root['orders_linked']),
+      tasksCreated: asNumber(root['tasks_created']),
+      tasksUpdated: asNumber(root['tasks_updated']),
       error: null,
     };
   }
@@ -257,6 +606,17 @@ export class AdminService {
       return false;
     }
 
+    if (filters.customerUserId?.trim() && order.user_id !== filters.customerUserId.trim()) {
+      return false;
+    }
+
+    const customerType = this.normalizeCustomerType(filters.customerType);
+    if (customerType === 'company' || customerType === 'individual') {
+      const company = isCompanyCustomer(order.sender_name, order.owner_name);
+      if (customerType === 'company' && !company) return false;
+      if (customerType === 'individual' && company) return false;
+    }
+
     if (filters.statusGroup === 'delivered') {
       if (!this.matchesDeliveryDateRange(order, filters.deliveredDateFrom, filters.deliveredDateTo)) {
         return false;
@@ -288,6 +648,7 @@ export class AdminService {
         order.recipient_phone,
         order.sender_name,
         order.sender_phone,
+        order.owner_name,
       ]
         .filter(Boolean)
         .join(' ')
@@ -402,7 +763,10 @@ export class AdminService {
       return { data: null, error: error.message };
     }
 
-    return { data: normalizeOrder(data as unknown as Order), error: null };
+    const [enriched] = await this.enrichOrdersWithOwners([
+      normalizeOrder(data as unknown as Order)!,
+    ]);
+    return { data: enriched ?? null, error: null };
   }
 
   async assignCourier(
@@ -463,7 +827,10 @@ export class AdminService {
       return { data: [], error: error.message };
     }
 
-    return { data: normalizeOrders(data as unknown[]), error: null };
+    return {
+      data: await this.enrichOrdersWithOwners(normalizeOrders(data as unknown[])),
+      error: null,
+    };
   }
 
   /**

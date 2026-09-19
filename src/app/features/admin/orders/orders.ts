@@ -24,11 +24,15 @@ import {
   ADMIN_ORDER_PAGE_SIZES,
   ADMIN_PAGE_SIZE_STORAGE_KEY,
   ADMIN_STATUS_GROUPS,
+  AdminCustomerTypeFilter,
   AdminDatePreset,
   AdminDeliveredAnalytics,
   AdminOrderFilters,
+  AdminOrderGroupBy,
   AdminOrderPageSize,
   AdminPaymentMethodFilter,
+  AdminPlanningBreakdown,
+  AdminPlanningBucket,
   AdminStatusGroup,
   ORDER_STATUSES,
   Order,
@@ -43,6 +47,10 @@ import {
   OrderRealtimeService,
 } from '../../../core/services/order-realtime.service';
 import { OrdersService } from '../../../core/services/orders.service';
+import {
+  customerDisplay,
+  pickupLocationLines,
+} from '../../../core/utils/admin-customer.util';
 import {
   auditRoleLabelKa,
   formatGel,
@@ -94,6 +102,11 @@ const EMPTY_ANALYTICS: AdminDeliveredAnalytics = {
   by_courier: [],
 };
 
+const EMPTY_PLANNING: AdminPlanningBreakdown = {
+  total: 0,
+  groups: [],
+};
+
 const EMPTY_MESSAGES: Record<AdminStatusGroup, string> = {
   pending: 'მოლოდინში შეკვეთები არ არის',
   active: 'აქტიური შეკვეთები არ მოიძებნა',
@@ -109,6 +122,12 @@ const TAB_LABELS: Record<AdminStatusGroup, string> = {
   cancelled: 'გაუქმებული',
   all: 'ყველა',
 };
+
+const GROUP_BY_OPTIONS: Array<{ value: AdminOrderGroupBy; label: string }> = [
+  { value: 'none', label: 'დაჯგუფება: გამორთული' },
+  { value: 'customer', label: 'დაჯგუფება: შემკვეთი' },
+  { value: 'pickup_city', label: 'დაჯგუფება: აღების ქალაქი' },
+];
 
 @Component({
   selector: 'app-admin-orders',
@@ -128,6 +147,7 @@ export class AdminOrders implements OnInit {
   /** Ignores stale responses when filters change rapidly. */
   private loadGeneration = 0;
   private analyticsGeneration = 0;
+  private planningGeneration = 0;
   /** Prevents overlapping soft reloads from Realtime bursts. */
   private softReloadInFlight = false;
   private softReloadQueued = false;
@@ -138,9 +158,13 @@ export class AdminOrders implements OnInit {
   readonly pageSizes = ADMIN_ORDER_PAGE_SIZES;
   readonly unassignedCourier = ADMIN_COURIER_UNASSIGNED;
   readonly tabLabels = TAB_LABELS;
+  readonly groupByOptions = GROUP_BY_OPTIONS;
+  readonly customerDisplay = customerDisplay;
+  readonly pickupLines = pickupLocationLines;
 
   readonly orders = signal<Order[]>([]);
   readonly couriers = signal<CourierOption[]>([]);
+  readonly customers = signal<Array<{ id: string; full_name: string }>>([]);
   readonly selectedOrder = signal<Order | null>(null);
   readonly editingOrder = signal<Order | null>(null);
   readonly auditOrder = signal<Order | null>(null);
@@ -151,6 +175,7 @@ export class AdminOrders implements OnInit {
   readonly bulkCourierId = signal<string | null>(null);
   readonly loading = signal(true);
   readonly analyticsLoading = signal(false);
+  readonly planningLoading = signal(false);
   readonly updating = signal(false);
   readonly errorMessage = signal<string | null>(null);
   readonly successMessage = signal<string | null>(null);
@@ -162,6 +187,13 @@ export class AdminOrders implements OnInit {
   readonly total = signal(0);
   readonly datePreset = signal<AdminDatePreset>('all');
   readonly analytics = signal<AdminDeliveredAnalytics>(EMPTY_ANALYTICS);
+  readonly groupBy = signal<AdminOrderGroupBy>('none');
+  readonly planning = signal<AdminPlanningBreakdown>(EMPTY_PLANNING);
+  readonly planningError = signal<string | null>(null);
+  readonly expandedPlanningKey = signal<string | null>(null);
+  readonly dispatchGroup = signal<AdminPlanningBucket | null>(null);
+  readonly dispatchCourierId = signal<string | null>(null);
+  readonly dispatchSaving = signal(false);
 
   readonly statusClass = orderStatusClass;
   readonly statusLabelKey = orderStatusLabelKey;
@@ -179,6 +211,9 @@ export class AdminOrders implements OnInit {
   readonly totalPages = computed(() => Math.max(1, Math.ceil(this.total() / this.pageSize())));
   readonly emptyMessage = computed(() => EMPTY_MESSAGES[this.statusGroup()]);
   readonly showDeliveredAnalytics = computed(() => this.statusGroup() === 'delivered');
+  readonly showPlanning = computed(() => this.groupBy() !== 'none');
+  /** Customer grouping is pickup planning only — never show the order table. */
+  readonly hideOrderList = computed(() => this.groupBy() === 'customer');
   readonly rangeFrom = computed(() => {
     if (this.total() === 0) return 0;
     return (this.page() - 1) * this.pageSize() + 1;
@@ -192,6 +227,8 @@ export class AdminOrders implements OnInit {
     deliveryCity: [''],
     deliveryDate: [''],
     courierId: [''],
+    customerType: ['all' as AdminCustomerTypeFilter],
+    customerUserId: [''],
     deliveredDateFrom: [''],
     deliveredDateTo: [''],
     paymentMethod: ['all' as AdminPaymentMethodFilter],
@@ -234,6 +271,14 @@ export class AdminOrders implements OnInit {
       .pipe(distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => void this.resetPageAndLoad());
 
+    this.filtersForm.controls.customerType.valueChanges
+      .pipe(distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => void this.resetPageAndLoad());
+
+    this.filtersForm.controls.customerUserId.valueChanges
+      .pipe(distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => void this.resetPageAndLoad());
+
     this.filtersForm.controls.paymentMethod.valueChanges
       .pipe(distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => void this.resetPageAndLoad());
@@ -268,7 +313,7 @@ export class AdminOrders implements OnInit {
         void this.onRealtimeChange(change);
       });
 
-    await Promise.all([this.loadOrders(), this.loadCouriers()]);
+    await Promise.all([this.loadOrders(), this.loadCouriers(), this.loadCustomers()]);
   }
 
   async loadCouriers(): Promise<void> {
@@ -280,12 +325,22 @@ export class AdminOrders implements OnInit {
     this.couriers.set(data);
   }
 
+  async loadCustomers(): Promise<void> {
+    const { data, error } = await this.adminService.getOrderCustomers();
+    if (error) {
+      // Non-blocking — customer dropdown is optional for core list load.
+      return;
+    }
+    this.customers.set(data);
+  }
+
   currentFilters(): AdminOrderFilters {
     const form = this.filtersForm.getRawValue();
     const payment = form.paymentMethod;
     const isDelivered = this.statusGroup() === 'delivered';
     const from = form.deliveredDateFrom.trim();
     const to = form.deliveredDateTo.trim();
+    const customerType = form.customerType;
 
     return {
       statusGroup: this.statusGroup(),
@@ -295,6 +350,9 @@ export class AdminOrders implements OnInit {
       pickupCity: form.pickupCity || null,
       city: form.deliveryCity || null,
       courierId: form.courierId || null,
+      customerType:
+        customerType === 'company' || customerType === 'individual' ? customerType : 'all',
+      customerUserId: form.customerUserId || null,
       paymentMethod: isDelivered
         ? payment === 'cash' || payment === 'card'
           ? payment
@@ -314,10 +372,26 @@ export class AdminOrders implements OnInit {
     const filters = this.currentFilters();
     const analyticsPromise =
       filters.statusGroup === 'delivered' ? this.loadDeliveredAnalytics(filters) : Promise.resolve();
+    const planningPromise = this.loadPlanningBreakdown(filters);
+
+    // Customer grouping = pickup planning summaries only; skip order list fetch.
+    if (this.groupBy() === 'customer') {
+      await planningPromise;
+      if (generation !== this.loadGeneration) {
+        return;
+      }
+      this.orders.set([]);
+      this.total.set(this.planning().total);
+      this.selectedIds.set(new Set());
+      this.loading.set(false);
+      this.analytics.set(EMPTY_ANALYTICS);
+      return;
+    }
 
     const [result] = await Promise.all([
       this.adminService.getAdminOrders(filters),
       analyticsPromise,
+      planningPromise,
     ]);
 
     if (generation !== this.loadGeneration) {
@@ -333,6 +407,88 @@ export class AdminOrders implements OnInit {
     if (filters.statusGroup !== 'delivered') {
       this.analytics.set(EMPTY_ANALYTICS);
     }
+  }
+
+  onGroupByChange(value: AdminOrderGroupBy): void {
+    this.groupBy.set(value);
+    this.expandedPlanningKey.set(null);
+    this.closeDispatch();
+    void this.loadOrders();
+  }
+
+  togglePlanningGroup(group: AdminPlanningBucket): void {
+    const key = group.key;
+    this.expandedPlanningKey.update((current) => (current === key ? null : key));
+  }
+
+  applyPlanningBucket(bucket: AdminPlanningBucket): void {
+    // Pickup-city grouping still drills into filters; customer grouping never opens order rows.
+    if (this.groupBy() === 'customer') {
+      return;
+    }
+    if (bucket.user_id) {
+      this.filtersForm.controls.customerUserId.setValue(bucket.user_id);
+      return;
+    }
+    if (bucket.pickup_city) {
+      this.filtersForm.controls.pickupCity.setValue(bucket.pickup_city);
+    }
+  }
+
+  openDispatch(group: AdminPlanningBucket, event?: Event): void {
+    event?.stopPropagation();
+    if (!group.user_id) return;
+    this.dispatchGroup.set(group);
+    this.dispatchCourierId.set(null);
+  }
+
+  closeDispatch(): void {
+    this.dispatchGroup.set(null);
+    this.dispatchCourierId.set(null);
+    this.dispatchSaving.set(false);
+  }
+
+  async confirmDispatch(): Promise<void> {
+    const group = this.dispatchGroup();
+    const courierId = this.dispatchCourierId();
+    if (!group?.user_id) return;
+    if (!courierId) {
+      this.errorMessage.set('აირჩიე კურიერი');
+      return;
+    }
+
+    this.dispatchSaving.set(true);
+    this.errorMessage.set(null);
+    this.successMessage.set(null);
+
+    const { updated, tasksUpdated, error } = await this.adminService.assignPickup({
+      customerUserId: group.user_id,
+      courierId,
+      filters: this.currentFilters(),
+    });
+
+    this.dispatchSaving.set(false);
+
+    if (error) {
+      this.errorMessage.set(
+        error.includes('admin_assign_pickup') || error.includes('Could not find')
+          ? 'აღების დავალება ვერ გაიგზავნა. გაუშვით მიგრაცია 20260919_pickup_one_customer_location.sql'
+          : error,
+      );
+      return;
+    }
+
+    this.successMessage.set(
+      tasksUpdated > 0
+        ? `აღების კურიერი განახლდა (${updated} შეკვეთა) — ${group.label}`
+        : `აღების დავალება შეიქმნა (${updated} შეკვეთა) — ${group.label}`,
+    );
+    this.closeDispatch();
+    void this.loadPlanningBreakdown(this.currentFilters());
+  }
+
+  clearCustomerFilter(): void {
+    this.filtersForm.controls.customerUserId.setValue('');
   }
 
   selectStatusGroup(group: AdminStatusGroup): void {
@@ -648,13 +804,18 @@ export class AdminOrders implements OnInit {
    * (Realtime-compatible: update matching row or drop non-matching).
    */
   private patchOrDropOrder(order: Order): void {
-    const matches = this.adminService.orderMatchesAdminFilters(order, this.currentFilters());
+    const existing = this.orders().find((item) => item.id === order.id);
+    const merged: Order = {
+      ...order,
+      owner_name: order.owner_name ?? existing?.owner_name ?? null,
+    };
+    const matches = this.adminService.orderMatchesAdminFilters(merged, this.currentFilters());
     if (!matches) {
       this.orders.update((list) => list.filter((item) => item.id !== order.id));
       this.total.update((n) => Math.max(0, n - 1));
       return;
     }
-    this.orders.update((list) => list.map((item) => (item.id === order.id ? order : item)));
+    this.orders.update((list) => list.map((item) => (item.id === order.id ? merged : item)));
   }
 
   /**
@@ -694,12 +855,17 @@ export class AdminOrders implements OnInit {
     }
 
     const filters = this.currentFilters();
-    const inList = this.orders().some((o) => o.id === normalized.id);
-    const matches = this.adminService.orderMatchesAdminFilters(normalized, filters);
+    const existing = this.orders().find((o) => o.id === normalized.id);
+    const withOwner: Order = {
+      ...normalized,
+      owner_name: normalized.owner_name ?? existing?.owner_name ?? null,
+    };
+    const inList = Boolean(existing);
+    const matches = this.adminService.orderMatchesAdminFilters(withOwner, filters);
 
     if (inList && matches) {
-      this.patchOrDropOrder(normalized);
-      this.syncOpenModals(normalized);
+      this.patchOrDropOrder(withOwner);
+      this.syncOpenModals(withOwner);
       if (filters.statusGroup === 'delivered') {
         void this.loadDeliveredAnalytics(filters);
       }
@@ -707,8 +873,8 @@ export class AdminOrders implements OnInit {
     }
 
     if (inList && !matches) {
-      this.patchOrDropOrder(normalized);
-      this.closeModalsForOrder(normalized.id);
+      this.patchOrDropOrder(withOwner);
+      this.closeModalsForOrder(withOwner.id);
       await this.softReloadCurrentPage();
       return;
     }
@@ -721,7 +887,7 @@ export class AdminOrders implements OnInit {
     // Not visible — still refresh delivered analytics if status could affect totals.
     if (
       filters.statusGroup === 'delivered' &&
-      (normalized.status === 'delivered' || change.oldRow?.status === 'delivered')
+      (withOwner.status === 'delivered' || change.oldRow?.status === 'delivered')
     ) {
       void this.loadDeliveredAnalytics(filters);
     }
@@ -762,10 +928,12 @@ export class AdminOrders implements OnInit {
           filters.statusGroup === 'delivered'
             ? this.loadDeliveredAnalytics(filters)
             : Promise.resolve();
+        const planningPromise = this.loadPlanningBreakdown(filters);
 
         const [result] = await Promise.all([
           this.adminService.getAdminOrders(filters),
           analyticsPromise,
+          planningPromise,
         ]);
 
         if (generation !== this.loadGeneration) {
@@ -787,6 +955,30 @@ export class AdminOrders implements OnInit {
     } finally {
       this.softReloadInFlight = false;
     }
+  }
+
+  private async loadPlanningBreakdown(filters: AdminOrderFilters): Promise<void> {
+    const groupBy = this.groupBy();
+    if (groupBy === 'none') {
+      this.planning.set(EMPTY_PLANNING);
+      this.planningError.set(null);
+      this.planningLoading.set(false);
+      return;
+    }
+
+    const generation = ++this.planningGeneration;
+    this.planningLoading.set(true);
+    this.planningError.set(null);
+
+    const { data, error } = await this.adminService.getOrderPlanningBreakdown(filters, groupBy);
+
+    if (generation !== this.planningGeneration) {
+      return;
+    }
+
+    this.planning.set(data);
+    this.planningLoading.set(false);
+    this.planningError.set(error);
   }
 
   private async loadDeliveredAnalytics(filters: AdminOrderFilters): Promise<void> {

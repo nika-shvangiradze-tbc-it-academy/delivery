@@ -2,6 +2,8 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  NgZone,
+  OnDestroy,
   OnInit,
   inject,
   signal,
@@ -16,9 +18,12 @@ import {
 } from '@angular/cdk/drag-drop';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
-import { Order, PaymentMethod } from '../../../core/models/order.model';
+import { RealtimeChannel } from '@supabase/supabase-js';
+import { Order, PaymentMethod, PickupTask, PickupTaskLocation } from '../../../core/models/order.model';
 import { CourierRealtimeService } from '../../../core/services/courier-realtime.service';
 import { CourierService } from '../../../core/services/courier.service';
+import { AuthService } from '../../../core/services/auth.service';
+import { SupabaseService } from '../../../core/services/supabase.service';
 import {
   buildTelHref,
   courierStatusLabel,
@@ -34,15 +39,23 @@ import {
   styleUrl: './courier-orders.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class CourierOrders implements OnInit {
+export class CourierOrders implements OnInit, OnDestroy {
   private readonly courierService = inject(CourierService);
   private readonly realtime = inject(CourierRealtimeService);
+  private readonly supabase = inject(SupabaseService);
+  private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly zone = inject(NgZone);
 
-  readonly orders = signal<Order[]>([]);
+  /** Delivery orders only — never mixed with pickup tasks. */
+  readonly deliveryOrders = signal<Order[]>([]);
+  /** Pickup tasks from pickup_tasks table only. */
+  readonly pickupTasks = signal<PickupTask[]>([]);
   readonly loading = signal(true);
+  readonly pickupLoading = signal(true);
   readonly savingId = signal<number | null>(null);
+  readonly completingPickupId = signal<number | null>(null);
   readonly reordering = signal(false);
   readonly errorMessage = signal<string | null>(null);
   readonly successMessage = signal<string | null>(null);
@@ -64,9 +77,18 @@ export class CourierOrders implements OnInit {
   readonly formatPhone = formatPhoneDisplay;
   readonly statusLabel = courierStatusLabel;
 
+  /** Template alias — delivery queue only. */
+  readonly orders = this.deliveryOrders;
+
+  private pickupChannel: RealtimeChannel | null = null;
+
   constructor() {
+    // Delivery-order realtime: refresh delivery queue.
+    // Also reload pickup tasks — OrderRealtimeService also listens to pickup_tasks
+    // and emits on the same courierChanges$ stream.
     this.realtime.changes$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
-      void this.refreshFromRealtime();
+      void this.refreshDeliveryFromRealtime();
+      void this.loadPickupTasks();
     });
 
     this.realtime.manualRefresh$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
@@ -75,31 +97,71 @@ export class CourierOrders implements OnInit {
   }
 
   async ngOnInit(): Promise<void> {
-    await this.reload();
+    // Wait for auth bootstrap so JWT is attached to Supabase REST calls.
+    await this.auth.whenReady();
+
+    // Load pickup tasks immediately and independently from delivery orders.
+    void this.loadPickupTasks();
+    void this.loadDeliveryOrdersAndSummary();
+    await this.subscribePickupTasksRealtime();
+  }
+
+  ngOnDestroy(): void {
+    this.teardownPickupChannel();
   }
 
   async reload(): Promise<void> {
     this.loading.set(true);
     this.errorMessage.set(null);
-    await this.fetchOrdersAndSummary();
+    await Promise.all([this.loadPickupTasks(), this.loadDeliveryOrdersAndSummary()]);
     this.loading.set(false);
   }
 
-  /** Soft refresh from Realtime — no full-page loading flash. */
-  private async refreshFromRealtime(): Promise<void> {
-    if (this.savingId() !== null || this.reordering()) {
+  /** Soft refresh for delivery queue only (orders realtime). */
+  private async refreshDeliveryFromRealtime(): Promise<void> {
+    if (this.savingId() !== null || this.reordering() || this.completingPickupId()) {
       return;
     }
-    await this.fetchOrdersAndSummary();
+    await this.loadDeliveryOrdersAndSummary();
   }
 
-  private async fetchOrdersAndSummary(): Promise<void> {
+  async loadPickupTasks(): Promise<void> {
+    this.pickupLoading.set(true);
+    try {
+      const { data, error } = await this.courierService.getMyPickupTasks();
+      const tasks = data ?? [];
+
+      console.log('[Pickup] before signal set:', tasks);
+
+      // Assign into pickupTasks only — never into deliveryOrders/orders.
+      this.pickupTasks.set(tasks);
+
+      console.log('[Pickup] signal after set:', this.pickupTasks());
+
+      if (error) {
+        console.error('[CourierOrders] loadPickupTasks error', error);
+        this.errorMessage.set(error);
+      }
+    } catch (err) {
+      console.error('[CourierOrders] loadPickupTasks threw', err);
+      const message = err instanceof Error ? err.message : 'Pickup tasks load failed';
+      this.errorMessage.set(message);
+      console.log('[Pickup] before signal set:', []);
+      this.pickupTasks.set([]);
+      console.log('[Pickup] signal after set:', this.pickupTasks());
+    } finally {
+      this.pickupLoading.set(false);
+    }
+  }
+
+  private async loadDeliveryOrdersAndSummary(): Promise<void> {
+    this.loading.set(true);
     const [ordersResult, summaryResult] = await Promise.all([
       this.courierService.getMyActiveOrders(),
       this.courierService.getTodayDeliveredSummary(),
     ]);
 
-    this.orders.set(ordersResult.data);
+    this.deliveryOrders.set(ordersResult.data);
     this.summary.set(summaryResult.data);
     this.syncPaymentDrafts(ordersResult.data);
 
@@ -113,6 +175,94 @@ export class CourierOrders implements OnInit {
     if (nextError) {
       this.errorMessage.set(nextError);
     }
+    this.loading.set(false);
+  }
+
+  private async subscribePickupTasksRealtime(): Promise<void> {
+    this.teardownPickupChannel();
+
+    await this.auth.whenReady();
+    const { data: sessionData } = await this.supabase.client.auth.getSession();
+    const userId = sessionData.session?.user?.id ?? this.auth.user()?.id ?? null;
+    if (!userId) {
+      console.error('[Pickup] realtime: no session user');
+      return;
+    }
+
+    // Dedicated channel — do not rely on delivery-order realtime alone.
+    this.pickupChannel = this.supabase.client
+      .channel(`courier-pickup-tasks-${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'pickup_tasks',
+          filter: `assigned_courier_id=eq.${userId}`,
+        },
+        () => {
+          console.log('[Pickup] realtime INSERT → reload');
+          this.zone.run(() => {
+            void this.loadPickupTasks();
+          });
+        },
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'pickup_tasks',
+          filter: `assigned_courier_id=eq.${userId}`,
+        },
+        () => {
+          console.log('[Pickup] realtime UPDATE → reload');
+          this.zone.run(() => {
+            void this.loadPickupTasks();
+          });
+        },
+      )
+      .subscribe((status) => {
+        console.log('[Pickup] realtime status', status);
+      });
+  }
+
+  private teardownPickupChannel(): void {
+    if (this.pickupChannel) {
+      void this.supabase.client.removeChannel(this.pickupChannel);
+      this.pickupChannel = null;
+    }
+  }
+
+  pickupAddressLine(task: PickupTask): string {
+    return [task.pickup_city, task.pickup_district, task.pickup_address]
+      .map((p) => (p ?? '').trim())
+      .filter(Boolean)
+      .join(', ');
+  }
+
+  locationLabel(loc: PickupTaskLocation): string {
+    return [loc.city, loc.district, loc.address]
+      .map((p) => (p ?? '').trim())
+      .filter(Boolean)
+      .join(', ') || '—';
+  }
+
+  async completePickupTask(task: PickupTask): Promise<void> {
+    this.completingPickupId.set(task.id);
+    this.errorMessage.set(null);
+    this.successMessage.set(null);
+
+    const { updated, error } = await this.courierService.completePickup(task.id);
+    this.completingPickupId.set(null);
+
+    if (error) {
+      this.errorMessage.set(error);
+      return;
+    }
+
+    this.successMessage.set(`აღება შესრულებულია — ${updated} შეკვეთა`);
+    await this.loadPickupTasks();
   }
 
   toggleDetails(orderId: number): void {
@@ -155,10 +305,10 @@ export class CourierOrders implements OnInit {
       return;
     }
 
-    const previous = [...this.orders()];
+    const previous = [...this.deliveryOrders()];
     const next = [...previous];
     moveItemInArray(next, event.previousIndex, event.currentIndex);
-    this.orders.set(next);
+    this.deliveryOrders.set(next);
 
     this.reordering.set(true);
     this.errorMessage.set(null);
@@ -167,12 +317,12 @@ export class CourierOrders implements OnInit {
     this.reordering.set(false);
 
     if (error) {
-      this.orders.set(previous);
+      this.deliveryOrders.set(previous);
       this.errorMessage.set(error);
       return;
     }
 
-    this.orders.set(
+    this.deliveryOrders.set(
       next.map((order, index) => ({
         ...order,
         courier_sort_order: (index + 1) * 10,
@@ -202,7 +352,7 @@ export class CourierOrders implements OnInit {
         return;
       }
 
-      this.orders.update((list) =>
+      this.deliveryOrders.update((list) =>
         list.map((item) => (item.id === order.id ? { ...item, ...data } : item)),
       );
       this.successMessage.set('შეკვეთა აღებულია');
@@ -332,7 +482,7 @@ export class CourierOrders implements OnInit {
   }
 
   private removeFromActive(orderId: number): void {
-    this.orders.update((list) => list.filter((item) => item.id !== orderId));
+    this.deliveryOrders.update((list) => list.filter((item) => item.id !== orderId));
     this.paymentDrafts.update((current) => {
       const next = { ...current };
       delete next[orderId];

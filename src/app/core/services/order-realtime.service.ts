@@ -33,7 +33,7 @@ export interface OrderRealtimeChange {
   orderId: number | null;
   oldRow: OrderRealtimeRow | null;
   newRow: OrderRealtimeRow | null;
-  source: 'orders' | 'courier_order_events';
+  source: 'orders' | 'courier_order_events' | 'pickup_tasks';
 }
 
 /**
@@ -234,6 +234,50 @@ export class OrderRealtimeService {
           },
           (payload: RealtimePostgresChangesPayload<OrderRealtimeRow>) => {
             this.onCourierOrdersChange(userId, payload);
+          },
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'pickup_tasks',
+            filter: `assigned_courier_id=eq.${userId}`,
+          },
+          (payload) => {
+            this.log('relevant pickup task event', {
+              source: 'pickup_tasks',
+              event: payload.eventType,
+            });
+            this.queueChange({
+              eventType: 'INSERT',
+              orderId: null,
+              oldRow: null,
+              newRow: null,
+              source: 'pickup_tasks',
+            });
+          },
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'pickup_tasks',
+            filter: `assigned_courier_id=eq.${userId}`,
+          },
+          (payload) => {
+            this.log('relevant pickup task event', {
+              source: 'pickup_tasks',
+              event: payload.eventType,
+            });
+            this.queueChange({
+              eventType: 'UPDATE',
+              orderId: null,
+              oldRow: null,
+              newRow: null,
+              source: 'pickup_tasks',
+            });
           },
         )
         .on(

@@ -62,6 +62,11 @@ export interface Order {
   courier_sort_order: number | null;
   created_at: string;
   updated_at: string;
+  /**
+   * Account owner display name (profiles.full_name), enriched client-side.
+   * Not a DB column on orders.
+   */
+  owner_name?: string | null;
 }
 
 /** Assigned courier work queue (pending = assigned awaiting pickup). */
@@ -116,6 +121,12 @@ export const ADMIN_COURIER_UNASSIGNED = 'unassigned' as const;
 
 export type AdminPaymentMethodFilter = 'all' | PaymentMethod;
 
+/** Customer source filter for operational planning. */
+export type AdminCustomerTypeFilter = 'all' | 'company' | 'individual';
+
+/** Optional list grouping for dispatcher planning (pending-focused). */
+export type AdminOrderGroupBy = 'none' | 'customer' | 'pickup_city';
+
 export interface AdminOrderFilters {
   statusGroup: AdminStatusGroup;
   /** Optional delivery_date filter (non-delivered tabs). Null/empty = all dates. */
@@ -137,9 +148,84 @@ export interface AdminOrderFilters {
   courierId?: string | null;
   /** Payment method filter (typically delivered tab). */
   paymentMethod?: AdminPaymentMethodFilter | null;
+  /** All / companies / individual users (heuristic on sender + owner name). */
+  customerType?: AdminCustomerTypeFilter | null;
+  /** Filter to one ordering account (profiles.id / orders.user_id). */
+  customerUserId?: string | null;
   search?: string;
   page: number;
   pageSize: AdminOrderPageSize | number;
+}
+
+export interface AdminPlanningPickupLocation {
+  key: string;
+  label: string;
+  city?: string | null;
+  district?: string | null;
+  address?: string | null;
+  order_count: number;
+  parcel_count?: number;
+  total_amount?: number;
+}
+
+/** One row in the admin customer / planning breakdown. */
+export interface AdminPlanningBucket {
+  key: string;
+  label: string;
+  order_count: number;
+  user_id?: string | null;
+  pickup_city?: string | null;
+  is_company?: boolean;
+  phone?: string | null;
+  parcel_count?: number;
+  total_amount?: number;
+  /** Distinct pickup city/address count (customer grouping summary). */
+  location_count?: number;
+  cities?: string[];
+  /** Used by dispatch modal only — not listed in customer group expansion. */
+  pickup_locations?: AdminPlanningPickupLocation[];
+  children?: AdminPlanningBucket[];
+}
+
+/** Operational pickup collection task (separate from delivery orders). */
+export type PickupTaskStatus = 'assigned' | 'completed' | 'cancelled';
+
+export interface PickupTaskLocation {
+  id: number;
+  pickup_task_id: number;
+  city: string | null;
+  district: string | null;
+  address: string | null;
+  parcel_count: number;
+  created_at: string;
+}
+
+export interface PickupTask {
+  id: number;
+  customer_id: string;
+  assigned_courier_id: string;
+  status: PickupTaskStatus;
+  order_count: number;
+  parcel_count: number;
+  customer_name: string | null;
+  pickup_phone: string | null;
+  /** @deprecated Prefer locations — kept for older rows / fallback. */
+  pickup_city: string | null;
+  pickup_district: string | null;
+  pickup_address: string | null;
+  location_key: string | null;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+  /** Normalized locations for the courier card UI. */
+  locations: PickupTaskLocation[];
+  /** Raw embed alias (same as locations) for debug / template dumps. */
+  pickup_task_locations?: PickupTaskLocation[];
+}
+
+export interface AdminPlanningBreakdown {
+  total: number;
+  groups: AdminPlanningBucket[];
 }
 
 export interface AdminDeliveredAnalyticsFilters {

@@ -252,6 +252,10 @@ export function normalizeOrder(
         : Number(raw.courier_sort_order),
     created_at: raw.created_at ?? '',
     updated_at: raw.updated_at ?? '',
+    owner_name:
+      (raw as { owner_name?: string | null }).owner_name != null
+        ? String((raw as { owner_name?: string | null }).owner_name).trim() || null
+        : undefined,
   };
 }
 

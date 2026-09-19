@@ -27,6 +27,7 @@
     <form
       class="admin-orders__filters"
       [class.admin-orders__filters--delivered]="showDeliveredAnalytics()"
+      [class.admin-orders__filters--planning]="!showDeliveredAnalytics()"
       [formGroup]="filtersForm"
       (ngSubmit)="onFilter()"
     >
@@ -36,16 +37,27 @@
         formControlName="search"
         [placeholder]="'admin.searchPlaceholder' | t"
       />
-      <select formControlName="pickupCity">
-        <option value="">ყველა ქალაქი (აღება)</option>
+      <select class="admin-orders__filter-pickup-city" formControlName="pickupCity">
+        <option value="">აღების ქალაქი: ყველა</option>
         @for (city of cities; track city) {
           <option [value]="city">{{ city }}</option>
         }
       </select>
       <select formControlName="deliveryCity">
-        <option value="">ყველა ქალაქი (მიწოდება)</option>
+        <option value="">მიწოდების ქალაქი: ყველა</option>
         @for (city of cities; track city) {
           <option [value]="city">{{ city }}</option>
+        }
+      </select>
+      <select class="admin-orders__filter-customer-type" formControlName="customerType">
+        <option value="all">შემკვეთი: ყველა</option>
+        <option value="company">კომპანიები</option>
+        <option value="individual">ფიზიკური პირები</option>
+      </select>
+      <select class="admin-orders__filter-customer" formControlName="customerUserId">
+        <option value="">კონკრეტული შემკვეთი</option>
+        @for (customer of customers(); track customer.id) {
+          <option [value]="customer.id">{{ customer.full_name }}</option>
         }
       </select>
       <select formControlName="courierId">
@@ -72,6 +84,7 @@
         </select>
       } @else {
         <select
+          class="admin-orders__filter-date-preset"
           [ngModel]="datePreset()"
           [ngModelOptions]="{ standalone: true }"
           (ngModelChange)="onDatePresetChange($event)"
@@ -82,14 +95,129 @@
           <option value="custom">არჩეული თარიღი</option>
         </select>
         @if (datePreset() === 'custom') {
-          <input type="date" formControlName="deliveryDate" />
+          <input
+            class="admin-orders__filter-custom-date"
+            type="date"
+            formControlName="deliveryDate"
+          />
         }
+        <select
+          class="admin-orders__filter-group"
+          [ngModel]="groupBy()"
+          [ngModelOptions]="{ standalone: true }"
+          (ngModelChange)="onGroupByChange($event)"
+        >
+          @for (opt of groupByOptions; track opt.value) {
+            <option [ngValue]="opt.value">{{ opt.label }}</option>
+          }
+        </select>
       }
 
       <button type="submit" class="admin-orders__filter-submit">
         {{ 'admin.applyFilters' | t }}
       </button>
     </form>
+
+    @if (showPlanning()) {
+      <section class="admin-orders__planning" aria-label="ოპერაციული დაჯგუფება">
+        <div class="admin-orders__planning-head">
+          <h2>
+            {{ tabLabels[statusGroup()] }}
+            <span class="admin-orders__planning-total">({{ planning().total || total() }})</span>
+          </h2>
+          @if (planningLoading()) {
+            <span class="admin-orders__muted">ითვლება…</span>
+          }
+          @if (filtersForm.controls.customerUserId.value) {
+            <button type="button" class="admin-orders__chip-clear" (click)="clearCustomerFilter()">
+              შემკვეთის ფილტრის გასუფთავება
+            </button>
+          }
+        </div>
+        @if (planningError()) {
+          <p class="admin-orders__planning-error" role="alert">
+            დაჯგუფება ვერ ჩაიტვირთა. გაუშვით Supabase მიგრაცია
+            <code>20260919_pickup_one_customer_location.sql</code>
+          </p>
+        } @else if (!planningLoading() && planning().groups.length === 0) {
+          <p class="admin-orders__muted">დაჯგუფების მონაცემები არ არის</p>
+        } @else {
+          <div class="admin-orders__planning-groups">
+            @for (group of planning().groups; track group.key) {
+              <div
+                class="admin-orders__planning-group"
+                [class.is-expanded]="expandedPlanningKey() === group.key"
+              >
+                <button
+                  type="button"
+                  class="admin-orders__planning-btn"
+                  (click)="
+                    groupBy() === 'customer' ? togglePlanningGroup(group) : applyPlanningBucket(group)
+                  "
+                >
+                  <span class="admin-orders__planning-label">
+                    @if (group.is_company) {
+                      <span class="admin-orders__cust-icon" aria-hidden="true">🏢</span>
+                    } @else if (groupBy() === 'customer') {
+                      <span class="admin-orders__cust-icon" aria-hidden="true">👤</span>
+                    }
+                    {{ group.label }}
+                  </span>
+                  <span class="admin-orders__planning-count">
+                    {{ group.order_count }} შეკვეთა
+                  </span>
+                </button>
+
+                @if (groupBy() === 'customer' && expandedPlanningKey() === group.key) {
+                  <div class="admin-orders__planning-detail">
+                    <div class="admin-orders__planning-stats">
+                      <p><span>შემკვეთი:</span> {{ group.label }}</p>
+                      @if (group.phone) {
+                        <p><span>ტელ:</span> {{ group.phone }}</p>
+                      }
+                      <p><span>მოლოდინში შეკვეთები:</span> {{ group.order_count }}</p>
+                      <p><span>ამანათები:</span> {{ group.parcel_count ?? 0 }}</p>
+                    </div>
+
+                    <div class="admin-orders__planning-actions">
+                      <button
+                        type="button"
+                        class="admin-orders__dispatch-btn"
+                        (click)="openDispatch(group, $event)"
+                      >
+                        კურიერის გაგზავნა
+                      </button>
+                    </div>
+                  </div>
+                }
+
+                @if (group.children?.length) {
+                  <div class="admin-orders__planning-children">
+                    @for (child of group.children; track child.key) {
+                      <button
+                        type="button"
+                        class="admin-orders__planning-btn admin-orders__planning-btn--child"
+                        (click)="applyPlanningBucket(child)"
+                      >
+                        <span class="admin-orders__planning-label">
+                          @if (child.is_company) {
+                            <span class="admin-orders__cust-icon" aria-hidden="true">🏢</span>
+                          } @else {
+                            <span class="admin-orders__cust-icon" aria-hidden="true">👤</span>
+                          }
+                          {{ child.label }}
+                        </span>
+                        <span class="admin-orders__planning-count">{{ child.order_count }}</span>
+                      </button>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
+      </section>
+    }
 
     @if (showDeliveredAnalytics()) {
       <section class="admin-orders__analytics" aria-label="ჩაბარებული შეკვეთების ანალიტიკა">
@@ -124,7 +252,7 @@
       </section>
     }
 
-    <div class="admin-orders__bulk">
+    <div class="admin-orders__bulk" [hidden]="hideOrderList()">
       <p class="admin-orders__bulk-count">მონიშნული: {{ selectedCount() }}</p>
       <select
         [ngModel]="bulkCourierId()"
@@ -162,7 +290,9 @@
       <p class="admin-orders__success" role="status">{{ successMessage() }}</p>
     }
 
-    @if (loading()) {
+    @if (hideOrderList()) {
+      <!-- Customer grouping = pickup planning only; no order table. -->
+    } @else if (loading()) {
       <p class="admin-orders__muted">{{ 'common.loading' | t }}</p>
     } @else if (orders().length === 0) {
       <p class="admin-orders__muted">{{ emptyMessage() }}</p>
@@ -184,7 +314,7 @@
       </div>
     } @else {
       <div class="admin-orders__table-wrap">
-        <table>
+        <table class="admin-orders__table">
           <thead>
             <tr>
               <th>
@@ -195,20 +325,21 @@
                 />
               </th>
               <th>{{ 'orders.id' | t }}</th>
-              <th>{{ 'orders.recipient' | t }}</th>
-              <th>{{ 'orders.recipientPhone' | t }}</th>
-              <th>{{ 'orders.deliveryCity' | t }}</th>
-              <th>ასაღები</th>
-              <th>აღებული</th>
-              <th>გადახდა</th>
-              <th>{{ 'orders.deliveryDate' | t }}</th>
               <th>{{ 'orders.statusLabel' | t }}</th>
+              <th>შემკვეთი</th>
+              <th>აღების ადგილი</th>
+              <th>{{ 'orders.deliveryCity' | t }}</th>
+              <th>{{ 'orders.recipient' | t }}</th>
+              <th>თანხა</th>
+              <th>{{ 'orders.deliveryDate' | t }}</th>
               <th>{{ 'admin.courier' | t }}</th>
               <th>{{ 'admin.actions' | t }}</th>
             </tr>
           </thead>
           <tbody>
             @for (order of orders(); track order.id) {
+              @let cust = customerDisplay(order.sender_name, order.owner_name);
+              @let pickup = pickupLines(order);
               <tr [class.is-selected]="isSelected(order.id)">
                 <td>
                   <input
@@ -217,19 +348,7 @@
                     (change)="toggleOrder(order.id, $any($event.target).checked)"
                   />
                 </td>
-                <td>#{{ order.id }}</td>
-                <td>
-                  {{ order.recipient_name || '—' }}
-                  @if (order.is_fragile) {
-                    <span class="admin-orders__fragile" title="მსხვრევადი ამანათი">⚠ მსხვრევადი</span>
-                  }
-                </td>
-                <td>{{ order.recipient_phone || '—' }}</td>
-                <td>{{ order.delivery_city || '—' }}</td>
-                <td>{{ formatGel(order.amount_to_collect) }} ₾</td>
-                <td>{{ formatGel(order.collected_amount) }} ₾</td>
-                <td>{{ paymentLabel(order.payment_method) }}</td>
-                <td>{{ order.delivery_date ? (order.delivery_date | date: 'mediumDate') : '—' }}</td>
+                <td class="admin-orders__id">#{{ order.id }}</td>
                 <td>
                   <select
                     class="status-select"
@@ -247,6 +366,32 @@
                     }
                   </select>
                 </td>
+                <td class="admin-orders__customer">
+                  <span class="admin-orders__customer-primary">
+                    <span class="admin-orders__cust-icon" aria-hidden="true">{{
+                      cust.isCompany ? '🏢' : '👤'
+                    }}</span>
+                    {{ cust.primary }}
+                  </span>
+                  @if (cust.secondary) {
+                    <span class="admin-orders__customer-secondary">{{ cust.secondary }}</span>
+                  }
+                </td>
+                <td class="admin-orders__pickup">
+                  <span class="admin-orders__pickup-place">{{ pickup.place }}</span>
+                  @if (pickup.address) {
+                    <span class="admin-orders__pickup-address">{{ pickup.address }}</span>
+                  }
+                </td>
+                <td>{{ order.delivery_city || '—' }}</td>
+                <td>
+                  {{ order.recipient_name || '—' }}
+                  @if (order.is_fragile) {
+                    <span class="admin-orders__fragile" title="მსხვრევადი ამანათი">⚠</span>
+                  }
+                </td>
+                <td class="admin-orders__amount">{{ formatGel(order.amount_to_collect) }} ₾</td>
+                <td>{{ order.delivery_date ? (order.delivery_date | date: 'mediumDate') : '—' }}</td>
                 <td>{{ courierName(order.assigned_courier_id) }}</td>
                 <td class="admin-orders__row-actions">
                   <button type="button" class="admin-orders__link-btn" (click)="openEdit(order)">
@@ -276,6 +421,97 @@
             }
           </tbody>
         </table>
+      </div>
+
+      <div class="admin-orders__cards" aria-label="შეკვეთები (მობილური)">
+        @for (order of orders(); track order.id) {
+          @let cust = customerDisplay(order.sender_name, order.owner_name);
+          @let pickup = pickupLines(order);
+          <article class="admin-orders__card" [class.is-selected]="isSelected(order.id)">
+            <div class="admin-orders__card-top">
+              <label class="admin-orders__card-check">
+                <input
+                  type="checkbox"
+                  [checked]="isSelected(order.id)"
+                  (change)="toggleOrder(order.id, $any($event.target).checked)"
+                />
+                <span class="admin-orders__id">#{{ order.id }}</span>
+              </label>
+              <select
+                class="status-select"
+                [class.status-select--pending]="order.status === 'pending'"
+                [class.status-select--active]="order.status === 'picked_up'"
+                [class.status-select--delivered]="order.status === 'delivered'"
+                [class.status-select--cancelled]="order.status === 'cancelled'"
+                [disabled]="updating()"
+                [ngModel]="order.status"
+                [ngModelOptions]="{ standalone: true }"
+                (ngModelChange)="updateOrderStatus(order, $event)"
+              >
+                @for (status of statuses; track status) {
+                  <option [ngValue]="status">{{ statusLabelKey(status) | t }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="admin-orders__card-main">
+              <p class="admin-orders__card-customer">
+                <span class="admin-orders__cust-icon" aria-hidden="true">{{
+                  cust.isCompany ? '🏢' : '👤'
+                }}</span>
+                <span>{{ cust.primary }}</span>
+                @if (cust.secondary) {
+                  <span class="admin-orders__customer-secondary">{{ cust.secondary }}</span>
+                }
+              </p>
+              <p class="admin-orders__card-recipient">
+                {{ order.recipient_name || '—' }}
+                · {{ order.delivery_city || '—' }}
+                @if (order.is_fragile) {
+                  <span class="admin-orders__fragile">⚠</span>
+                }
+              </p>
+            </div>
+
+            <div class="admin-orders__card-pickup">
+              <span class="admin-orders__card-pickup-label">აღების ადგილი</span>
+              <span class="admin-orders__pickup-place">{{ pickup.place }}</span>
+              @if (pickup.address) {
+                <span class="admin-orders__pickup-address">{{ pickup.address }}</span>
+              }
+            </div>
+
+            <div class="admin-orders__card-meta">
+              <span>{{ formatGel(order.amount_to_collect) }} ₾</span>
+              <span>{{ order.delivery_date ? (order.delivery_date | date: 'mediumDate') : '—' }}</span>
+              <span>{{ courierName(order.assigned_courier_id) }}</span>
+            </div>
+
+            <div class="admin-orders__card-actions">
+              <button type="button" class="admin-orders__link-btn" (click)="openEdit(order)">
+                რედაქტირება
+              </button>
+              <button type="button" class="admin-orders__link-btn" (click)="openDetails(order)">
+                {{ 'admin.viewDetails' | t }}
+              </button>
+              <button
+                type="button"
+                class="admin-orders__link-btn admin-orders__link-btn--history"
+                (click)="openAuditHistory(order)"
+              >
+                {{ 'admin.statusHistory' | t }}
+              </button>
+              <button
+                type="button"
+                class="admin-orders__link-btn admin-orders__link-btn--danger"
+                (click)="deleteOrder(order)"
+                [disabled]="updating()"
+              >
+                {{ 'admin.deleteOrder' | t }}
+              </button>
+            </div>
+          </article>
+        }
       </div>
 
       <div class="admin-orders__pagination">
@@ -586,6 +822,79 @@
           {{ updating() ? 'ინახება...' : 'შენახვა' }}
         </button>
       </form>
+    </div>
+  </div>
+}
+
+@if (dispatchGroup(); as group) {
+  <div class="admin-orders__modal" (click)="closeDispatch()">
+    <div class="admin-orders__modal-panel admin-orders__modal-panel--dispatch" (click)="$event.stopPropagation()">
+      <div class="admin-orders__modal-head">
+        <h2>კურიერის გაგზავნა — აღების დავალება</h2>
+        <button type="button" (click)="closeDispatch()">×</button>
+      </div>
+
+      <div class="admin-orders__dispatch-summary">
+        <p class="admin-orders__dispatch-customer">
+          <span class="admin-orders__cust-icon" aria-hidden="true">{{
+            group.is_company ? '🏢' : '👤'
+          }}</span>
+          Customer: {{ group.label }}
+        </p>
+        @if (group.phone) {
+          <p>Phone: {{ group.phone }}</p>
+        }
+        <p>Orders: {{ group.order_count }}</p>
+        <p>Parcels: {{ group.parcel_count ?? 0 }}</p>
+      </div>
+
+      <div class="admin-orders__dispatch-locations-readonly">
+        <p class="admin-orders__dispatch-locations-title">Pickup location</p>
+        @if (group.pickup_locations?.length) {
+          <ul>
+            <li>
+              <span aria-hidden="true">📍</span>
+              <span>
+                <strong>{{ group.pickup_locations![0].label || '—' }}</strong>
+              </span>
+            </li>
+          </ul>
+        } @else {
+          <p class="admin-orders__dispatch-note">
+            Customer has no registered pickup address (profile defaults).
+          </p>
+        }
+      </div>
+
+      <p class="admin-orders__dispatch-note">
+        ერთი აღების დავალება · ერთი აღების მისამართი (კლიენტის პროფილი). მიწოდების შეკვეთები არ იცვლება.
+      </p>
+
+      <label class="admin-orders__dispatch-courier">
+        <span>კურიერი</span>
+        <select
+          [ngModel]="dispatchCourierId()"
+          [ngModelOptions]="{ standalone: true }"
+          (ngModelChange)="dispatchCourierId.set($event)"
+        >
+          <option [ngValue]="null">აირჩიე კურიერი</option>
+          @for (courier of couriers(); track courier.id) {
+            <option [ngValue]="courier.id">{{ courier.full_name }}</option>
+          }
+        </select>
+      </label>
+
+      <div class="admin-orders__dispatch-footer">
+        <button type="button" class="admin-orders__link-btn" (click)="closeDispatch()">გაუქმება</button>
+        <button
+          type="button"
+          class="admin-orders__dispatch-btn"
+          [disabled]="dispatchSaving()"
+          (click)="confirmDispatch()"
+        >
+          {{ dispatchSaving() ? 'იგზავნება…' : 'კურიერის გაგზავნა' }}
+        </button>
+      </div>
     </div>
   </div>
 }
