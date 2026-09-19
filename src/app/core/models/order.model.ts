@@ -1,4 +1,9 @@
-export type OrderStatus = 'pending' | 'picked_up' | 'delivered' | 'cancelled';
+export type OrderStatus =
+  | 'pending'
+  | 'office'
+  | 'picked_up'
+  | 'delivered'
+  | 'cancelled';
 
 /** Status values couriers may set (English DB values only — not UI labels). */
 export type CourierStatus = 'pending' | 'picked_up' | 'delivered' | 'cancelled';
@@ -7,6 +12,7 @@ export type PaymentMethod = 'cash' | 'card';
 
 export const ORDER_STATUSES: OrderStatus[] = [
   'pending',
+  'office',
   'picked_up',
   'delivered',
   'cancelled',
@@ -20,7 +26,7 @@ export const COURIER_ALLOWED_STATUSES: CourierStatus[] = [
   'cancelled',
 ];
 
-/** Statuses a courier may restore/correct to from history (never pending). */
+/** Statuses a courier may restore/correct to from history (never pending/office). */
 export const COURIER_CORRECTION_STATUSES: CourierStatus[] = [
   'picked_up',
   'delivered',
@@ -78,15 +84,23 @@ export interface Order {
   pickup_cancelled_at?: string | null;
 }
 
-/** Assigned courier work queue (pending = assigned awaiting pickup). */
-export const COURIER_ACTIVE_STATUSES: OrderStatus[] = ['pending', 'picked_up'];
+/**
+ * Assigned courier work queue.
+ * pending/office = awaiting delivery take; picked_up = delivery in progress.
+ */
+export const COURIER_ACTIVE_STATUSES: OrderStatus[] = [
+  'pending',
+  'office',
+  'picked_up',
+];
 
 /**
  * Active-list query values including legacy statuses until the DB migration runs.
- * Rows are normalized to the 4-status model in the client.
+ * Rows are normalized to the status model in the client.
  */
 export const COURIER_ACTIVE_STATUS_FILTER: string[] = [
   'pending',
+  'office',
   'picked_up',
   'accepted',
   'in_transit',
@@ -95,17 +109,24 @@ export const COURIER_ACTIVE_STATUS_FILTER: string[] = [
 export const COURIER_HISTORY_STATUSES: OrderStatus[] = ['delivered', 'cancelled'];
 
 /** Admin Orders status tabs — maps to server-side status filters. */
-export type AdminStatusGroup = 'pending' | 'active' | 'delivered' | 'cancelled' | 'all';
+export type AdminStatusGroup =
+  | 'pending'
+  | 'office'
+  | 'active'
+  | 'delivered'
+  | 'cancelled'
+  | 'all';
 
 export const ADMIN_STATUS_GROUPS: AdminStatusGroup[] = [
   'pending',
+  'office',
   'active',
   'delivered',
   'cancelled',
   'all',
 ];
 
-/** Admin "აქტიური" tab — picked up only (canonical). */
+/** Admin "აქტიური" tab — delivery-stage only (not office). */
 export const ADMIN_ACTIVE_STATUSES: OrderStatus[] = ['picked_up'];
 
 /** Includes legacy accepted/in_transit until migration is applied. */
@@ -344,6 +365,7 @@ export interface MyOrdersQueryOptions {
 export interface MyOrdersStatusCounts {
   all: number;
   pending: number;
+  office: number;
   picked_up: number;
   delivered: number;
   cancelled: number;
@@ -438,6 +460,7 @@ export interface AdminDashboardStats {
   totalUsers: number;
   totalOrders: number;
   pendingOrders: number;
+  officeOrders: number;
   pickedUpOrders: number;
   deliveredOrders: number;
   cancelledOrders: number;

@@ -370,6 +370,7 @@ export class OrdersService {
     const empty: MyOrdersStatusCounts = {
       all: 0,
       pending: 0,
+      office: 0,
       picked_up: 0,
       delivered: 0,
       cancelled: 0,
@@ -380,7 +381,13 @@ export class OrdersService {
       return { data: empty, error: 'Not authenticated' };
     }
 
-    const statuses: OrderStatus[] = ['pending', 'picked_up', 'delivered', 'cancelled'];
+    const statuses: OrderStatus[] = [
+      'pending',
+      'office',
+      'picked_up',
+      'delivered',
+      'cancelled',
+    ];
     const [allResult, ...statusResults] = await Promise.all([
       this.supabase.client
         .from('orders')
@@ -409,9 +416,10 @@ export class OrdersService {
       data: {
         all: allResult.count ?? 0,
         pending: statusResults[0]?.count ?? 0,
-        picked_up: statusResults[1]?.count ?? 0,
-        delivered: statusResults[2]?.count ?? 0,
-        cancelled: statusResults[3]?.count ?? 0,
+        office: statusResults[1]?.count ?? 0,
+        picked_up: statusResults[2]?.count ?? 0,
+        delivered: statusResults[3]?.count ?? 0,
+        cancelled: statusResults[4]?.count ?? 0,
       },
       error: null,
     };
@@ -543,7 +551,7 @@ export class OrdersService {
     return {
       data: {
         total: data.all,
-        active: data.pending + data.picked_up,
+        active: data.pending + data.office + data.picked_up,
         completed: data.delivered + data.cancelled,
       },
       error: null,

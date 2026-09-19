@@ -397,6 +397,7 @@
                   <select
                     class="status-select"
                     [class.status-select--pending]="order.status === 'pending'"
+                    [class.status-select--office]="order.status === 'office'"
                     [class.status-select--active]="order.status === 'picked_up'"
                     [class.status-select--delivered]="order.status === 'delivered'"
                     [class.status-select--cancelled]="order.status === 'cancelled'"
@@ -493,6 +494,7 @@
               <select
                 class="status-select"
                 [class.status-select--pending]="order.status === 'pending'"
+                [class.status-select--office]="order.status === 'office'"
                 [class.status-select--active]="order.status === 'picked_up'"
                 [class.status-select--delivered]="order.status === 'delivered'"
                 [class.status-select--cancelled]="order.status === 'cancelled'"

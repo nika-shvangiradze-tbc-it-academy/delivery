@@ -114,6 +114,7 @@ const EMPTY_PLANNING: AdminPlanningBreakdown = {
 
 const EMPTY_MESSAGES: Record<AdminStatusGroup, string> = {
   pending: 'მოლოდინში შეკვეთები არ არის',
+  office: 'ოფისში შეკვეთები არ მოიძებნა',
   active: 'აქტიური შეკვეთები არ მოიძებნა',
   delivered: 'ჩაბარებული შეკვეთები არ მოიძებნა',
   cancelled: 'გაუქმებული შეკვეთები არ მოიძებნა',
@@ -122,6 +123,7 @@ const EMPTY_MESSAGES: Record<AdminStatusGroup, string> = {
 
 const TAB_LABELS: Record<AdminStatusGroup, string> = {
   pending: 'მოლოდინში',
+  office: 'ოფისში',
   active: 'აქტიური',
   delivered: 'ჩაბარებული',
   cancelled: 'გაუქმებული',

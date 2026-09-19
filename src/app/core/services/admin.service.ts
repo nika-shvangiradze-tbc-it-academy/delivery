@@ -104,6 +104,7 @@ export class AdminService {
         totalUsers: usersResult.count ?? 0,
         totalOrders: asNumber(raw['total']),
         pendingOrders: asNumber(raw['pending']),
+        officeOrders: asNumber(raw['office']),
         pickedUpOrders: asNumber(raw['picked_up']),
         deliveredOrders: asNumber(raw['delivered']),
         cancelledOrders: asNumber(raw['cancelled']),
@@ -929,6 +930,8 @@ export class AdminService {
     switch (group) {
       case 'pending':
         return status === 'pending';
+      case 'office':
+        return status === 'office';
       case 'active':
         return ADMIN_ACTIVE_STATUSES.includes(status);
       case 'delivered':
@@ -1009,30 +1012,69 @@ export class AdminService {
       return { data: [], error: 'შეკვეთები არ არის მონიშნული' };
     }
 
-    const payload: Record<string, unknown> = {
-      assigned_courier_id: courierId,
-      updated_at: new Date().toISOString(),
-    };
+    const updatedAt = new Date().toISOString();
 
-    // Assign keeps current status (pending stays pending).
-    // Unassign returns the order to the waiting pool.
-    if (!courierId) {
-      payload['status'] = 'pending';
+    // Assign keeps current status (pending stays pending, office stays office).
+    if (courierId) {
+      const { data, error } = await this.supabase.client
+        .from('orders')
+        .update({
+          assigned_courier_id: courierId,
+          updated_at: updatedAt,
+        })
+        .in('id', uniqueIds)
+        .select(ADMIN_ORDER_LIST_COLUMNS);
+
+      if (error) {
+        this.logSupabaseError('assignCouriersBulk', error);
+        return { data: [], error: error.message };
+      }
+
+      return {
+        data: await this.enrichOrdersWithOwners(normalizeOrders(data as unknown[])),
+        error: null,
+      };
     }
 
-    const { data, error } = await this.supabase.client
-      .from('orders')
-      .update(payload)
-      .in('id', uniqueIds)
-      .select(ADMIN_ORDER_LIST_COLUMNS);
+    // Unassign: office stays office; other non-terminal statuses return to pending.
+    const [officeResult, otherResult] = await Promise.all([
+      this.supabase.client
+        .from('orders')
+        .update({
+          assigned_courier_id: null,
+          updated_at: updatedAt,
+        })
+        .in('id', uniqueIds)
+        .eq('status', 'office')
+        .select(ADMIN_ORDER_LIST_COLUMNS),
+      this.supabase.client
+        .from('orders')
+        .update({
+          assigned_courier_id: null,
+          status: 'pending',
+          updated_at: updatedAt,
+        })
+        .in('id', uniqueIds)
+        .neq('status', 'office')
+        .select(ADMIN_ORDER_LIST_COLUMNS),
+    ]);
 
-    if (error) {
-      this.logSupabaseError('assignCouriersBulk', error);
-      return { data: [], error: error.message };
+    if (officeResult.error) {
+      this.logSupabaseError('assignCouriersBulk.office', officeResult.error);
+      return { data: [], error: officeResult.error.message };
     }
+    if (otherResult.error) {
+      this.logSupabaseError('assignCouriersBulk.other', otherResult.error);
+      return { data: [], error: otherResult.error.message };
+    }
+
+    const merged = [
+      ...(officeResult.data as unknown[] | null | undefined ?? []),
+      ...(otherResult.data as unknown[] | null | undefined ?? []),
+    ];
 
     return {
-      data: await this.enrichOrdersWithOwners(normalizeOrders(data as unknown[])),
+      data: await this.enrichOrdersWithOwners(normalizeOrders(merged)),
       error: null,
     };
   }
@@ -1168,6 +1210,8 @@ export class AdminService {
     switch (group) {
       case 'pending':
         return query.eq('status', 'pending');
+      case 'office':
+        return query.eq('status', 'office');
       case 'active':
         return query.in('status', [...ADMIN_ACTIVE_STATUS_FILTER]);
       case 'delivered':
@@ -1235,6 +1279,7 @@ export class AdminService {
       totalUsers: 0,
       totalOrders: 0,
       pendingOrders: 0,
+      officeOrders: 0,
       pickedUpOrders: 0,
       deliveredOrders: 0,
       cancelledOrders: 0,

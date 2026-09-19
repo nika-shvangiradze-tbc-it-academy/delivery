@@ -9,17 +9,23 @@ import {
 import { UserRole } from '../models/profile.model';
 
 /** Visual tone keys shared by Admin filters, badges, and status selects. */
-export type StatusTone = 'pending' | 'active' | 'delivered' | 'cancelled' | 'all';
+export type StatusTone = 'pending' | 'office' | 'active' | 'delivered' | 'cancelled' | 'all';
 
 /**
  * Central status color/class mapping — single source of truth for Admin UI.
  * Order status `picked_up` uses the same `active` tone (blue).
+ * `office` has its own purple tone (between pending and active).
  */
 export const STATUS_STYLES = {
   pending: {
     badgeClass: 'status-badge status-badge--pending',
     selectClass: 'status-select status-select--pending',
     filterClass: 'status-filter status-filter--pending',
+  },
+  office: {
+    badgeClass: 'status-badge status-badge--office',
+    selectClass: 'status-select status-select--office',
+    filterClass: 'status-filter status-filter--office',
   },
   active: {
     badgeClass: 'status-badge status-badge--active',
@@ -46,9 +52,10 @@ export const STATUS_STYLES = {
   { badgeClass: string; selectClass: string; filterClass: string }
 >;
 
-/** Order DB status → visual tone (picked_up ≡ active). */
+/** Order DB status → visual tone (picked_up ≡ active; office is separate). */
 const ORDER_STATUS_TONE: Record<OrderStatus, Exclude<StatusTone, 'all'>> = {
   pending: 'pending',
+  office: 'office',
   picked_up: 'active',
   delivered: 'delivered',
   cancelled: 'cancelled',
@@ -61,8 +68,13 @@ export const ORDER_STATUS_UI = {
     badgeClass: STATUS_STYLES.pending.badgeClass,
     selectClass: STATUS_STYLES.pending.selectClass,
   },
+  office: {
+    labelKa: 'ოფისში',
+    badgeClass: STATUS_STYLES.office.badgeClass,
+    selectClass: STATUS_STYLES.office.selectClass,
+  },
   picked_up: {
-    labelKa: 'აღებული',
+    labelKa: 'აქტიური',
     badgeClass: STATUS_STYLES.active.badgeClass,
     selectClass: STATUS_STYLES.active.selectClass,
   },
@@ -99,6 +111,7 @@ export function normalizeLegacyStatus(
   }
   if (
     status === 'pending' ||
+    status === 'office' ||
     status === 'picked_up' ||
     status === 'delivered' ||
     status === 'cancelled'
@@ -203,6 +216,10 @@ export function parseCourierStatus(value: unknown): CourierStatus | null {
   // Legacy DB values until migration is applied
   if (value === 'accepted' || value === 'in_transit') {
     return 'picked_up';
+  }
+  // office is not a courier-settable target; normalize away if seen
+  if (value === 'office') {
+    return null;
   }
   return null;
 }

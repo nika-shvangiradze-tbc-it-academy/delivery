@@ -163,7 +163,7 @@ export class CourierService {
 
   /**
    * Complete pickup via SECURITY DEFINER RPC only.
-   * Does not PATCH orders — courier_complete_pickup updates linked pending → picked_up.
+   * Does not PATCH orders — courier_complete_pickup updates linked pending → office.
    */
   async completePickup(pickupTaskId: number): Promise<{ updated: number; error: string | null }> {
     if (!Number.isFinite(pickupTaskId) || pickupTaskId <= 0) {

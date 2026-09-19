@@ -32,6 +32,7 @@ export class AdminDashboard implements OnInit {
     totalUsers: 0,
     totalOrders: 0,
     pendingOrders: 0,
+    officeOrders: 0,
     pickedUpOrders: 0,
     deliveredOrders: 0,
     cancelledOrders: 0,

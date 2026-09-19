@@ -51,6 +51,7 @@ import { DeliveryHeader } from '../../../layout/delivery-header/delivery-header'
 const EMPTY_COUNTS: MyOrdersStatusCounts = {
   all: 0,
   pending: 0,
+  office: 0,
   picked_up: 0,
   delivered: 0,
   cancelled: 0,
@@ -135,6 +136,7 @@ export class MyOrders implements OnInit {
   readonly statusFilters: ReadonlyArray<{ id: MyOrdersStatusFilter; labelKey: string }> = [
     { id: 'all', labelKey: 'orders.allOrders' },
     { id: 'pending', labelKey: 'orders.status.pending' },
+    { id: 'office', labelKey: 'orders.status.office' },
     { id: 'picked_up', labelKey: 'orders.status.picked_up' },
     { id: 'delivered', labelKey: 'orders.status.delivered' },
     { id: 'cancelled', labelKey: 'orders.status.cancelled' },
@@ -152,6 +154,7 @@ export class MyOrders implements OnInit {
   readonly emptyByStatus: Record<MyOrdersStatusFilter, string> = {
     all: 'orders.emptyAll',
     pending: 'orders.emptyPending',
+    office: 'orders.emptyOffice',
     picked_up: 'orders.emptyPickedUp',
     delivered: 'orders.emptyDelivered',
     cancelled: 'orders.emptyCancelled',

@@ -411,7 +411,8 @@ export class CourierOrders implements OnInit, OnDestroy {
   }
 
   canMarkPickedUp(order: Order): boolean {
-    return order.status === 'pending';
+    // Delivery take from office (or legacy pending if assigned without pickup).
+    return order.status === 'office' || order.status === 'pending';
   }
 
   async markDelivered(order: Order): Promise<void> {

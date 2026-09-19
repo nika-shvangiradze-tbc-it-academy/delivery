@@ -64,7 +64,7 @@ export class CourierOrderDetail implements OnInit {
   }
 
   canMarkPickedUp(status: Order['status']): boolean {
-    return status === 'pending';
+    return status === 'office' || status === 'pending';
   }
 
   async ngOnInit(): Promise<void> {
