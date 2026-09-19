@@ -1,4 +1,8 @@
-<section class="courier-active">
+<section
+  class="courier-active"
+  [class.courier-active--compact]="isCompact()"
+  [class.courier-active--sort]="isSortMode()"
+>
   <div class="courier-active__heading">
     <div>
       <h2>მიმდინარე შეკვეთები</h2>
@@ -10,6 +14,77 @@
       <span class="courier-active__saving">ინახება...</span>
     }
   </div>
+
+  <div class="courier-active__toolbar" role="toolbar" aria-label="სიის კონტროლი">
+    <span class="courier-active__toolbar-count">აქტიური {{ orders().length }}</span>
+
+    @if (isSortMode()) {
+      <button type="button" class="courier-active__tool-btn" (click)="exitSortMode()" [disabled]="reordering()">
+        დასრულება
+      </button>
+      <button
+        type="button"
+        class="courier-active__tool-btn courier-active__tool-btn--primary"
+        (click)="moveSelectedToFront()"
+        [disabled]="reordering() || selectedSortCount() === 0"
+      >
+        პირველ რიგში{{ selectedSortCount() ? ` (${selectedSortCount()})` : '' }}
+      </button>
+    } @else {
+      <button
+        type="button"
+        class="courier-active__tool-btn"
+        (click)="enterSortMode()"
+        [disabled]="reordering() || orders().length < 2"
+      >
+        დალაგება
+      </button>
+      <button
+        type="button"
+        class="courier-active__tool-btn"
+        (click)="setViewMode(isCompact() ? 'classic' : 'compact')"
+      >
+        {{ isCompact() ? 'კლასიკური' : 'კომპაქტური' }}
+      </button>
+    }
+  </div>
+
+  @if (!isSortMode() && orders().length > 0) {
+    <div class="courier-active__filters" role="group" aria-label="სწრაფი ფილტრი">
+      <button
+        type="button"
+        class="courier-active__chip"
+        [class.is-active]="quickFilter() === 'all'"
+        (click)="setQuickFilter('all')"
+      >
+        ყველა
+      </button>
+      <button
+        type="button"
+        class="courier-active__chip"
+        [class.is-active]="quickFilter() === 'today'"
+        (click)="setQuickFilter('today')"
+      >
+        დღეს
+      </button>
+      <button
+        type="button"
+        class="courier-active__chip"
+        [class.is-active]="quickFilter() === 'big_amount'"
+        (click)="setQuickFilter('big_amount')"
+      >
+        დიდი თანხა
+      </button>
+      <button
+        type="button"
+        class="courier-active__chip"
+        [class.is-active]="quickFilter() === 'fragile'"
+        (click)="setQuickFilter('fragile')"
+      >
+        Fragile
+      </button>
+    </div>
+  }
 
   <section class="courier-active__summary" aria-label="დღის შეჯამება">
     <h3 class="courier-active__summary-title">დღის შეჯამება</h3>
@@ -39,6 +114,18 @@
 
   @if (successMessage()) {
     <p class="courier-active__success" role="status">{{ successMessage() }}</p>
+  }
+
+  @if (undoMessage()) {
+    <div class="courier-active__undo" role="status">
+      <span>{{ undoMessage() }}</span>
+      <button type="button" class="courier-active__undo-btn" (click)="undoLastReorder()" [disabled]="reordering()">
+        გაუქმება
+      </button>
+      <button type="button" class="courier-active__undo-dismiss" (click)="dismissUndo()" aria-label="დახურვა">
+        ×
+      </button>
+    </div>
   }
 
   @if (pickupTasks().length > 0) {
@@ -165,60 +252,82 @@
     <p class="courier-active__muted">მიმდინარე შეკვეთები არ არის.</p>
   } @else if (orders().length === 0) {
     <p class="courier-active__muted">მიწოდების შეკვეთები არ არის — მხოლოდ აღების დავალებები.</p>
+  } @else if (displayOrders().length === 0) {
+    <p class="courier-active__muted">ფილტრში შეკვეთები არ მოიძებნა.</p>
   } @else {
     <div
       class="courier-active__list"
+      [class.courier-active__list--dense]="isCompact()"
       cdkDropList
-      [cdkDropListData]="orders()"
+      [cdkDropListData]="displayOrders()"
+      [cdkDropListDisabled]="!canDragReorder()"
       (cdkDropListDropped)="onDrop($event)"
     >
-      @for (order of orders(); track order.id) {
+      @for (order of displayOrders(); track order.id) {
         <article
           class="courier-card"
           [class.courier-card--expanded]="isExpanded(order.id)"
+          [class.courier-card--dense]="isCompact()"
+          [class.courier-card--sort]="isSortMode()"
+          [class.is-selected]="isSortSelected(order.id)"
           cdkDrag
-          [cdkDragDisabled]="reordering()"
+          [cdkDragDisabled]="!canDragReorder()"
         >
-          <!-- Compact view -->
-          <div
-            class="courier-card__compact"
-            (click)="toggleDetails(order.id)"
-            role="button"
-            tabindex="0"
-            (keydown.enter)="toggleDetails(order.id)"
-            (keydown.space)="$event.preventDefault(); toggleDetails(order.id)"
-            [attr.aria-expanded]="isExpanded(order.id)"
-          >
-            <div class="courier-card__top">
-              <button
-                type="button"
-                class="courier-card__handle"
-                cdkDragHandle
-                aria-label="გადაადგილება"
-                (click)="$event.stopPropagation()"
-              >
-                ⋮⋮
-              </button>
-
-              <span class="courier-card__id">#{{ order.id }}</span>
-              <span [class]="statusClass(order.status)">{{ statusLabel(order.status) }}</span>
-
-              @if (order.created_at) {
-                <time class="courier-card__time" [attr.datetime]="order.created_at">
-                  {{ order.created_at | date: 'HH:mm' }}
-                </time>
+          @if (isCompact()) {
+            <!-- Dense Excel-like row -->
+            <div
+              class="courier-card__dense"
+              (click)="isSortMode() ? null : toggleDetails(order.id)"
+              role="button"
+              tabindex="0"
+              (keydown.enter)="!isSortMode() && toggleDetails(order.id)"
+              [attr.aria-expanded]="isExpanded(order.id)"
+            >
+              @if (isSortMode()) {
+                <label class="courier-card__check" (click)="$event.stopPropagation()">
+                  <input
+                    type="checkbox"
+                    [checked]="isSortSelected(order.id)"
+                    (change)="toggleSortSelected(order.id, $any($event.target).checked)"
+                  />
+                </label>
+              } @else {
+                <button
+                  type="button"
+                  class="courier-card__handle courier-card__handle--dense"
+                  cdkDragHandle
+                  aria-label="გადაადგილება"
+                  (click)="$event.stopPropagation()"
+                >
+                  ⋮⋮
+                </button>
               }
-            </div>
 
-            @if (order.is_fragile) {
-              <p class="courier-card__fragile" role="status">⚠ მსხვრევადი</p>
-            }
+              <span class="courier-card__pos" aria-label="პოზიცია">{{ orderPosition(order.id) }}</span>
 
-            <div class="courier-card__body">
-              <div class="courier-card__who">
-                <h3 class="courier-card__name">{{ order.recipient_name }}</h3>
+              <div class="courier-card__dense-main">
+                <div class="courier-card__dense-top">
+                  <span class="courier-card__id">#{{ order.id }}</span>
+                  <span class="courier-card__dense-name">{{ order.recipient_name || '—' }}</span>
+                  @if (order.is_fragile) {
+                    <span class="courier-card__fragile-dot" title="მსხვრევადი">⚠</span>
+                  }
+                  <span [class]="statusClass(order.status)" class="courier-card__dense-status">{{
+                    statusLabel(order.status)
+                  }}</span>
+                </div>
+                <div class="courier-card__dense-sub">
+                  <span class="courier-card__dense-addr">📍 {{ order.delivery_address || '—' }}</span>
+                  <span class="courier-card__dense-meta">
+                    📦 {{ order.parcel_count }}
+                    <strong>{{ formatGel(order.amount_to_collect) }} ₾</strong>
+                  </span>
+                </div>
+              </div>
+
+              @if (!isSortMode()) {
                 <a
-                  class="courier-card__call-icon"
+                  class="courier-card__call-icon courier-card__call-icon--dense"
                   [href]="telHref(order.recipient_phone)"
                   (click)="$event.stopPropagation()"
                   [attr.aria-label]="'დარეკვა: ' + formatPhone(order.recipient_phone)"
@@ -230,40 +339,126 @@
                     />
                   </svg>
                 </a>
-              </div>
-
-              <p class="courier-card__address">
-                <span class="courier-card__pin" aria-hidden="true">📍</span>
-                <span class="courier-card__address-text">{{ order.delivery_address }}</span>
-              </p>
-
-              <div class="courier-card__meta">
-                <span class="courier-card__qty">
-                  <span aria-hidden="true">📦</span>
-                  რაოდენობა: {{ order.parcel_count }} ერთეული
-                </span>
-                <strong class="courier-card__amount">
-                  {{ formatGel(order.amount_to_collect) }} ₾
-                </strong>
-              </div>
-            </div>
-
-            @if (!isExpanded(order.id)) {
-              <div class="courier-card__actions" (click)="$event.stopPropagation()">
                 <button
                   type="button"
-                  class="courier-card__btn courier-card__btn--details"
-                  (click)="toggleDetails(order.id)"
-                  [attr.aria-expanded]="false"
+                  class="courier-card__first-btn"
+                  (click)="moveToFront(order.id, $event)"
+                  [disabled]="reordering() || orderPosition(order.id) === 1"
+                  title="პირველად"
                 >
-                  დეტალურად
+                  ↑1
                 </button>
-              </div>
-            }
-          </div>
+              }
+            </div>
+          } @else {
+            <!-- Classic compact card (previous UI) -->
+            <div
+              class="courier-card__compact"
+              (click)="toggleDetails(order.id)"
+              role="button"
+              tabindex="0"
+              (keydown.enter)="toggleDetails(order.id)"
+              (keydown.space)="$event.preventDefault(); toggleDetails(order.id)"
+              [attr.aria-expanded]="isExpanded(order.id)"
+            >
+              <div class="courier-card__top">
+                @if (isSortMode()) {
+                  <label class="courier-card__check" (click)="$event.stopPropagation()">
+                    <input
+                      type="checkbox"
+                      [checked]="isSortSelected(order.id)"
+                      (change)="toggleSortSelected(order.id, $any($event.target).checked)"
+                    />
+                  </label>
+                } @else {
+                  <button
+                    type="button"
+                    class="courier-card__handle"
+                    cdkDragHandle
+                    aria-label="გადაადგილება"
+                    (click)="$event.stopPropagation()"
+                  >
+                    ⋮⋮
+                  </button>
+                }
 
-          <!-- Expanded details: additional fields only (no compact summary duplicate) -->
-          @if (isExpanded(order.id)) {
+                <span class="courier-card__pos courier-card__pos--classic">{{ orderPosition(order.id) }}</span>
+                <span class="courier-card__id">#{{ order.id }}</span>
+                <span [class]="statusClass(order.status)">{{ statusLabel(order.status) }}</span>
+
+                @if (!isSortMode()) {
+                  <button
+                    type="button"
+                    class="courier-card__first-btn courier-card__first-btn--classic"
+                    (click)="moveToFront(order.id, $event)"
+                    [disabled]="reordering() || orderPosition(order.id) === 1"
+                  >
+                    პირველად
+                  </button>
+                }
+
+                @if (order.created_at) {
+                  <time class="courier-card__time" [attr.datetime]="order.created_at">
+                    {{ order.created_at | date: 'HH:mm' }}
+                  </time>
+                }
+              </div>
+
+              @if (order.is_fragile) {
+                <p class="courier-card__fragile" role="status">⚠ მსხვრევადი</p>
+              }
+
+              <div class="courier-card__body">
+                <div class="courier-card__who">
+                  <h3 class="courier-card__name">{{ order.recipient_name }}</h3>
+                  <a
+                    class="courier-card__call-icon"
+                    [href]="telHref(order.recipient_phone)"
+                    (click)="$event.stopPropagation()"
+                    [attr.aria-label]="'დარეკვა: ' + formatPhone(order.recipient_phone)"
+                  >
+                    <svg class="courier-card__call-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                      <path
+                        fill="currentColor"
+                        d="M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.01-.24c1.12.37 2.33.57 3.58.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1C10.4 21 3 13.6 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.46.57 3.58a1 1 0 0 1-.25 1.02l-2.2 2.19z"
+                      />
+                    </svg>
+                  </a>
+                </div>
+
+                <p class="courier-card__address">
+                  <span class="courier-card__pin" aria-hidden="true">📍</span>
+                  <span class="courier-card__address-text">{{ order.delivery_address }}</span>
+                </p>
+
+                <div class="courier-card__meta">
+                  <span class="courier-card__qty">
+                    <span aria-hidden="true">📦</span>
+                    რაოდენობა: {{ order.parcel_count }} ერთეული
+                  </span>
+                  <strong class="courier-card__amount">
+                    {{ formatGel(order.amount_to_collect) }} ₾
+                  </strong>
+                </div>
+              </div>
+
+              @if (!isExpanded(order.id) && !isSortMode()) {
+                <div class="courier-card__actions" (click)="$event.stopPropagation()">
+                  <button
+                    type="button"
+                    class="courier-card__btn courier-card__btn--details"
+                    (click)="toggleDetails(order.id)"
+                    [attr.aria-expanded]="false"
+                  >
+                    დეტალურად
+                  </button>
+                </div>
+              }
+            </div>
+          }
+
+          <!-- Expanded details (shared) -->
+          @if (isExpanded(order.id) && !isSortMode()) {
             <div class="courier-card__details" (click)="$event.stopPropagation()">
               <header class="courier-card__details-head">
                 <h4 class="courier-card__details-title">დეტალები</h4>

@@ -5,6 +5,7 @@ import {
   NgZone,
   OnDestroy,
   OnInit,
+  computed,
   inject,
   signal,
 } from '@angular/core';
@@ -31,6 +32,24 @@ import {
   formatPhoneDisplay,
   orderStatusClass,
 } from '../../../core/utils/order-status.util';
+import { tbilisiTodayIso } from '../../../core/utils/tbilisi-time.util';
+
+const VIEW_MODE_KEY = 'courier.activeOrders.viewMode';
+const BIG_AMOUNT_GEL = 100;
+
+export type CourierOrdersViewMode = 'compact' | 'classic';
+export type CourierOrdersListMode = 'browse' | 'sort';
+export type CourierOrdersQuickFilter = 'all' | 'today' | 'big_amount' | 'fragile';
+
+function readStoredViewMode(): CourierOrdersViewMode {
+  try {
+    const raw = localStorage.getItem(VIEW_MODE_KEY);
+    if (raw === 'classic' || raw === 'compact') return raw;
+  } catch {
+    // ignore
+  }
+  return 'compact';
+}
 
 @Component({
   selector: 'app-courier-orders',
@@ -76,13 +95,58 @@ export class CourierOrders implements OnInit, OnDestroy {
     deliveredCount: 0,
   });
 
+  /** compact = dense mobile rows; classic = previous card layout (rollback). */
+  readonly viewMode = signal<CourierOrdersViewMode>(readStoredViewMode());
+  /** browse = normal; sort = multi-select reorder mode. */
+  readonly listMode = signal<CourierOrdersListMode>('browse');
+  readonly quickFilter = signal<CourierOrdersQuickFilter>('all');
+  readonly selectedSortIds = signal<Set<number>>(new Set());
+  readonly undoMessage = signal<string | null>(null);
+  private undoOrderIds: number[] | null = null;
+  private undoTimer: ReturnType<typeof setTimeout> | null = null;
+
   readonly statusClass = orderStatusClass;
   readonly formatGel = formatGel;
   readonly formatPhone = formatPhoneDisplay;
   readonly statusLabel = courierStatusLabel;
 
-  /** Template alias — delivery queue only. */
+  /** Template alias — delivery queue only (full unfiltered list for persistence). */
   readonly orders = this.deliveryOrders;
+
+  /** Visible rows after quick filter (reorder still uses full deliveryOrders). */
+  readonly displayOrders = computed(() => {
+    const list = this.deliveryOrders();
+    const filter = this.quickFilter();
+    if (filter === 'all') return list;
+    const today = tbilisiTodayIso();
+    return list.filter((order) => {
+      if (filter === 'today') {
+        return (order.delivery_date ?? '').trim() === today;
+      }
+      if (filter === 'big_amount') {
+        return Number(order.amount_to_collect) >= BIG_AMOUNT_GEL;
+      }
+      if (filter === 'fragile') {
+        return order.is_fragile;
+      }
+      return true;
+    });
+  });
+
+  readonly positionById = computed(() => {
+    const map = new Map<number, number>();
+    this.deliveryOrders().forEach((order, index) => {
+      map.set(order.id, index + 1);
+    });
+    return map;
+  });
+
+  readonly selectedSortCount = computed(() => this.selectedSortIds().size);
+  readonly isCompact = computed(() => this.viewMode() === 'compact');
+  readonly isSortMode = computed(() => this.listMode() === 'sort');
+  readonly canDragReorder = computed(
+    () => !this.reordering() && this.listMode() === 'browse' && this.quickFilter() === 'all',
+  );
 
   private pickupChannel: RealtimeChannel | null = null;
 
@@ -112,6 +176,7 @@ export class CourierOrders implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.teardownPickupChannel();
+    this.clearUndo();
   }
 
   async reload(): Promise<void> {
@@ -312,6 +377,9 @@ export class CourierOrders implements OnInit, OnDestroy {
   }
 
   toggleDetails(orderId: number): void {
+    if (this.isSortMode()) {
+      return;
+    }
     this.expandedId.update((current) => (current === orderId ? null : orderId));
     if (this.confirmingCancelId() === orderId) {
       this.confirmingCancelId.set(null);
@@ -346,26 +414,156 @@ export class CourierOrders implements OnInit, OnDestroy {
     this.errorMessage.set(null);
   }
 
-  async onDrop(event: CdkDragDrop<Order[]>): Promise<void> {
-    if (event.previousIndex === event.currentIndex) {
-      return;
+  setViewMode(mode: CourierOrdersViewMode): void {
+    this.viewMode.set(mode);
+    try {
+      localStorage.setItem(VIEW_MODE_KEY, mode);
+    } catch {
+      // ignore
     }
+    if (mode === 'classic') {
+      this.exitSortMode();
+    }
+  }
 
+  setQuickFilter(filter: CourierOrdersQuickFilter): void {
+    this.quickFilter.set(filter);
+    if (filter !== 'all' && this.listMode() === 'sort') {
+      // Keep selection but drag is disabled when filtered.
+    }
+  }
+
+  enterSortMode(): void {
+    this.listMode.set('sort');
+    this.selectedSortIds.set(new Set());
+    this.expandedId.set(null);
+    this.confirmingCancelId.set(null);
+  }
+
+  exitSortMode(): void {
+    this.listMode.set('browse');
+    this.selectedSortIds.set(new Set());
+  }
+
+  toggleSortSelected(orderId: number, checked: boolean): void {
+    this.selectedSortIds.update((current) => {
+      const next = new Set(current);
+      if (checked) next.add(orderId);
+      else next.delete(orderId);
+      return next;
+    });
+  }
+
+  isSortSelected(orderId: number): boolean {
+    return this.selectedSortIds().has(orderId);
+  }
+
+  orderPosition(orderId: number): number {
+    return this.positionById().get(orderId) ?? 0;
+  }
+
+  async moveToFront(orderId: number, event?: Event): Promise<void> {
+    event?.stopPropagation();
+    if (this.reordering()) return;
+    const current = this.deliveryOrders();
+    const target = current.find((o) => o.id === orderId);
+    if (!target) return;
+    const rest = current.filter((o) => o.id !== orderId);
+    await this.persistOrderIds(
+      [target, ...rest].map((o) => o.id),
+      current,
+      'პირველ ადგილზე გადავიდა',
+    );
+  }
+
+  async moveSelectedToFront(): Promise<void> {
+    if (this.reordering()) return;
+    const selected = this.selectedSortIds();
+    if (selected.size === 0) return;
+
+    const current = this.deliveryOrders();
+    // Preserve relative order of selected as they appear in the current full list.
+    const selectedOrders = current.filter((o) => selected.has(o.id));
+    const rest = current.filter((o) => !selected.has(o.id));
+    const ok = await this.persistOrderIds(
+      [...selectedOrders, ...rest].map((o) => o.id),
+      current,
+      `${selectedOrders.length} შეკვეთა პირველ რიგშია`,
+    );
+    if (ok) {
+      this.exitSortMode();
+    }
+  }
+
+  async undoLastReorder(): Promise<void> {
+    const ids = this.undoOrderIds;
+    if (!ids || this.reordering()) return;
+    const previous = [...this.deliveryOrders()];
+    this.clearUndo();
+    await this.persistOrderIds(ids, previous, null);
+  }
+
+  dismissUndo(): void {
+    this.clearUndo();
+  }
+
+  async onDrop(event: CdkDragDrop<Order[]>): Promise<void> {
+    if (!this.canDragReorder()) return;
+    if (event.previousIndex === event.currentIndex) return;
+
+    // Indices refer to displayOrders when filter is all (same as full list).
     const previous = [...this.deliveryOrders()];
     const next = [...previous];
     moveItemInArray(next, event.previousIndex, event.currentIndex);
-    this.deliveryOrders.set(next);
+    await this.persistOrderIds(
+      next.map((o) => o.id),
+      previous,
+      'რიგი შეიცვალა',
+    );
+  }
 
+  /**
+   * Persist full delivery queue order via existing courier_reorder_orders RPC.
+   * Returns true on success.
+   */
+  private async persistOrderIds(
+    orderIds: number[],
+    previousOrders: Order[],
+    undoLabel: string | null,
+  ): Promise<boolean> {
+    const byId = new Map(previousOrders.map((o) => [o.id, o] as const));
+    const next = orderIds
+      .map((id) => byId.get(id))
+      .filter((o): o is Order => Boolean(o));
+
+    if (next.length !== previousOrders.length) {
+      this.errorMessage.set('რიგის შენახვა ვერ მოხერხდა');
+      return false;
+    }
+
+    const courierId = this.auth.user()?.id ?? null;
+    console.log('CURRENT COURIER ID', courierId);
+    console.log(
+      'ORDERS USED FOR REORDER',
+      next.map((o) => ({
+        id: o.id,
+        status: o.status,
+        assigned_courier_id: o.assigned_courier_id,
+        courier_sort_order: o.courier_sort_order,
+      })),
+    );
+
+    this.deliveryOrders.set(next);
     this.reordering.set(true);
     this.errorMessage.set(null);
 
-    const { error } = await this.courierService.reorderActiveOrders(next.map((o) => o.id));
+    const { error } = await this.courierService.reorderActiveOrders(orderIds);
     this.reordering.set(false);
 
     if (error) {
-      this.deliveryOrders.set(previous);
+      this.deliveryOrders.set(previousOrders);
       this.errorMessage.set(error);
-      return;
+      return false;
     }
 
     this.deliveryOrders.set(
@@ -374,6 +572,32 @@ export class CourierOrders implements OnInit, OnDestroy {
         courier_sort_order: (index + 1) * 10,
       })),
     );
+
+    if (undoLabel) {
+      this.pushUndo(
+        previousOrders.map((o) => o.id),
+        undoLabel,
+      );
+    }
+    return true;
+  }
+
+  private pushUndo(previousIds: number[], message: string): void {
+    this.undoOrderIds = previousIds;
+    this.undoMessage.set(message);
+    if (this.undoTimer) {
+      clearTimeout(this.undoTimer);
+    }
+    this.undoTimer = setTimeout(() => this.clearUndo(), 8000);
+  }
+
+  private clearUndo(): void {
+    this.undoOrderIds = null;
+    this.undoMessage.set(null);
+    if (this.undoTimer) {
+      clearTimeout(this.undoTimer);
+      this.undoTimer = null;
+    }
   }
 
   async markPickedUp(order: Order): Promise<void> {

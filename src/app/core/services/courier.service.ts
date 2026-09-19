@@ -383,10 +383,23 @@ export class CourierService {
 
     if (error) {
       this.logRpcError('courier_reorder_orders', error);
-      return { error: error.message };
+      return { error: this.mapReorderError(error.message) };
     }
 
     return { error: null };
+  }
+
+  private mapReorderError(message: string): string {
+    if (/every order must be assigned to you and active/i.test(message)) {
+      return 'ამ შეკვეთის გადაადგილება ამ ეტაპზე შეუძლებელია';
+    }
+    if (/Duplicate order ids/i.test(message)) {
+      return 'რიგის შენახვა ვერ მოხერხდა (დუბლირებული შეკვეთა)';
+    }
+    if (/Only couriers can reorder/i.test(message)) {
+      return 'რიგის შეცვლა მხოლოდ კურიერს შეუძლია';
+    }
+    return message;
   }
 
   async getTodayDeliveredSummary(): Promise<{ data: CourierDailySummary; error: string | null }> {
