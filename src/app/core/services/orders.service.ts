@@ -268,7 +268,24 @@ export class OrdersService {
       return { data: [], total: 0, page, pageSize, error: error.message };
     }
 
+    // Diagnosis: raw orders from Supabase (no pickup embed on this query).
+    console.log('CUSTOMER ORDERS RAW:', data);
+
     const orders = await this.enrichOrdersWithPickupCancellation(normalizeOrders(data ?? []));
+
+    console.log(
+      'CUSTOMER ORDERS ENRICHED PICKUP CANCEL:',
+      orders
+        .filter((o) => o.pickup_task_status === 'cancelled' || o.id === 63)
+        .map((o) => ({
+          id: o.id,
+          status: o.status,
+          order_cancellation_reason: o.cancellation_reason,
+          pickup_task_status: o.pickup_task_status,
+          pickup_cancellation_reason: o.pickup_cancellation_reason,
+          pickup_cancelled_at: o.pickup_cancelled_at,
+        })),
+    );
 
     return {
       data: orders,
@@ -281,7 +298,8 @@ export class OrdersService {
 
   /**
    * Attach cancelled pickup_tasks.cancellation_reason onto owner orders.
-   * Orders themselves stay pending — this is pickup-task cancel only.
+   * Flat two-step queries (no nested embeds / nested filters).
+   * Never mutates orders.status.
    */
   private async enrichOrdersWithPickupCancellation(orders: Order[]): Promise<Order[]> {
     if (orders.length === 0) {
@@ -289,150 +307,136 @@ export class OrdersService {
     }
 
     const user = this.auth.user();
-    if (!user) {
-      return orders;
-    }
+    const orderIds = orders.map((order) => order.id);
+    const orderIdSet = new Set(orderIds);
+    const latestByOrder = new Map<
+      number,
+      { reason: string; cancelledAt: string | null; taskId: number }
+    >();
 
-    const orderIdSet = new Set(orders.map((order) => order.id));
-
-    // Prefer primary-table filters (reliable). Nested .eq('pickup_tasks.status') is flaky in PostgREST.
-    const { data, error } = await this.supabase.client
-      .from('pickup_tasks')
-      .select(
-        'id, status, cancellation_reason, cancelled_at, pickup_task_orders(order_id)',
-      )
-      .eq('customer_id', user.id)
-      .eq('status', 'cancelled');
-
-    if (error) {
-      this.logDevError('enrichOrdersWithPickupCancellation', error.message);
-      return this.enrichPickupCancelViaJunction(orders, orderIdSet);
-    }
-
-    const latestByOrder = this.mapCancelledPickupReasonsByOrder(data ?? [], orderIdSet);
-    if (latestByOrder.size === 0) {
-      // Relationship embed may be empty; fall back to junction → task.
-      return this.enrichPickupCancelViaJunction(orders, orderIdSet);
-    }
-
-    return this.applyPickupCancelEnrichment(orders, latestByOrder);
-  }
-
-  /** Fallback when pickup_tasks → pickup_task_orders embed is unavailable. */
-  private async enrichPickupCancelViaJunction(
-    orders: Order[],
-    orderIdSet: Set<number>,
-  ): Promise<Order[]> {
-    const orderIds = [...orderIdSet];
-    if (orderIds.length === 0) {
-      return orders;
-    }
-
-    const { data, error } = await this.supabase.client
+    // Path A: visible orders → junction → tasks
+    const linksResult = await this.supabase.client
       .from('pickup_task_orders')
-      .select('order_id, pickup_tasks(id, status, cancellation_reason, cancelled_at)')
+      .select('order_id, pickup_task_id')
       .in('order_id', orderIds);
 
-    if (error) {
-      this.logDevError('enrichPickupCancelViaJunction', error.message);
-      return orders;
+    console.log('CANCELLED PICKUP DATA pathA links:', {
+      authUserId: user?.id ?? null,
+      orderIds,
+      error: linksResult.error?.message ?? null,
+      rows: linksResult.data,
+    });
+
+    if (linksResult.error) {
+      this.logDevError('enrichOrdersWithPickupCancellation.links', linksResult.error.message);
+    } else {
+      const links = (linksResult.data ?? []) as Array<{
+        order_id: number | string;
+        pickup_task_id: number | string;
+      }>;
+      const taskIds = [
+        ...new Set(
+          links
+            .map((row) => Number(row.pickup_task_id))
+            .filter((id) => Number.isFinite(id) && id > 0),
+        ),
+      ];
+
+      if (taskIds.length > 0) {
+        const tasksResult = await this.supabase.client
+          .from('pickup_tasks')
+          .select('id, status, cancellation_reason, cancelled_at, customer_id')
+          .in('id', taskIds);
+
+        console.log('CANCELLED PICKUP DATA pathA tasks:', {
+          error: tasksResult.error?.message ?? null,
+          rows: tasksResult.data,
+        });
+
+        if (tasksResult.error) {
+          this.logDevError('enrichOrdersWithPickupCancellation.tasks', tasksResult.error.message);
+        } else {
+          const cancelledByTaskId = this.indexCancelledPickupTasks(tasksResult.data ?? []);
+          for (const link of links) {
+            const orderId = Number(link.order_id);
+            const taskId = Number(link.pickup_task_id);
+            if (!orderIdSet.has(orderId)) continue;
+            const info = cancelledByTaskId.get(taskId);
+            if (!info) continue;
+            this.rememberLatestPickupCancel(latestByOrder, orderId, info);
+          }
+        }
+      }
     }
 
-    const latestByOrder = new Map<
-      number,
-      { reason: string; cancelledAt: string | null; taskId: number }
-    >();
+    // Path B: this customer's cancelled tasks → their order links (covers RLS/embed edge cases)
+    if (user?.id) {
+      const myTasksResult = await this.supabase.client
+        .from('pickup_tasks')
+        .select('id, status, cancellation_reason, cancelled_at, customer_id')
+        .eq('customer_id', user.id)
+        .eq('status', 'cancelled');
 
-    for (const row of data ?? []) {
-      const orderId = Number((row as { order_id?: unknown }).order_id);
-      if (!Number.isFinite(orderId) || !orderIdSet.has(orderId)) {
-        continue;
-      }
-
-      const task = this.unwrapPickupTaskEmbed(
-        (row as { pickup_tasks?: unknown }).pickup_tasks,
-      );
-      if (!task || task.status !== 'cancelled') {
-        continue;
-      }
-
-      const reason = (task.cancellation_reason ?? '').trim();
-      if (!reason) {
-        continue;
-      }
-
-      this.rememberLatestPickupCancel(latestByOrder, orderId, {
-        reason,
-        cancelledAt: task.cancelled_at,
-        taskId: task.id,
+      console.log('CANCELLED PICKUP DATA pathB myCancelledTasks:', {
+        error: myTasksResult.error?.message ?? null,
+        rows: myTasksResult.data,
       });
+
+      if (!myTasksResult.error && (myTasksResult.data?.length ?? 0) > 0) {
+        const cancelledByTaskId = this.indexCancelledPickupTasks(myTasksResult.data ?? []);
+        const myTaskIds = [...cancelledByTaskId.keys()];
+        if (myTaskIds.length > 0) {
+          const myLinksResult = await this.supabase.client
+            .from('pickup_task_orders')
+            .select('order_id, pickup_task_id')
+            .in('pickup_task_id', myTaskIds);
+
+          console.log('CANCELLED PICKUP DATA pathB links:', {
+            error: myLinksResult.error?.message ?? null,
+            rows: myLinksResult.data,
+          });
+
+          if (!myLinksResult.error) {
+            for (const link of (myLinksResult.data ?? []) as Array<{
+              order_id: number | string;
+              pickup_task_id: number | string;
+            }>) {
+              const orderId = Number(link.order_id);
+              const taskId = Number(link.pickup_task_id);
+              if (!orderIdSet.has(orderId)) continue;
+              const info = cancelledByTaskId.get(taskId);
+              if (!info) continue;
+              this.rememberLatestPickupCancel(latestByOrder, orderId, info);
+            }
+          }
+        }
+      }
     }
+
+    console.log('CANCELLED PICKUP DATA latestByOrder:', [...latestByOrder.entries()]);
 
     return this.applyPickupCancelEnrichment(orders, latestByOrder);
   }
 
-  private mapCancelledPickupReasonsByOrder(
+  private indexCancelledPickupTasks(
     rows: unknown[],
-    orderIdSet: Set<number>,
   ): Map<number, { reason: string; cancelledAt: string | null; taskId: number }> {
-    const latestByOrder = new Map<
-      number,
-      { reason: string; cancelledAt: string | null; taskId: number }
-    >();
-
+    const map = new Map<number, { reason: string; cancelledAt: string | null; taskId: number }>();
     for (const raw of rows) {
       if (!raw || typeof raw !== 'object') continue;
-      const row = raw as Record<string, unknown>;
-      if (row['status'] !== 'cancelled') continue;
-
-      const reason = String(row['cancellation_reason'] ?? '').trim();
+      const task = raw as Record<string, unknown>;
+      if (String(task['status'] ?? '') !== 'cancelled') continue;
+      const reason = String(task['cancellation_reason'] ?? '').trim();
       if (!reason) continue;
-
-      const taskId = Number(row['id']);
-      const cancelledAt =
-        typeof row['cancelled_at'] === 'string' ? row['cancelled_at'] : null;
-
-      const linksRaw = row['pickup_task_orders'];
-      const links = Array.isArray(linksRaw)
-        ? linksRaw
-        : linksRaw && typeof linksRaw === 'object'
-          ? [linksRaw]
-          : [];
-
-      for (const link of links) {
-        if (!link || typeof link !== 'object') continue;
-        const orderId = Number((link as { order_id?: unknown }).order_id);
-        if (!Number.isFinite(orderId) || !orderIdSet.has(orderId)) continue;
-
-        this.rememberLatestPickupCancel(latestByOrder, orderId, {
-          reason,
-          cancelledAt,
-          taskId: Number.isFinite(taskId) ? taskId : 0,
-        });
-      }
+      const taskId = Number(task['id']);
+      if (!Number.isFinite(taskId)) continue;
+      map.set(taskId, {
+        reason,
+        cancelledAt: typeof task['cancelled_at'] === 'string' ? task['cancelled_at'] : null,
+        taskId,
+      });
     }
-
-    return latestByOrder;
-  }
-
-  private unwrapPickupTaskEmbed(raw: unknown): {
-    id: number;
-    status: string;
-    cancellation_reason: string | null;
-    cancelled_at: string | null;
-  } | null {
-    const task = Array.isArray(raw) ? raw[0] : raw;
-    if (!task || typeof task !== 'object') {
-      return null;
-    }
-    const t = task as Record<string, unknown>;
-    return {
-      id: Number(t['id'] ?? 0),
-      status: String(t['status'] ?? ''),
-      cancellation_reason:
-        t['cancellation_reason'] == null ? null : String(t['cancellation_reason']),
-      cancelled_at: typeof t['cancelled_at'] === 'string' ? t['cancelled_at'] : null,
-    };
+    return map;
   }
 
   private rememberLatestPickupCancel(

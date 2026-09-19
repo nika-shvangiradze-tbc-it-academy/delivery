@@ -353,7 +353,7 @@ export class MyOrders implements OnInit {
     return order.status === 'pending';
   }
 
-  /** Pickup-task cancel only — not delivery order.cancellation_reason. */
+  /** Pickup-task cancel — mapped from pickup_tasks.cancellation_reason. */
   hasPickupCancellation(order: Order): boolean {
     return (
       order.pickup_task_status === 'cancelled' &&
@@ -363,6 +363,10 @@ export class MyOrders implements OnInit {
 
   /** Delivery order cancel — orders.status = cancelled + orders.cancellation_reason. */
   hasOrderCancellation(order: Order): boolean {
+    // Prefer the pickup-task message when both exist.
+    if (this.hasPickupCancellation(order)) {
+      return false;
+    }
     return order.status === 'cancelled' && !!order.cancellation_reason?.trim();
   }
 
