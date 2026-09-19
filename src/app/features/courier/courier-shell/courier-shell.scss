@@ -128,7 +128,7 @@
 
   &__scroll-top {
     position: fixed;
-    right: max(12px, calc(50% - 215px + 12px));
+    left: 50%;
     bottom: max(20px, env(safe-area-inset-bottom, 0px) + 20px);
     z-index: 40;
     width: 44px;
@@ -144,9 +144,10 @@
     cursor: pointer;
     padding: 0;
     -webkit-tap-highlight-color: transparent;
+    transform: translateX(-50%);
 
     &:active {
-      transform: translateY(1px);
+      transform: translateX(-50%) translateY(1px);
     }
 
     &:focus-visible {

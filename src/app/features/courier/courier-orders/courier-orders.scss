@@ -298,21 +298,72 @@
 
   &__pos {
     flex-shrink: 0;
-    width: 22px;
-    height: 22px;
+    width: 28px;
+    min-width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid rgba(154, 52, 18, 0.25);
     border-radius: 6px;
     background: #ffedd5;
     color: #9a3412;
+    font: inherit;
     font-size: 11px;
     font-weight: 800;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+
+    &:disabled {
+      opacity: 0.65;
+      cursor: default;
+    }
+
+    &:not(:disabled):active {
+      background: #fed7aa;
+    }
 
     &--classic {
-      width: 26px;
-      height: 26px;
+      width: 30px;
+      min-width: 30px;
+      height: 30px;
       font-size: 12px;
+    }
+  }
+
+  &__pos-input {
+    flex-shrink: 0;
+    box-sizing: border-box;
+    width: 36px;
+    min-width: 36px;
+    height: 28px;
+    margin: 0;
+    padding: 0 2px;
+    border: 1.5px solid #ea580c;
+    border-radius: 6px;
+    background: #fff;
+    color: #9a3412;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 800;
+    text-align: center;
+    outline: none;
+    -moz-appearance: textfield;
+    appearance: textfield;
+
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    &--classic {
+      width: 40px;
+      min-width: 40px;
+      height: 30px;
+      font-size: 13px;
     }
   }
 

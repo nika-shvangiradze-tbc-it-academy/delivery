@@ -15,7 +15,6 @@ import {
   CdkDragDrop,
   CdkDragHandle,
   CdkDropList,
-  moveItemInArray,
 } from '@angular/cdk/drag-drop';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
@@ -80,6 +79,9 @@ export class CourierOrders implements OnInit, OnDestroy {
   readonly pickupCancelReason = signal('');
   readonly pickupCancelError = signal<string | null>(null);
   readonly reordering = signal(false);
+  /** Order id whose position badge is currently an editable input. */
+  readonly editingPositionId = signal<number | null>(null);
+  readonly positionDraft = signal('');
   readonly errorMessage = signal<string | null>(null);
   readonly successMessage = signal<string | null>(null);
   /** Only one order card details panel open at a time. */
@@ -463,14 +465,108 @@ export class CourierOrders implements OnInit, OnDestroy {
     return this.positionById().get(orderId) ?? 0;
   }
 
+  canEditPosition(): boolean {
+    return !this.reordering() && !this.isSortMode();
+  }
+
+  startPositionEdit(orderId: number, event: Event): void {
+    event.stopPropagation();
+    event.preventDefault();
+    if (!this.canEditPosition()) return;
+
+    this.editingPositionId.set(orderId);
+    this.positionDraft.set(String(this.orderPosition(orderId)));
+    this.errorMessage.set(null);
+
+    queueMicrotask(() => {
+      const el = document.getElementById(`pos-edit-${orderId}`) as HTMLInputElement | null;
+      el?.focus();
+      el?.select();
+    });
+  }
+
+  cancelPositionEdit(): void {
+    this.editingPositionId.set(null);
+    this.positionDraft.set('');
+  }
+
+  onPositionDraftInput(event: Event): void {
+    const value = (event.target as HTMLInputElement | null)?.value ?? '';
+    this.positionDraft.set(value);
+  }
+
+  async confirmPositionEdit(orderId: number, event?: Event): Promise<void> {
+    event?.stopPropagation();
+    event?.preventDefault();
+
+    // Ignore stale blur after Enter already cleared the editor.
+    if (this.editingPositionId() !== orderId) return;
+
+    const raw = this.positionDraft().trim();
+    this.cancelPositionEdit();
+
+    const max = this.deliveryOrders().length;
+    const parsed = Number(raw);
+    const valid =
+      raw !== '' &&
+      Number.isFinite(parsed) &&
+      Number.isInteger(parsed) &&
+      parsed >= 1 &&
+      parsed <= max;
+
+    if (!valid) {
+      this.errorMessage.set('არასწორი პოზიცია');
+      this.successMessage.set(null);
+      return;
+    }
+
+    if (parsed === this.orderPosition(orderId)) return;
+
+    const ok = await this.moveOrderToPosition(orderId, parsed);
+    if (ok) {
+      this.successMessage.set(`შეკვეთა გადატანილია მე-${parsed} პოზიციაზე`);
+      this.errorMessage.set(null);
+    }
+  }
+
+  /**
+   * Central insertion reorder: move orderId to 1-based targetPosition,
+   * shifting others. Used by drag & drop, ↑1, and numeric position edit.
+   */
+  async moveOrderToPosition(orderId: number, targetPosition: number): Promise<boolean> {
+    if (this.reordering()) return false;
+
+    const previous = [...this.deliveryOrders()];
+    const from = previous.findIndex((o) => o.id === orderId);
+    if (from < 0) return false;
+
+    const max = previous.length;
+    if (
+      !Number.isInteger(targetPosition) ||
+      targetPosition < 1 ||
+      targetPosition > max
+    ) {
+      this.errorMessage.set('არასწორი პოზიცია');
+      this.successMessage.set(null);
+      return false;
+    }
+
+    const to = targetPosition - 1;
+    if (from === to) return true;
+
+    const next = [...previous];
+    const [item] = next.splice(from, 1);
+    next.splice(to, 0, item);
+
+    return this.persistOrderIds(
+      next.map((o) => o.id),
+      previous,
+    );
+  }
+
   async moveToFront(orderId: number, event?: Event): Promise<void> {
     event?.stopPropagation();
-    if (this.reordering()) return;
-    const current = this.deliveryOrders();
-    const target = current.find((o) => o.id === orderId);
-    if (!target) return;
-    const rest = current.filter((o) => o.id !== orderId);
-    await this.persistOrderIds([target, ...rest].map((o) => o.id), current);
+    await this.moveOrderToPosition(orderId, 1);
   }
 
   async moveSelectedToFront(): Promise<void> {
@@ -481,6 +577,7 @@ export class CourierOrders implements OnInit, OnDestroy {
     const current = this.deliveryOrders();
     const selectedOrders = current.filter((o) => selected.has(o.id));
     const rest = current.filter((o) => !selected.has(o.id));
+    // Multi-select "to front" is still insertion of the selected block at position 1.
     const ok = await this.persistOrderIds(
       [...selectedOrders, ...rest].map((o) => o.id),
       current,
@@ -494,13 +591,9 @@ export class CourierOrders implements OnInit, OnDestroy {
     if (!this.canDragReorder()) return;
     if (event.previousIndex === event.currentIndex) return;
 
-    const previous = [...this.deliveryOrders()];
-    const next = [...previous];
-    moveItemInArray(next, event.previousIndex, event.currentIndex);
-    await this.persistOrderIds(
-      next.map((o) => o.id),
-      previous,
-    );
+    const order = this.deliveryOrders()[event.previousIndex];
+    if (!order) return;
+    await this.moveOrderToPosition(order.id, event.currentIndex + 1);
   }
 
   /**

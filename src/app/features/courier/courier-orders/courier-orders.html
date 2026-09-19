@@ -291,7 +291,34 @@
                 </button>
               }
 
-              <span class="courier-card__pos" aria-label="პოზიცია">{{ orderPosition(order.id) }}</span>
+              @if (editingPositionId() === order.id) {
+                <input
+                  class="courier-card__pos-input"
+                  type="text"
+                  inputmode="numeric"
+                  pattern="[0-9]*"
+                  enterkeyhint="done"
+                  autocomplete="off"
+                  [id]="'pos-edit-' + order.id"
+                  [value]="positionDraft()"
+                  [attr.aria-label]="'პოზიცია, მაქს ' + orders().length"
+                  (click)="$event.stopPropagation()"
+                  (input)="onPositionDraftInput($event)"
+                  (keydown.enter)="confirmPositionEdit(order.id, $event)"
+                  (keydown.escape)="cancelPositionEdit()"
+                  (blur)="confirmPositionEdit(order.id, $event)"
+                />
+              } @else {
+                <button
+                  type="button"
+                  class="courier-card__pos"
+                  [disabled]="!canEditPosition()"
+                  [attr.aria-label]="'პოზიცია ' + orderPosition(order.id) + ' — შეცვლა'"
+                  (click)="startPositionEdit(order.id, $event)"
+                >
+                  {{ orderPosition(order.id) }}
+                </button>
+              }
 
               <div class="courier-card__dense-main">
                 <div class="courier-card__dense-top">
@@ -370,7 +397,34 @@
                   </button>
                 }
 
-                <span class="courier-card__pos courier-card__pos--classic">{{ orderPosition(order.id) }}</span>
+                @if (editingPositionId() === order.id) {
+                  <input
+                    class="courier-card__pos-input courier-card__pos-input--classic"
+                    type="text"
+                    inputmode="numeric"
+                    pattern="[0-9]*"
+                    enterkeyhint="done"
+                    autocomplete="off"
+                    [id]="'pos-edit-' + order.id"
+                    [value]="positionDraft()"
+                    [attr.aria-label]="'პოზიცია, მაქს ' + orders().length"
+                    (click)="$event.stopPropagation()"
+                    (input)="onPositionDraftInput($event)"
+                    (keydown.enter)="confirmPositionEdit(order.id, $event)"
+                    (keydown.escape)="cancelPositionEdit()"
+                    (blur)="confirmPositionEdit(order.id, $event)"
+                  />
+                } @else {
+                  <button
+                    type="button"
+                    class="courier-card__pos courier-card__pos--classic"
+                    [disabled]="!canEditPosition()"
+                    [attr.aria-label]="'პოზიცია ' + orderPosition(order.id) + ' — შეცვლა'"
+                    (click)="startPositionEdit(order.id, $event)"
+                  >
+                    {{ orderPosition(order.id) }}
+                  </button>
+                }
                 <span class="courier-card__id">#{{ order.id }}</span>
                 <span [class]="statusClass(order.status)">{{ statusLabel(order.status) }}</span>
 
