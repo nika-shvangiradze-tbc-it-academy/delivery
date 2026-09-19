@@ -219,6 +219,161 @@
       </section>
     }
 
+    <section class="admin-orders__pickup-tasks" aria-label="აღების დავალებები">
+      <div class="admin-orders__pickup-tasks-head">
+        <h2>აღების დავალებები</h2>
+        @if (pickupTasksLoading()) {
+          <span class="admin-orders__muted">იტვირთება…</span>
+        }
+      </div>
+
+      <div class="admin-orders__pickup-summary" aria-label="აღების სტატისტიკა">
+        <button
+          type="button"
+          class="admin-orders__pickup-stat"
+          [class.is-active]="pickupStatusFilter() === 'assigned'"
+          (click)="setPickupStatusFilter('assigned')"
+        >
+          <span>მიმდინარე</span>
+          <strong>{{ pickupTaskCounts().assigned }}</strong>
+        </button>
+        <button
+          type="button"
+          class="admin-orders__pickup-stat admin-orders__pickup-stat--picked"
+          [class.is-active]="pickupStatusFilter() === 'picked_up'"
+          (click)="setPickupStatusFilter('picked_up')"
+        >
+          <span>აღებული</span>
+          <strong>{{ pickupTaskCounts().picked_up }}</strong>
+        </button>
+        <button
+          type="button"
+          class="admin-orders__pickup-stat admin-orders__pickup-stat--done"
+          [class.is-active]="pickupStatusFilter() === 'completed'"
+          (click)="setPickupStatusFilter('completed')"
+        >
+          <span>დასრულებული</span>
+          <strong>{{ pickupTaskCounts().completed }}</strong>
+        </button>
+        <button
+          type="button"
+          class="admin-orders__pickup-stat admin-orders__pickup-stat--cancel"
+          [class.is-active]="pickupStatusFilter() === 'cancelled'"
+          (click)="setPickupStatusFilter('cancelled')"
+        >
+          <span>გაუქმებული</span>
+          <strong>{{ pickupTaskCounts().cancelled }}</strong>
+        </button>
+      </div>
+
+      <div class="admin-orders__pickup-filters" role="tablist" aria-label="აღების ფილტრი">
+        <button
+          type="button"
+          [class.is-active]="pickupStatusFilter() === 'all'"
+          (click)="setPickupStatusFilter('all')"
+        >
+          ყველა
+        </button>
+        <button
+          type="button"
+          [class.is-active]="pickupStatusFilter() === 'assigned'"
+          (click)="setPickupStatusFilter('assigned')"
+        >
+          მიმდინარე
+        </button>
+        <button
+          type="button"
+          [class.is-active]="pickupStatusFilter() === 'picked_up'"
+          (click)="setPickupStatusFilter('picked_up')"
+        >
+          აღებული
+        </button>
+        <button
+          type="button"
+          [class.is-active]="pickupStatusFilter() === 'completed'"
+          (click)="setPickupStatusFilter('completed')"
+        >
+          დასრულებული
+        </button>
+        <button
+          type="button"
+          [class.is-active]="pickupStatusFilter() === 'cancelled'"
+          (click)="setPickupStatusFilter('cancelled')"
+        >
+          გაუქმებული
+        </button>
+      </div>
+
+      @if (pickupTasksError()) {
+        <p class="admin-orders__planning-error" role="alert">
+          აღების დავალებები ვერ ჩაიტვირთა. გაუშვით მიგრაცია
+          <code>20260920_pickup_tasks_cancel_and_history.sql</code>
+          — {{ pickupTasksError() }}
+        </p>
+      } @else if (!pickupTasksLoading() && pickupTasks().length === 0) {
+        <p class="admin-orders__muted">აღების დავალებები არ არის</p>
+      } @else {
+        <div class="admin-orders__pickup-tasks-list">
+          @for (task of pickupTasks(); track task.id) {
+            <article
+              class="admin-orders__pickup-task-card"
+              [attr.data-status]="task.status"
+            >
+              <div class="admin-orders__pickup-task-top">
+                <span
+                  class="admin-orders__pickup-task-status"
+                  [attr.data-status]="task.status"
+                >
+                  {{ pickupTaskStatusLabel(task.status) }}
+                </span>
+                <span class="admin-orders__pickup-task-id">#{{ task.id }}</span>
+              </div>
+              <dl class="admin-orders__pickup-task-fields">
+                <div>
+                  <dt>Courier</dt>
+                  <dd>{{ task.courier_name || '—' }}</dd>
+                </div>
+                <div>
+                  <dt>Customer</dt>
+                  <dd>{{ task.customer_name || '—' }}</dd>
+                </div>
+                <div>
+                  <dt>Phone</dt>
+                  <dd>{{ task.pickup_phone || '—' }}</dd>
+                </div>
+                <div>
+                  <dt>Orders</dt>
+                  <dd>{{ task.order_count }}</dd>
+                </div>
+                <div>
+                  <dt>Parcels</dt>
+                  <dd>{{ task.parcel_count }}</dd>
+                </div>
+              </dl>
+              <p class="admin-orders__pickup-task-address">
+                <span aria-hidden="true">📍</span>
+                {{ pickupTaskAddress(task) }}
+              </p>
+              <div class="admin-orders__pickup-task-meta">
+                <p>შექმნა: {{ formatAuditTime(task.created_at) }}</p>
+                @if (task.completed_at) {
+                  <p>დასრულება: {{ formatAuditTime(task.completed_at) }}</p>
+                }
+                @if (task.cancelled_at) {
+                  <p>გაუქმება: {{ formatCancelTime(task.cancelled_at) }}</p>
+                }
+                @if (task.status === 'cancelled' && task.cancellation_reason) {
+                  <p class="admin-orders__pickup-task-reason">
+                    მიზეზი: {{ task.cancellation_reason }}
+                  </p>
+                }
+              </div>
+            </article>
+          }
+        </div>
+      }
+    </section>
+
     @if (showDeliveredAnalytics()) {
       <section class="admin-orders__analytics" aria-label="ჩაბარებული შეკვეთების ანალიტიკა">
         <div class="admin-orders__analytics-head">

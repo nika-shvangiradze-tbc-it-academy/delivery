@@ -18,6 +18,10 @@ import {
   OrderStatus,
   OrderStatusAuditEntry,
   PaginatedOrdersResult,
+  PickupTask,
+  AdminPickupTaskCounts,
+  AdminPickupTaskStatusFilter,
+  AdminPickupTasksResult,
 } from '../models/order.model';
 import { CourierOption } from '../models/profile.model';
 import { ADMIN_COMPANY_SENDER_OR, isCompanyCustomer } from '../utils/admin-customer.util';
@@ -560,6 +564,179 @@ export class AdminService {
       tasksCreated: asNumber(root['tasks_created']),
       tasksUpdated: asNumber(root['tasks_updated']),
       error: null,
+    };
+  }
+
+  /**
+   * Admin pickup task list via admin_get_pickup_tasks RPC.
+   * Source: pickup_tasks + one pickup_task_locations row — not delivery orders.
+   */
+  async getPickupTasks(
+    status: AdminPickupTaskStatusFilter = 'all',
+  ): Promise<{ data: AdminPickupTasksResult; error: string | null }> {
+    const emptyCounts: AdminPickupTaskCounts = {
+      assigned: 0,
+      picked_up: 0,
+      completed: 0,
+      cancelled: 0,
+    };
+
+    const { data, error } = await this.supabase.client.rpc('admin_get_pickup_tasks', {
+      p_status: status,
+    });
+
+    if (error) {
+      this.logSupabaseError('getPickupTasks', error);
+      return { data: { tasks: [], counts: emptyCounts }, error: error.message };
+    }
+
+    const root = (data && typeof data === 'object' ? data : {}) as Record<string, unknown>;
+    const tasksRaw = Array.isArray(root['tasks']) ? root['tasks'] : [];
+    const countsRaw =
+      root['counts'] && typeof root['counts'] === 'object'
+        ? (root['counts'] as Record<string, unknown>)
+        : {};
+
+    const tasks = tasksRaw
+      .map((row) => this.normalizeAdminPickupTask(row))
+      .filter((t): t is PickupTask => t !== null);
+
+    return {
+      data: {
+        tasks,
+        counts: {
+          assigned: asNumber(countsRaw['assigned']),
+          picked_up: asNumber(countsRaw['picked_up']),
+          completed: asNumber(countsRaw['completed']),
+          cancelled: asNumber(countsRaw['cancelled']),
+        },
+      },
+      error: null,
+    };
+  }
+
+  private normalizeAdminPickupTask(raw: unknown): PickupTask | null {
+    if (!raw || typeof raw !== 'object') return null;
+    const r = raw as Record<string, unknown>;
+    const id = Number(r['id']);
+    if (!Number.isFinite(id) || id <= 0) return null;
+
+    const statusRaw = r['status'];
+    const status: PickupTask['status'] =
+      statusRaw === 'cancelled'
+        ? 'cancelled'
+        : statusRaw === 'completed'
+          ? 'completed'
+          : statusRaw === 'picked_up'
+            ? 'picked_up'
+            : 'assigned';
+
+    const locationsRaw = r['pickup_task_locations'] ?? r['locations'];
+    let locations: PickupTask['locations'] = [];
+    if (Array.isArray(locationsRaw)) {
+      for (const loc of locationsRaw) {
+        if (!loc || typeof loc !== 'object') continue;
+        const lr = loc as Record<string, unknown>;
+        const locId = Number(lr['id'] ?? 0);
+        locations.push({
+          id: Number.isFinite(locId) ? locId : 0,
+          pickup_task_id: id,
+          city: typeof lr['city'] === 'string' && lr['city'].trim() ? lr['city'].trim() : null,
+          district:
+            typeof lr['district'] === 'string' && lr['district'].trim()
+              ? lr['district'].trim()
+              : null,
+          address:
+            typeof lr['address'] === 'string' && lr['address'].trim() ? lr['address'].trim() : null,
+          parcel_count: asNumber(lr['parcel_count']),
+          created_at: typeof lr['created_at'] === 'string' ? lr['created_at'] : '',
+        });
+      }
+      locations.sort((a, b) => a.id - b.id);
+    }
+    if (locations.length > 1) {
+      locations = [locations[0]];
+    }
+    if (
+      locations.length === 0 &&
+      (r['pickup_city'] || r['pickup_district'] || r['pickup_address'])
+    ) {
+      locations = [
+        {
+          id: 0,
+          pickup_task_id: id,
+          city:
+            typeof r['pickup_city'] === 'string' && r['pickup_city'].trim()
+              ? r['pickup_city'].trim()
+              : null,
+          district:
+            typeof r['pickup_district'] === 'string' && r['pickup_district'].trim()
+              ? r['pickup_district'].trim()
+              : null,
+          address:
+            typeof r['pickup_address'] === 'string' && r['pickup_address'].trim()
+              ? r['pickup_address'].trim()
+              : null,
+          parcel_count: asNumber(r['parcel_count']),
+          created_at: typeof r['created_at'] === 'string' ? r['created_at'] : '',
+        },
+      ];
+    }
+
+    const courierEmbed = r['courier'];
+    let courierName: string | null =
+      typeof r['courier_name'] === 'string' && r['courier_name'].trim()
+        ? r['courier_name'].trim()
+        : null;
+    if (!courierName && courierEmbed && typeof courierEmbed === 'object' && !Array.isArray(courierEmbed)) {
+      const name = (courierEmbed as Record<string, unknown>)['full_name'];
+      if (typeof name === 'string' && name.trim()) {
+        courierName = name.trim();
+      }
+    }
+
+    return {
+      id,
+      customer_id: String(r['customer_id'] ?? ''),
+      assigned_courier_id: String(r['assigned_courier_id'] ?? ''),
+      status,
+      order_count: asNumber(r['order_count']),
+      parcel_count: asNumber(r['parcel_count']),
+      customer_name:
+        typeof r['customer_name'] === 'string' && r['customer_name'].trim()
+          ? r['customer_name'].trim()
+          : null,
+      pickup_phone:
+        typeof r['pickup_phone'] === 'string' && r['pickup_phone'].trim()
+          ? r['pickup_phone'].trim()
+          : null,
+      pickup_city:
+        typeof r['pickup_city'] === 'string' && r['pickup_city'].trim()
+          ? r['pickup_city'].trim()
+          : null,
+      pickup_district:
+        typeof r['pickup_district'] === 'string' && r['pickup_district'].trim()
+          ? r['pickup_district'].trim()
+          : null,
+      pickup_address:
+        typeof r['pickup_address'] === 'string' && r['pickup_address'].trim()
+          ? r['pickup_address'].trim()
+          : null,
+      location_key:
+        typeof r['location_key'] === 'string' && r['location_key'].trim()
+          ? r['location_key'].trim()
+          : null,
+      completed_at: typeof r['completed_at'] === 'string' ? r['completed_at'] : null,
+      cancelled_at: typeof r['cancelled_at'] === 'string' ? r['cancelled_at'] : null,
+      cancellation_reason:
+        typeof r['cancellation_reason'] === 'string' && r['cancellation_reason'].trim()
+          ? r['cancellation_reason'].trim()
+          : null,
+      created_at: typeof r['created_at'] === 'string' ? r['created_at'] : '',
+      updated_at: typeof r['updated_at'] === 'string' ? r['updated_at'] : '',
+      locations,
+      pickup_task_locations: locations,
+      courier_name: courierName,
     };
   }
 

@@ -38,6 +38,9 @@ import {
   Order,
   OrderStatus,
   OrderStatusAuditEntry,
+  PickupTask,
+  AdminPickupTaskCounts,
+  AdminPickupTaskStatusFilter,
 } from '../../../core/models/order.model';
 import { CourierOption } from '../../../core/models/profile.model';
 import { AdminService } from '../../../core/services/admin.service';
@@ -194,6 +197,16 @@ export class AdminOrders implements OnInit {
   readonly dispatchGroup = signal<AdminPlanningBucket | null>(null);
   readonly dispatchCourierId = signal<string | null>(null);
   readonly dispatchSaving = signal(false);
+  readonly pickupTasks = signal<PickupTask[]>([]);
+  readonly pickupTasksLoading = signal(false);
+  readonly pickupTasksError = signal<string | null>(null);
+  readonly pickupStatusFilter = signal<AdminPickupTaskStatusFilter>('all');
+  readonly pickupTaskCounts = signal<AdminPickupTaskCounts>({
+    assigned: 0,
+    picked_up: 0,
+    completed: 0,
+    cancelled: 0,
+  });
 
   readonly statusClass = orderStatusClass;
   readonly statusLabelKey = orderStatusLabelKey;
@@ -373,10 +386,11 @@ export class AdminOrders implements OnInit {
     const analyticsPromise =
       filters.statusGroup === 'delivered' ? this.loadDeliveredAnalytics(filters) : Promise.resolve();
     const planningPromise = this.loadPlanningBreakdown(filters);
+    const pickupTasksPromise = this.loadPickupTasks();
 
     // Customer grouping = pickup planning summaries only; skip order list fetch.
     if (this.groupBy() === 'customer') {
-      await planningPromise;
+      await Promise.all([planningPromise, pickupTasksPromise]);
       if (generation !== this.loadGeneration) {
         return;
       }
@@ -392,6 +406,7 @@ export class AdminOrders implements OnInit {
       this.adminService.getAdminOrders(filters),
       analyticsPromise,
       planningPromise,
+      pickupTasksPromise,
     ]);
 
     if (generation !== this.loadGeneration) {
@@ -406,6 +421,53 @@ export class AdminOrders implements OnInit {
 
     if (filters.statusGroup !== 'delivered') {
       this.analytics.set(EMPTY_ANALYTICS);
+    }
+  }
+
+  async loadPickupTasks(): Promise<void> {
+    this.pickupTasksLoading.set(true);
+    this.pickupTasksError.set(null);
+    const { data, error } = await this.adminService.getPickupTasks(this.pickupStatusFilter());
+    this.pickupTasksLoading.set(false);
+    if (error) {
+      this.pickupTasksError.set(error);
+      this.pickupTasks.set([]);
+      return;
+    }
+    this.pickupTasks.set(data.tasks);
+    this.pickupTaskCounts.set(data.counts);
+  }
+
+  setPickupStatusFilter(filter: AdminPickupTaskStatusFilter): void {
+    if (this.pickupStatusFilter() === filter) return;
+    this.pickupStatusFilter.set(filter);
+    void this.loadPickupTasks();
+  }
+
+  pickupTaskAddress(task: PickupTask): string {
+    const loc = task.locations[0];
+    if (loc) {
+      return [loc.city, loc.district, loc.address]
+        .map((p) => (p ?? '').trim())
+        .filter(Boolean)
+        .join(', ') || '—';
+    }
+    return [task.pickup_city, task.pickup_district, task.pickup_address]
+      .map((p) => (p ?? '').trim())
+      .filter(Boolean)
+      .join(', ') || '—';
+  }
+
+  pickupTaskStatusLabel(status: PickupTask['status']): string {
+    switch (status) {
+      case 'picked_up':
+        return 'აღებული';
+      case 'completed':
+        return 'დასრულებული';
+      case 'cancelled':
+        return 'გაუქმებული';
+      default:
+        return 'მიმდინარე';
     }
   }
 
@@ -484,7 +546,7 @@ export class AdminOrders implements OnInit {
         : `აღების დავალება შეიქმნა (${updated} შეკვეთა) — ${group.label}`,
     );
     this.closeDispatch();
-    void this.loadPlanningBreakdown(this.currentFilters());
+    void this.loadOrders();
   }
 
   clearCustomerFilter(): void {
@@ -823,6 +885,11 @@ export class AdminOrders implements OnInit {
    * the current page only (never load full history).
    */
   private async onRealtimeChange(change: OrderRealtimeChange): Promise<void> {
+    if (change.source === 'pickup_tasks') {
+      void this.loadPickupTasks();
+      return;
+    }
+
     if (this.updating()) {
       return;
     }

@@ -188,7 +188,14 @@ export interface AdminPlanningBucket {
 }
 
 /** Operational pickup collection task (separate from delivery orders). */
-export type PickupTaskStatus = 'assigned' | 'completed' | 'cancelled';
+export type PickupTaskStatus = 'assigned' | 'picked_up' | 'completed' | 'cancelled';
+
+export type AdminPickupTaskStatusFilter =
+  | 'all'
+  | 'assigned'
+  | 'picked_up'
+  | 'completed'
+  | 'cancelled';
 
 export interface PickupTaskLocation {
   id: number;
@@ -215,12 +222,42 @@ export interface PickupTask {
   pickup_address: string | null;
   location_key: string | null;
   completed_at: string | null;
+  cancelled_at?: string | null;
+  cancellation_reason?: string | null;
   created_at: string;
   updated_at: string;
-  /** Normalized locations for the courier card UI. */
+  /** Normalized locations — always exactly 0 or 1 for the customer pickup point. */
   locations: PickupTaskLocation[];
-  /** Raw embed alias (same as locations) for debug / template dumps. */
+  /** Raw embed alias (same as locations). */
   pickup_task_locations?: PickupTaskLocation[];
+  /** Admin list — assigned courier display name. */
+  courier_name?: string | null;
+}
+
+export interface AdminPickupTaskCounts {
+  assigned: number;
+  picked_up: number;
+  completed: number;
+  cancelled: number;
+}
+
+export interface AdminPickupTasksResult {
+  tasks: PickupTask[];
+  counts: AdminPickupTaskCounts;
+}
+
+export interface CourierPickupCompleteResult {
+  success: boolean;
+  updated: number;
+  pickup_task_id: number;
+  status: 'picked_up';
+}
+
+export interface CourierPickupCancelResult {
+  success: boolean;
+  pickup_task_id: number;
+  status: 'cancelled';
+  cancellation_reason: string;
 }
 
 export interface AdminPlanningBreakdown {

@@ -79,9 +79,9 @@ export class CourierService {
       .from('pickup_tasks')
       .select(PICKUP_TASKS_EMBED)
       .eq('assigned_courier_id', userId)
-      .eq('status', 'assigned')
-      .order('created_at', { ascending: true })
-      .order('id', { ascending: true });
+      .in('status', ['assigned', 'picked_up', 'completed', 'cancelled'])
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false });
 
     console.log('[Pickup] Supabase data:', embedded.data);
     console.log('[Pickup] Supabase error:', embedded.error);
@@ -89,7 +89,8 @@ export class CourierService {
     if (!embedded.error) {
       const normalizedTasks = (embedded.data ?? [])
         .map((row) => this.normalizePickupTask(row))
-        .filter((t): t is PickupTask => t !== null);
+        .filter((t): t is PickupTask => t !== null)
+        .sort((a, b) => this.pickupStatusSortRank(a.status) - this.pickupStatusSortRank(b.status));
       console.log('[Pickup] normalized:', normalizedTasks);
       return { data: normalizedTasks, error: null };
     }
@@ -101,9 +102,9 @@ export class CourierService {
       .from('pickup_tasks')
       .select(PICKUP_TASKS_FLAT)
       .eq('assigned_courier_id', userId)
-      .eq('status', 'assigned')
-      .order('created_at', { ascending: true })
-      .order('id', { ascending: true });
+      .in('status', ['assigned', 'picked_up', 'completed', 'cancelled'])
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false });
 
     console.log('[Pickup] flat Supabase data:', flat.data);
     console.log('[Pickup] flat Supabase error:', flat.error);
@@ -153,12 +154,17 @@ export class CourierService {
 
     const normalizedTasks = merged
       .map((row) => this.normalizePickupTask(row))
-      .filter((t): t is PickupTask => t !== null);
+      .filter((t): t is PickupTask => t !== null)
+      .sort((a, b) => this.pickupStatusSortRank(a.status) - this.pickupStatusSortRank(b.status));
 
     console.log('[Pickup] normalized:', normalizedTasks);
     return { data: normalizedTasks, error: null };
   }
 
+  /**
+   * Complete pickup via SECURITY DEFINER RPC only.
+   * Does not PATCH orders — courier_complete_pickup updates linked pending → picked_up.
+   */
   async completePickup(pickupTaskId: number): Promise<{ updated: number; error: string | null }> {
     if (!Number.isFinite(pickupTaskId) || pickupTaskId <= 0) {
       return { updated: 0, error: 'აღების დავალება არასწორია' };
@@ -182,6 +188,60 @@ export class CourierService {
     const updated =
       typeof root['updated'] === 'number' ? root['updated'] : Number(root['updated'] ?? 0) || 0;
     return { updated, error: null };
+  }
+
+  /**
+   * Cancel pickup via SECURITY DEFINER RPC only.
+   * Updates pickup_tasks only — linked orders stay pending.
+   */
+  async cancelPickup(
+    pickupTaskId: number,
+    reason: string,
+  ): Promise<{ success: boolean; error: string | null }> {
+    if (!Number.isFinite(pickupTaskId) || pickupTaskId <= 0) {
+      return { success: false, error: 'აღების დავალება არასწორია' };
+    }
+    const trimmed = reason.trim();
+    if (!trimmed) {
+      return { success: false, error: 'გთხოვთ მიუთითოთ გაუქმების მიზეზი' };
+    }
+    if (trimmed.length > 500) {
+      return { success: false, error: 'მიზეზი ძალიან გრძელია (მაქს. 500 სიმბოლო)' };
+    }
+
+    const sessionCheck = await this.requireCourierSession(0);
+    if (sessionCheck.error) {
+      return { success: false, error: sessionCheck.error };
+    }
+
+    const { data, error } = await this.supabase.client.rpc('courier_cancel_pickup', {
+      p_task_id: pickupTaskId,
+      p_reason: trimmed,
+    });
+
+    if (error) {
+      this.logRpcError('courier_cancel_pickup', error);
+      return { success: false, error: this.mapCourierRpcError(error.message) };
+    }
+
+    const root = (data && typeof data === 'object' ? data : {}) as Record<string, unknown>;
+    const success = root['success'] === true || root['status'] === 'cancelled';
+    return { success, error: success ? null : 'აღების გაუქმება ვერ მოხერხდა' };
+  }
+
+  private pickupStatusSortRank(status: PickupTask['status']): number {
+    switch (status) {
+      case 'assigned':
+        return 0;
+      case 'picked_up':
+        return 1;
+      case 'completed':
+        return 2;
+      case 'cancelled':
+        return 3;
+      default:
+        return 9;
+    }
   }
 
   async getMyHistoryOrders(): Promise<{ data: Order[]; error: string | null }> {
@@ -433,6 +493,12 @@ export class CourierService {
     if (lower.includes('cancellation reason is required')) {
       return 'გთხოვთ მიუთითოთ გაუქმების მიზეზი';
     }
+    if (lower.includes('cancellation reason is too long')) {
+      return 'მიზეზი ძალიან გრძელია (მაქს. 500 სიმბოლო)';
+    }
+    if (lower.includes('pickup task is not active') || lower.includes('not your pickup task')) {
+      return 'აღების დავალება აღარ არის აქტიური.';
+    }
     if (
       lower.includes('cancellation reason cannot be changed') ||
       lower.includes('cancellation reason can only be set')
@@ -532,11 +598,14 @@ export class CourierService {
       return null;
     }
     const statusRaw = r['status'];
-    // Preserve DB status; never drop 'assigned' rows.
     const normalizedStatus: PickupTask['status'] =
-      statusRaw === 'completed' || statusRaw === 'cancelled' || statusRaw === 'assigned'
-        ? statusRaw
-        : 'assigned';
+      statusRaw === 'cancelled'
+        ? 'cancelled'
+        : statusRaw === 'completed'
+          ? 'completed'
+          : statusRaw === 'picked_up'
+            ? 'picked_up'
+            : 'assigned';
 
     const locationsRaw = r['pickup_task_locations'] ?? r['locations'];
     let locations: PickupTaskLocation[] = [];
@@ -551,6 +620,10 @@ export class CourierService {
       if (one) {
         locations = [one];
       }
+    }
+    // One customer = one pickup point — keep only the first location row.
+    if (locations.length > 1) {
+      locations = [locations[0]];
     }
     // Legacy single-address fallback when locations table is empty/missing
     if (
@@ -577,6 +650,17 @@ export class CourierService {
           created_at: typeof r['created_at'] === 'string' ? r['created_at'] : '',
         },
       ];
+    }
+
+    const courierEmbed = r['courier'] ?? r['profiles'];
+    let courierName: string | null = null;
+    if (courierEmbed && typeof courierEmbed === 'object' && !Array.isArray(courierEmbed)) {
+      const name = (courierEmbed as Record<string, unknown>)['full_name'];
+      if (typeof name === 'string' && name.trim()) {
+        courierName = name.trim();
+      }
+    } else if (typeof r['courier_name'] === 'string' && r['courier_name'].trim()) {
+      courierName = r['courier_name'].trim();
     }
 
     return {
@@ -611,10 +695,16 @@ export class CourierService {
           ? r['location_key'].trim()
           : null,
       completed_at: typeof r['completed_at'] === 'string' ? r['completed_at'] : null,
+      cancelled_at: typeof r['cancelled_at'] === 'string' ? r['cancelled_at'] : null,
+      cancellation_reason:
+        typeof r['cancellation_reason'] === 'string' && r['cancellation_reason'].trim()
+          ? r['cancellation_reason'].trim()
+          : null,
       created_at: typeof r['created_at'] === 'string' ? r['created_at'] : '',
       updated_at: typeof r['updated_at'] === 'string' ? r['updated_at'] : '',
       locations,
       pickup_task_locations: locations,
+      courier_name: courierName,
     };
   }
 

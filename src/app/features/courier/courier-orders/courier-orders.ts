@@ -56,6 +56,10 @@ export class CourierOrders implements OnInit, OnDestroy {
   readonly pickupLoading = signal(true);
   readonly savingId = signal<number | null>(null);
   readonly completingPickupId = signal<number | null>(null);
+  readonly cancellingPickupId = signal<number | null>(null);
+  readonly pickupCancelTask = signal<PickupTask | null>(null);
+  readonly pickupCancelReason = signal('');
+  readonly pickupCancelError = signal<string | null>(null);
   readonly reordering = signal(false);
   readonly errorMessage = signal<string | null>(null);
   readonly successMessage = signal<string | null>(null);
@@ -262,7 +266,49 @@ export class CourierOrders implements OnInit, OnDestroy {
     }
 
     this.successMessage.set(`აღება შესრულებულია — ${updated} შეკვეთა`);
-    await this.loadPickupTasks();
+    await Promise.all([this.loadPickupTasks(), this.loadDeliveryOrdersAndSummary()]);
+  }
+
+  openPickupCancel(task: PickupTask): void {
+    this.pickupCancelTask.set(task);
+    this.pickupCancelReason.set('');
+    this.pickupCancelError.set(null);
+  }
+
+  closePickupCancel(): void {
+    if (this.cancellingPickupId() != null) return;
+    this.pickupCancelTask.set(null);
+    this.pickupCancelReason.set('');
+    this.pickupCancelError.set(null);
+  }
+
+  async confirmPickupCancel(): Promise<void> {
+    const task = this.pickupCancelTask();
+    if (!task) return;
+
+    const reason = this.pickupCancelReason().trim();
+    if (!reason) {
+      this.pickupCancelError.set('გთხოვთ მიუთითოთ გაუქმების მიზეზი');
+      return;
+    }
+
+    this.cancellingPickupId.set(task.id);
+    this.pickupCancelError.set(null);
+    this.errorMessage.set(null);
+    this.successMessage.set(null);
+
+    const { success, error } = await this.courierService.cancelPickup(task.id, reason);
+    this.cancellingPickupId.set(null);
+
+    if (error || !success) {
+      this.pickupCancelError.set(error ?? 'აღების გაუქმება ვერ მოხერხდა');
+      return;
+    }
+
+    this.pickupCancelTask.set(null);
+    this.pickupCancelReason.set('');
+    this.successMessage.set('აღების დავალება გაუქმებულია');
+    await Promise.all([this.loadPickupTasks(), this.loadDeliveryOrdersAndSummary()]);
   }
 
   toggleDetails(orderId: number): void {
