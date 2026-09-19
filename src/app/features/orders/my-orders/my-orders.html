@@ -192,14 +192,12 @@
                 </span>
               </div>
 
-              @if (
-                order.pickup_task_status === 'cancelled' && order.pickup_cancellation_reason
-              ) {
+              @if (hasPickupCancellation(order)) {
                 <div class="my-orders-page__pickup-cancel" role="status">
                   <p class="my-orders-page__pickup-cancel-status">
                     🔴 აღების დავალება გაუქმებულია
                   </p>
-                  <p class="my-orders-page__pickup-cancel-label">გაუქმების მიზეზი</p>
+                  <p class="my-orders-page__pickup-cancel-label">გაუქმების მიზეზი:</p>
                   <p class="my-orders-page__pickup-cancel-reason">
                     {{ order.pickup_cancellation_reason }}
                   </p>

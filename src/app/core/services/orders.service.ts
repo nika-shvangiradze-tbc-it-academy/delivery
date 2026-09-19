@@ -288,57 +288,123 @@ export class OrdersService {
       return orders;
     }
 
-    const orderIds = orders.map((order) => order.id);
-    const { data, error } = await this.supabase.client
-      .from('pickup_task_orders')
-      .select(
-        'order_id, pickup_tasks!inner(id, status, cancellation_reason, cancelled_at)',
-      )
-      .in('order_id', orderIds)
-      .eq('pickup_tasks.status', 'cancelled');
-
-    if (error) {
-      this.logDevError('enrichOrdersWithPickupCancellation', error.message);
+    const user = this.auth.user();
+    if (!user) {
       return orders;
     }
 
-    type TaskEmbed = {
-      id: number;
-      status: string;
-      cancellation_reason: string | null;
-      cancelled_at: string | null;
-    };
+    const orderIdSet = new Set(orders.map((order) => order.id));
+
+    // Prefer primary-table filters (reliable). Nested .eq('pickup_tasks.status') is flaky in PostgREST.
+    const { data, error } = await this.supabase.client
+      .from('pickup_tasks')
+      .select(
+        'id, status, cancellation_reason, cancelled_at, pickup_task_orders(order_id)',
+      )
+      .eq('customer_id', user.id)
+      .eq('status', 'cancelled');
+
+    if (error) {
+      this.logDevError('enrichOrdersWithPickupCancellation', error.message);
+      return this.enrichPickupCancelViaJunction(orders, orderIdSet);
+    }
+
+    const latestByOrder = this.mapCancelledPickupReasonsByOrder(data ?? [], orderIdSet);
+    if (latestByOrder.size === 0) {
+      // Relationship embed may be empty; fall back to junction → task.
+      return this.enrichPickupCancelViaJunction(orders, orderIdSet);
+    }
+
+    return this.applyPickupCancelEnrichment(orders, latestByOrder);
+  }
+
+  /** Fallback when pickup_tasks → pickup_task_orders embed is unavailable. */
+  private async enrichPickupCancelViaJunction(
+    orders: Order[],
+    orderIdSet: Set<number>,
+  ): Promise<Order[]> {
+    const orderIds = [...orderIdSet];
+    if (orderIds.length === 0) {
+      return orders;
+    }
+
+    const { data, error } = await this.supabase.client
+      .from('pickup_task_orders')
+      .select('order_id, pickup_tasks(id, status, cancellation_reason, cancelled_at)')
+      .in('order_id', orderIds);
+
+    if (error) {
+      this.logDevError('enrichPickupCancelViaJunction', error.message);
+      return orders;
+    }
 
     const latestByOrder = new Map<
       number,
       { reason: string; cancelledAt: string | null; taskId: number }
     >();
 
-    for (const row of (data ?? []) as Array<{
-      order_id: number;
-      pickup_tasks: TaskEmbed | TaskEmbed[] | null;
-    }>) {
-      const orderId = Number(row.order_id);
-      if (!Number.isFinite(orderId)) continue;
+    for (const row of data ?? []) {
+      const orderId = Number((row as { order_id?: unknown }).order_id);
+      if (!Number.isFinite(orderId) || !orderIdSet.has(orderId)) {
+        continue;
+      }
 
-      const rawTask = row.pickup_tasks;
-      const task = Array.isArray(rawTask) ? rawTask[0] : rawTask;
-      if (!task || task.status !== 'cancelled') continue;
+      const task = this.unwrapPickupTaskEmbed(
+        (row as { pickup_tasks?: unknown }).pickup_tasks,
+      );
+      if (!task || task.status !== 'cancelled') {
+        continue;
+      }
 
       const reason = (task.cancellation_reason ?? '').trim();
+      if (!reason) {
+        continue;
+      }
+
+      this.rememberLatestPickupCancel(latestByOrder, orderId, {
+        reason,
+        cancelledAt: task.cancelled_at,
+        taskId: task.id,
+      });
+    }
+
+    return this.applyPickupCancelEnrichment(orders, latestByOrder);
+  }
+
+  private mapCancelledPickupReasonsByOrder(
+    rows: unknown[],
+    orderIdSet: Set<number>,
+  ): Map<number, { reason: string; cancelledAt: string | null; taskId: number }> {
+    const latestByOrder = new Map<
+      number,
+      { reason: string; cancelledAt: string | null; taskId: number }
+    >();
+
+    for (const raw of rows) {
+      if (!raw || typeof raw !== 'object') continue;
+      const row = raw as Record<string, unknown>;
+      if (row['status'] !== 'cancelled') continue;
+
+      const reason = String(row['cancellation_reason'] ?? '').trim();
       if (!reason) continue;
 
-      const taskId = Number(task.id);
-      const existing = latestByOrder.get(orderId);
-      const cancelledAt = task.cancelled_at ?? null;
-      const shouldReplace =
-        !existing ||
-        (cancelledAt ?? '') > (existing.cancelledAt ?? '') ||
-        ((cancelledAt ?? '') === (existing.cancelledAt ?? '') &&
-          (Number.isFinite(taskId) ? taskId : 0) > existing.taskId);
+      const taskId = Number(row['id']);
+      const cancelledAt =
+        typeof row['cancelled_at'] === 'string' ? row['cancelled_at'] : null;
 
-      if (shouldReplace) {
-        latestByOrder.set(orderId, {
+      const linksRaw = row['pickup_task_orders'];
+      const links = Array.isArray(linksRaw)
+        ? linksRaw
+        : linksRaw && typeof linksRaw === 'object'
+          ? [linksRaw]
+          : [];
+
+      for (const link of links) {
+        if (!link || typeof link !== 'object') continue;
+        const orderId = Number((link as { order_id?: unknown }).order_id);
+        if (!Number.isFinite(orderId) || !orderIdSet.has(orderId)) continue;
+
+        this.rememberLatestPickupCancel(latestByOrder, orderId, {
           reason,
           cancelledAt,
           taskId: Number.isFinite(taskId) ? taskId : 0,
@@ -346,13 +412,58 @@ export class OrdersService {
       }
     }
 
+    return latestByOrder;
+  }
+
+  private unwrapPickupTaskEmbed(raw: unknown): {
+    id: number;
+    status: string;
+    cancellation_reason: string | null;
+    cancelled_at: string | null;
+  } | null {
+    const task = Array.isArray(raw) ? raw[0] : raw;
+    if (!task || typeof task !== 'object') {
+      return null;
+    }
+    const t = task as Record<string, unknown>;
+    return {
+      id: Number(t['id'] ?? 0),
+      status: String(t['status'] ?? ''),
+      cancellation_reason:
+        t['cancellation_reason'] == null ? null : String(t['cancellation_reason']),
+      cancelled_at: typeof t['cancelled_at'] === 'string' ? t['cancelled_at'] : null,
+    };
+  }
+
+  private rememberLatestPickupCancel(
+    map: Map<number, { reason: string; cancelledAt: string | null; taskId: number }>,
+    orderId: number,
+    info: { reason: string; cancelledAt: string | null; taskId: number },
+  ): void {
+    const existing = map.get(orderId);
+    const shouldReplace =
+      !existing ||
+      (info.cancelledAt ?? '') > (existing.cancelledAt ?? '') ||
+      ((info.cancelledAt ?? '') === (existing.cancelledAt ?? '') &&
+        info.taskId > existing.taskId);
+    if (shouldReplace) {
+      map.set(orderId, info);
+    }
+  }
+
+  private applyPickupCancelEnrichment(
+    orders: Order[],
+    latestByOrder: Map<number, { reason: string; cancelledAt: string | null; taskId: number }>,
+  ): Order[] {
     if (latestByOrder.size === 0) {
       return orders;
     }
 
     return orders.map((order) => {
       const info = latestByOrder.get(order.id);
-      if (!info) return order;
+      if (!info) {
+        return order;
+      }
       return {
         ...order,
         pickup_task_status: 'cancelled',

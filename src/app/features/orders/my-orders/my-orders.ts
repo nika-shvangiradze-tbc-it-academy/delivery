@@ -353,6 +353,14 @@ export class MyOrders implements OnInit {
     return order.status === 'pending';
   }
 
+  /** Pickup-task cancel only — not delivery order.cancellation_reason. */
+  hasPickupCancellation(order: Order): boolean {
+    return (
+      order.pickup_task_status === 'cancelled' &&
+      !!order.pickup_cancellation_reason?.trim()
+    );
+  }
+
   openEdit(order: Order): void {
     if (!this.canEdit(order)) {
       return;
