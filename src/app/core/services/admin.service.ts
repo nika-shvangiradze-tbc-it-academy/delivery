@@ -570,6 +570,7 @@ export class AdminService {
   /**
    * Admin pickup task list via admin_get_pickup_tasks RPC.
    * Source: pickup_tasks + one pickup_task_locations row — not delivery orders.
+   * Legacy DB status "completed" is folded into "picked_up" for the UI.
    */
   async getPickupTasks(
     status: AdminPickupTaskStatusFilter = 'all',
@@ -577,12 +578,12 @@ export class AdminService {
     const emptyCounts: AdminPickupTaskCounts = {
       assigned: 0,
       picked_up: 0,
-      completed: 0,
       cancelled: 0,
     };
 
+    // Always load full set so legacy "completed" can fold into picked_up counts/list.
     const { data, error } = await this.supabase.client.rpc('admin_get_pickup_tasks', {
-      p_status: status,
+      p_status: 'all',
     });
 
     if (error) {
@@ -597,22 +598,21 @@ export class AdminService {
         ? (root['counts'] as Record<string, unknown>)
         : {};
 
-    const tasks = tasksRaw
+    let tasks = tasksRaw
       .map((row) => this.normalizeAdminPickupTask(row))
       .filter((t): t is PickupTask => t !== null);
 
-    return {
-      data: {
-        tasks,
-        counts: {
-          assigned: asNumber(countsRaw['assigned']),
-          picked_up: asNumber(countsRaw['picked_up']),
-          completed: asNumber(countsRaw['completed']),
-          cancelled: asNumber(countsRaw['cancelled']),
-        },
-      },
-      error: null,
+    const counts: AdminPickupTaskCounts = {
+      assigned: asNumber(countsRaw['assigned']),
+      picked_up: asNumber(countsRaw['picked_up']) + asNumber(countsRaw['completed']),
+      cancelled: asNumber(countsRaw['cancelled']),
     };
+
+    if (status !== 'all') {
+      tasks = tasks.filter((t) => t.status === status);
+    }
+
+    return { data: { tasks, counts }, error: null };
   }
 
   private normalizeAdminPickupTask(raw: unknown): PickupTask | null {
@@ -622,14 +622,13 @@ export class AdminService {
     if (!Number.isFinite(id) || id <= 0) return null;
 
     const statusRaw = r['status'];
+    // Fold legacy "completed" into picked_up for UI.
     const status: PickupTask['status'] =
       statusRaw === 'cancelled'
         ? 'cancelled'
-        : statusRaw === 'completed'
-          ? 'completed'
-          : statusRaw === 'picked_up'
-            ? 'picked_up'
-            : 'assigned';
+        : statusRaw === 'picked_up' || statusRaw === 'completed'
+          ? 'picked_up'
+          : 'assigned';
 
     const locationsRaw = r['pickup_task_locations'] ?? r['locations'];
     let locations: PickupTask['locations'] = [];

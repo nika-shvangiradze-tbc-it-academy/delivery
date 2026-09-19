@@ -21,7 +21,17 @@
       <div class="topbar__center topbar__desktop-only">
         @if (isReady()) {
           @if (isAdmin()) {
-            <span class="topbar__admin-title">{{ 'nav.adminPanel' | t }}</span>
+            <nav class="topbar__user-nav topbar__admin-nav" aria-label="Admin">
+              <a routerLink="/admin" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }" (click)="closeMenu()">
+                {{ 'nav.adminPanel' | t }}
+              </a>
+              <a routerLink="/admin/orders" routerLinkActive="is-active" (click)="closeMenu()">
+                {{ 'nav.adminOrders' | t }}
+              </a>
+              <a routerLink="/admin/pickup-tasks" routerLinkActive="is-active" (click)="closeMenu()">
+                {{ 'nav.adminPickupTasks' | t }}
+              </a>
+            </nav>
           } @else if (isCourier()) {
             <a
               class="topbar__admin-title topbar__admin-title--link"
@@ -180,11 +190,14 @@
     @if (isReady()) {
       @if (isAdmin()) {
         <nav class="mobile-menu__section" aria-label="Admin">
-          <a routerLink="/admin" routerLinkActive="is-active" (click)="closeMenu()">
+          <a routerLink="/admin" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }" (click)="closeMenu()">
             {{ 'nav.adminPanel' | t }}
           </a>
           <a routerLink="/admin/orders" routerLinkActive="is-active" (click)="closeMenu()">
-            {{ 'admin.manageOrders' | t }}
+            {{ 'nav.adminOrders' | t }}
+          </a>
+          <a routerLink="/admin/pickup-tasks" routerLinkActive="is-active" (click)="closeMenu()">
+            {{ 'nav.adminPickupTasks' | t }}
           </a>
         </nav>
       } @else if (isCourier()) {

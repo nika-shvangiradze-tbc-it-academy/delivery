@@ -52,6 +52,12 @@ export const routes: Routes = [
     loadComponent: () => import('./features/admin/orders/orders').then((m) => m.AdminOrders),
   },
   {
+    path: 'admin/pickup-tasks',
+    canActivate: [adminGuard],
+    loadComponent: () =>
+      import('./features/admin/pickup-tasks/pickup-tasks').then((m) => m.AdminPickupTasks),
+  },
+  {
     path: 'courier',
     canActivate: [courierGuard],
     loadComponent: () =>

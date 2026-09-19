@@ -48,11 +48,8 @@
       position: absolute;
       left: 50%;
       transform: translateX(-50%);
-      pointer-events: none;
-
-      .topbar__admin-title {
-        pointer-events: auto;
-      }
+      pointer-events: auto;
+      max-width: min(720px, calc(100% - 280px));
     }
 
     .topbar__right {

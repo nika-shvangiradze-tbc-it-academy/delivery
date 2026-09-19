@@ -4,6 +4,7 @@ import {
   COURIER_ACTIVE_STATUSES,
   COURIER_HISTORY_STATUSES,
   CourierDailySummary,
+  CourierPickupHistoryFilter,
   CourierStatus,
   Order,
   OrderStatus,
@@ -53,10 +54,31 @@ export class CourierService {
   }
 
   /**
-   * Active pickup tasks for the logged-in courier.
+   * Active pickup tasks for the logged-in courier (status = assigned only).
    * Source of truth: pickup_tasks + pickup_task_locations (not orders).
    */
   async getMyPickupTasks(): Promise<{ data: PickupTask[]; error: string | null }> {
+    return this.fetchMyPickupTasksByStatuses(['assigned']);
+  }
+
+  /**
+   * Pickup history: picked_up + cancelled (legacy completed folded into picked_up).
+   */
+  async getMyPickupHistory(
+    filter: CourierPickupHistoryFilter = 'all',
+  ): Promise<{ data: PickupTask[]; error: string | null }> {
+    const statuses: string[] =
+      filter === 'picked_up'
+        ? ['picked_up', 'completed']
+        : filter === 'cancelled'
+          ? ['cancelled']
+          : ['picked_up', 'completed', 'cancelled'];
+    return this.fetchMyPickupTasksByStatuses(statuses);
+  }
+
+  private async fetchMyPickupTasksByStatuses(
+    statuses: string[],
+  ): Promise<{ data: PickupTask[]; error: string | null }> {
     await this.auth.whenReady();
 
     const { data: sessionData, error: sessionError } = await this.supabase.client.auth.getSession();
@@ -66,48 +88,34 @@ export class CourierService {
     }
 
     const userId = sessionData.session?.user?.id ?? this.auth.user()?.id ?? null;
-    console.log('[Pickup] USER ID', userId);
-
     if (!userId) {
-      const message = 'No authenticated courier session';
-      console.error('[Pickup]', message);
-      return { data: [], error: message };
+      return { data: [], error: 'No authenticated courier session' };
     }
 
-    // Preferred: single embed query (as designed).
     const embedded = await this.supabase.client
       .from('pickup_tasks')
       .select(PICKUP_TASKS_EMBED)
       .eq('assigned_courier_id', userId)
-      .in('status', ['assigned', 'picked_up', 'completed', 'cancelled'])
+      .in('status', statuses)
       .order('created_at', { ascending: false })
       .order('id', { ascending: false });
-
-    console.log('[Pickup] Supabase data:', embedded.data);
-    console.log('[Pickup] Supabase error:', embedded.error);
 
     if (!embedded.error) {
       const normalizedTasks = (embedded.data ?? [])
         .map((row) => this.normalizePickupTask(row))
-        .filter((t): t is PickupTask => t !== null)
-        .sort((a, b) => this.pickupStatusSortRank(a.status) - this.pickupStatusSortRank(b.status));
-      console.log('[Pickup] normalized:', normalizedTasks);
+        .filter((t): t is PickupTask => t !== null);
       return { data: normalizedTasks, error: null };
     }
 
-    // Do not hide embed failures — log, then try two-step fetch (no schema change).
     console.error('[Pickup] embed query failed, trying two-step fetch', embedded.error);
 
     const flat = await this.supabase.client
       .from('pickup_tasks')
       .select(PICKUP_TASKS_FLAT)
       .eq('assigned_courier_id', userId)
-      .in('status', ['assigned', 'picked_up', 'completed', 'cancelled'])
+      .in('status', statuses)
       .order('created_at', { ascending: false })
       .order('id', { ascending: false });
-
-    console.log('[Pickup] flat Supabase data:', flat.data);
-    console.log('[Pickup] flat Supabase error:', flat.error);
 
     if (flat.error) {
       console.error('[Pickup] flat query failed', flat.error);
@@ -126,13 +134,7 @@ export class CourierService {
         .select(PICKUP_LOCATIONS_COLUMNS)
         .in('pickup_task_id', taskIds);
 
-      console.log('[Pickup] locations Supabase data:', locs.data);
-      console.log('[Pickup] locations Supabase error:', locs.error);
-
-      if (locs.error) {
-        console.error('[Pickup] locations query failed', locs.error);
-        // Still return tasks; locations may be empty but cards must show.
-      } else {
+      if (!locs.error) {
         locationsByTask = new Map();
         for (const loc of locs.data ?? []) {
           const taskId = Number((loc as { pickup_task_id?: number | string }).pickup_task_id);
@@ -154,10 +156,8 @@ export class CourierService {
 
     const normalizedTasks = merged
       .map((row) => this.normalizePickupTask(row))
-      .filter((t): t is PickupTask => t !== null)
-      .sort((a, b) => this.pickupStatusSortRank(a.status) - this.pickupStatusSortRank(b.status));
+      .filter((t): t is PickupTask => t !== null);
 
-    console.log('[Pickup] normalized:', normalizedTasks);
     return { data: normalizedTasks, error: null };
   }
 
@@ -235,10 +235,8 @@ export class CourierService {
         return 0;
       case 'picked_up':
         return 1;
-      case 'completed':
-        return 2;
       case 'cancelled':
-        return 3;
+        return 2;
       default:
         return 9;
     }
@@ -598,14 +596,13 @@ export class CourierService {
       return null;
     }
     const statusRaw = r['status'];
+    // Fold legacy "completed" into picked_up for UI.
     const normalizedStatus: PickupTask['status'] =
       statusRaw === 'cancelled'
         ? 'cancelled'
-        : statusRaw === 'completed'
-          ? 'completed'
-          : statusRaw === 'picked_up'
-            ? 'picked_up'
-            : 'assigned';
+        : statusRaw === 'picked_up' || statusRaw === 'completed'
+          ? 'picked_up'
+          : 'assigned';
 
     const locationsRaw = r['pickup_task_locations'] ?? r['locations'];
     let locations: PickupTaskLocation[] = [];

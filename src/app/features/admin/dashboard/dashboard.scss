@@ -17,6 +17,12 @@
     flex-wrap: wrap;
   }
 
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
   &__title {
     color: #535353;
     font-size: 30px;
@@ -32,6 +38,12 @@
     padding: 12px 20px;
     border-radius: 12px;
     font-weight: 600;
+
+    &--secondary {
+      background: #fff;
+      color: #db7623;
+      border: 1px solid rgba(219, 118, 35, 0.45);
+    }
   }
 
   &__grid {

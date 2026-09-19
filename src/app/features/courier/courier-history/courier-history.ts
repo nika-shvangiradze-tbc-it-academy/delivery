@@ -12,9 +12,12 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import {
   COURIER_CORRECTION_STATUSES,
+  CourierPickupHistoryFilter,
   CourierStatus,
   Order,
   PaymentMethod,
+  PickupTask,
+  PickupTaskLocation,
 } from '../../../core/models/order.model';
 import { CourierRealtimeService } from '../../../core/services/courier-realtime.service';
 import { CourierService } from '../../../core/services/courier.service';
@@ -22,12 +25,15 @@ import {
   courierStatusLabel,
   formatGel,
   formatPhoneDisplay,
+  formatTbilisiDateTime,
+  formatTbilisiDotDateTime,
   historyCompletedAt,
   orderStatusClass,
   paymentMethodLabel,
 } from '../../../core/utils/order-status.util';
 
 export type HistoryFilter = 'all' | 'delivered' | 'cancelled';
+export type HistorySection = 'delivery' | 'pickup';
 
 @Component({
   selector: 'app-courier-history',
@@ -42,7 +48,10 @@ export class CourierHistory implements OnInit {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
 
+  readonly historySection = signal<HistorySection>('delivery');
+
   readonly orders = signal<Order[]>([]);
+  readonly pickupTasks = signal<PickupTask[]>([]);
   readonly loading = signal(true);
   readonly savingId = signal<number | null>(null);
   readonly errorMessage = signal<string | null>(null);
@@ -51,10 +60,20 @@ export class CourierHistory implements OnInit {
   readonly draftStatus = signal<CourierStatus>('picked_up');
   readonly draftPayment = signal<PaymentMethod | null>(null);
   readonly historyFilter = signal<HistoryFilter>('all');
+  readonly pickupHistoryFilter = signal<CourierPickupHistoryFilter>('all');
 
   readonly filterOptions: ReadonlyArray<{ id: HistoryFilter; label: string }> = [
     { id: 'all', label: 'ყველა' },
     { id: 'delivered', label: 'ჩაბარებული' },
+    { id: 'cancelled', label: 'გაუქმებული' },
+  ];
+
+  readonly pickupFilterOptions: ReadonlyArray<{
+    id: CourierPickupHistoryFilter;
+    label: string;
+  }> = [
+    { id: 'all', label: 'ყველა' },
+    { id: 'picked_up', label: 'აღებული' },
     { id: 'cancelled', label: 'გაუქმებული' },
   ];
 
@@ -67,6 +86,15 @@ export class CourierHistory implements OnInit {
     return list.filter((order) => order.status === filter);
   });
 
+  readonly filteredPickupTasks = computed(() => {
+    const filter = this.pickupHistoryFilter();
+    const list = this.pickupTasks();
+    if (filter === 'all') {
+      return list;
+    }
+    return list.filter((task) => task.status === filter);
+  });
+
   readonly correctionStatuses = COURIER_CORRECTION_STATUSES;
   readonly statusClass = orderStatusClass;
   readonly statusLabel = courierStatusLabel;
@@ -74,6 +102,8 @@ export class CourierHistory implements OnInit {
   readonly formatPhone = formatPhoneDisplay;
   readonly paymentLabel = paymentMethodLabel;
   readonly completedAt = historyCompletedAt;
+  readonly formatPickupTime = formatTbilisiDateTime;
+  readonly formatCancelTime = formatTbilisiDotDateTime;
 
   constructor() {
     this.realtime.changes$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
@@ -89,8 +119,20 @@ export class CourierHistory implements OnInit {
     await this.reload();
   }
 
+  setHistorySection(section: HistorySection): void {
+    if (this.historySection() === section) return;
+    this.historySection.set(section);
+    this.errorMessage.set(null);
+    this.successMessage.set(null);
+    this.closeCorrection();
+  }
+
   setHistoryFilter(filter: HistoryFilter): void {
     this.historyFilter.set(filter);
+  }
+
+  setPickupHistoryFilter(filter: CourierPickupHistoryFilter): void {
+    this.pickupHistoryFilter.set(filter);
   }
 
   emptyStateText(): string {
@@ -104,10 +146,47 @@ export class CourierHistory implements OnInit {
     }
   }
 
+  pickupEmptyStateText(): string {
+    switch (this.pickupHistoryFilter()) {
+      case 'picked_up':
+        return 'აღებული დავალებები არ არის.';
+      case 'cancelled':
+        return 'გაუქმებული აღების დავალებები არ არის.';
+      default:
+        return 'აღების ისტორია ცარიელია.';
+    }
+  }
+
+  pickupAddress(task: PickupTask): string {
+    const loc = task.locations[0];
+    if (loc) {
+      return this.locationLabel(loc);
+    }
+    return (
+      [task.pickup_city, task.pickup_district, task.pickup_address]
+        .map((p) => (p ?? '').trim())
+        .filter(Boolean)
+        .join(', ') || '—'
+    );
+  }
+
+  locationLabel(loc: PickupTaskLocation): string {
+    return (
+      [loc.city, loc.district, loc.address]
+        .map((p) => (p ?? '').trim())
+        .filter(Boolean)
+        .join(', ') || '—'
+    );
+  }
+
+  pickupStatusLabel(status: PickupTask['status']): string {
+    return status === 'cancelled' ? 'გაუქმებული' : 'აღებული';
+  }
+
   async reload(): Promise<void> {
     this.loading.set(true);
     this.errorMessage.set(null);
-    await this.fetchHistory();
+    await this.fetchAllHistory();
     this.loading.set(false);
   }
 
@@ -116,21 +195,26 @@ export class CourierHistory implements OnInit {
     if (this.savingId() !== null) {
       return;
     }
-    await this.fetchHistory();
+    await this.fetchAllHistory();
   }
 
-  private async fetchHistory(): Promise<void> {
-    const { data, error } = await this.courierService.getMyHistoryOrders();
-    this.orders.set(data);
+  private async fetchAllHistory(): Promise<void> {
+    const [ordersResult, pickupResult] = await Promise.all([
+      this.courierService.getMyHistoryOrders(),
+      this.courierService.getMyPickupHistory('all'),
+    ]);
+
+    this.orders.set(ordersResult.data);
+    this.pickupTasks.set(pickupResult.data);
 
     const editing = this.editingId();
-    if (editing !== null && !data.some((o) => o.id === editing)) {
+    if (editing !== null && !ordersResult.data.some((o) => o.id === editing)) {
       this.editingId.set(null);
       this.draftPayment.set(null);
     }
 
-    if (error) {
-      this.errorMessage.set(error);
+    if (ordersResult.error || pickupResult.error) {
+      this.errorMessage.set(ordersResult.error ?? pickupResult.error);
     }
   }
 
@@ -179,38 +263,26 @@ export class CourierHistory implements OnInit {
     this.errorMessage.set(null);
     this.successMessage.set(null);
 
-    try {
-      const { data, error } = await this.courierService.changeOrderStatus(
-        order.id,
-        newStatus,
-        payment,
-        order.assigned_courier_id,
-      );
+    const { data, error } = await this.courierService.changeOrderStatus(
+      order.id,
+      newStatus,
+      newStatus === 'delivered' ? payment : null,
+    );
 
-      if (error || !data) {
-        this.errorMessage.set(error ?? 'სტატუსის შეცვლა ვერ მოხერხდა');
-        if (error?.includes('სესია არ არის აქტიური')) {
-          await this.router.navigateByUrl('/login');
-        }
+    this.savingId.set(null);
+
+    if (error || !data) {
+      if (error === 'Not authenticated') {
+        await this.router.navigateByUrl('/login');
         return;
       }
-
-      this.editingId.set(null);
-
-      if (this.courierService.isHistoryStatus(data.status)) {
-        this.orders.update((list) =>
-          list.map((item) => (item.id === order.id ? { ...item, ...data } : item)),
-        );
-        this.successMessage.set('სტატუსი განახლდა');
-      } else {
-        this.orders.update((list) => list.filter((item) => item.id !== order.id));
-        this.successMessage.set('შეკვეთა დაბრუნდა აქტიურებში');
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      this.errorMessage.set(`სტატუსის შეცვლა ვერ მოხერხდა: ${message}`);
-    } finally {
-      this.savingId.set(null);
+      this.errorMessage.set(error ?? 'სტატუსის შეცვლა ვერ მოხერხდა');
+      return;
     }
+
+    this.orders.update((list) => list.map((item) => (item.id === data.id ? data : item)));
+    this.editingId.set(null);
+    this.draftPayment.set(null);
+    this.successMessage.set('სტატუსი განახლდა');
   }
 }

@@ -50,16 +50,8 @@
 
       <div class="courier-pickup__list">
         @for (task of pickupTasks(); track task.id) {
-          <article class="courier-pickup__card" [attr.data-status]="task.status">
-            <p class="courier-pickup__badge">
-              @if (task.status === 'cancelled') {
-                🔴 გაუქმებული
-              } @else if (task.status === 'picked_up' || task.status === 'completed') {
-                🟢 აღებული
-              } @else {
-                🟠 აღების დავალება
-              }
-            </p>
+          <article class="courier-pickup__card">
+            <p class="courier-pickup__badge">🟠 აღების დავალება</p>
 
             <dl class="courier-pickup__fields">
               <div>
@@ -102,35 +94,26 @@
               </div>
             }
 
-            @if (task.status === 'cancelled') {
-              <p class="courier-pickup__cancelled-note">გაუქმებული</p>
-              @if (task.cancellation_reason) {
-                <p class="courier-pickup__cancel-reason">მიზეზი: {{ task.cancellation_reason }}</p>
-              }
-            }
-
-            @if (task.status === 'assigned') {
-              <div class="courier-pickup__actions">
-                <button
-                  type="button"
-                  class="courier-pickup__complete"
-                  [disabled]="completingPickupId() === task.id || cancellingPickupId() === task.id"
-                  (click)="completePickupTask(task)"
-                >
-                  {{
-                    completingPickupId() === task.id ? 'ინახება…' : '🟢 აღება შესრულებულია'
-                  }}
-                </button>
-                <button
-                  type="button"
-                  class="courier-pickup__cancel"
-                  [disabled]="completingPickupId() === task.id || cancellingPickupId() === task.id"
-                  (click)="openPickupCancel(task)"
-                >
-                  🔴 აღების გაუქმება
-                </button>
-              </div>
-            }
+            <div class="courier-pickup__actions">
+              <button
+                type="button"
+                class="courier-pickup__complete"
+                [disabled]="completingPickupId() === task.id || cancellingPickupId() === task.id"
+                (click)="completePickupTask(task)"
+              >
+                {{
+                  completingPickupId() === task.id ? 'ინახება…' : '🟢 აღება შესრულებულია'
+                }}
+              </button>
+              <button
+                type="button"
+                class="courier-pickup__cancel"
+                [disabled]="completingPickupId() === task.id || cancellingPickupId() === task.id"
+                (click)="openPickupCancel(task)"
+              >
+                🔴 აღების გაუქმება
+              </button>
+            </div>
           </article>
         }
       </div>

@@ -4,7 +4,12 @@
   <div class="admin-dashboard__container">
     <div class="admin-dashboard__header">
       <h1 class="admin-dashboard__title">{{ 'admin.dashboardTitle' | t }}</h1>
-      <a routerLink="/admin/orders" class="admin-dashboard__cta">{{ 'admin.manageOrders' | t }}</a>
+      <div class="admin-dashboard__actions">
+        <a routerLink="/admin/orders" class="admin-dashboard__cta">{{ 'nav.adminOrders' | t }}</a>
+        <a routerLink="/admin/pickup-tasks" class="admin-dashboard__cta admin-dashboard__cta--secondary">
+          {{ 'nav.adminPickupTasks' | t }}
+        </a>
+      </div>
     </div>
 
     @if (loading()) {

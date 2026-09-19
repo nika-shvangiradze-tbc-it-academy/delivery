@@ -188,14 +188,13 @@ export interface AdminPlanningBucket {
 }
 
 /** Operational pickup collection task (separate from delivery orders). */
-export type PickupTaskStatus = 'assigned' | 'picked_up' | 'completed' | 'cancelled';
+export type PickupTaskStatus = 'assigned' | 'picked_up' | 'cancelled';
 
-export type AdminPickupTaskStatusFilter =
-  | 'all'
-  | 'assigned'
-  | 'picked_up'
-  | 'completed'
-  | 'cancelled';
+/** Admin Pickup Tasks UI filters (completed is not exposed). */
+export type AdminPickupTaskStatusFilter = 'all' | 'assigned' | 'picked_up' | 'cancelled';
+
+/** Courier pickup-history filters. */
+export type CourierPickupHistoryFilter = 'all' | 'picked_up' | 'cancelled';
 
 export interface PickupTaskLocation {
   id: number;
@@ -237,7 +236,6 @@ export interface PickupTask {
 export interface AdminPickupTaskCounts {
   assigned: number;
   picked_up: number;
-  completed: number;
   cancelled: number;
 }
 
