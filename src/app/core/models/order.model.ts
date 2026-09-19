@@ -67,6 +67,15 @@ export interface Order {
    * Not a DB column on orders.
    */
   owner_name?: string | null;
+  /**
+   * Linked pickup_tasks status when cancelled — enriched client-side for My Orders.
+   * Not a DB column on orders. Orders stay pending after pickup cancel.
+   */
+  pickup_task_status?: PickupTaskStatus | null;
+  /** From pickup_tasks.cancellation_reason — not orders.cancellation_reason. */
+  pickup_cancellation_reason?: string | null;
+  /** From pickup_tasks.cancelled_at. */
+  pickup_cancelled_at?: string | null;
 }
 
 /** Assigned courier work queue (pending = assigned awaiting pickup). */
@@ -182,7 +191,7 @@ export interface AdminPlanningBucket {
   /** Distinct pickup city/address count (customer grouping summary). */
   location_count?: number;
   cities?: string[];
-  /** Used by dispatch modal only — not listed in customer group expansion. */
+  /** Used by dispatch modal and customer group expansion (profile default_*). */
   pickup_locations?: AdminPlanningPickupLocation[];
   children?: AdminPlanningBucket[];
 }

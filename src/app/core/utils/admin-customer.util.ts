@@ -77,6 +77,33 @@ export function pickupLocationLines(order: {
   return { place, address: secondary };
 }
 
+/**
+ * Recipient delivery address for Admin Orders list.
+ * Uses delivery_* fields only — never pickup_address.
+ */
+export function deliveryRecipientAddress(order: {
+  delivery_city?: string | null;
+  delivery_district?: string | null;
+  delivery_address?: string | null;
+}): string {
+  const parts = [
+    (order.delivery_city ?? '').trim(),
+    (order.delivery_district ?? '').trim(),
+    (order.delivery_address ?? '').trim(),
+  ].filter(Boolean);
+
+  const unique: string[] = [];
+  for (const part of parts) {
+    const prev = unique[unique.length - 1];
+    if (prev && normalizePersonName(prev) === normalizePersonName(part)) {
+      continue;
+    }
+    unique.push(part);
+  }
+
+  return unique.length > 0 ? unique.join(', ') : '—';
+}
+
 /** PostgREST OR clause fragments for company-marker sender_name filter. */
 export const ADMIN_COMPANY_SENDER_OR = [
   'sender_name.ilike.%შპს%',

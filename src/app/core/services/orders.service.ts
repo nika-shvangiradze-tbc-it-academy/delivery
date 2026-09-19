@@ -268,13 +268,98 @@ export class OrdersService {
       return { data: [], total: 0, page, pageSize, error: error.message };
     }
 
+    const orders = await this.enrichOrdersWithPickupCancellation(normalizeOrders(data ?? []));
+
     return {
-      data: normalizeOrders(data ?? []),
+      data: orders,
       total: count ?? 0,
       page,
       pageSize,
       error: null,
     };
+  }
+
+  /**
+   * Attach cancelled pickup_tasks.cancellation_reason onto owner orders.
+   * Orders themselves stay pending — this is pickup-task cancel only.
+   */
+  private async enrichOrdersWithPickupCancellation(orders: Order[]): Promise<Order[]> {
+    if (orders.length === 0) {
+      return orders;
+    }
+
+    const orderIds = orders.map((order) => order.id);
+    const { data, error } = await this.supabase.client
+      .from('pickup_task_orders')
+      .select(
+        'order_id, pickup_tasks!inner(id, status, cancellation_reason, cancelled_at)',
+      )
+      .in('order_id', orderIds)
+      .eq('pickup_tasks.status', 'cancelled');
+
+    if (error) {
+      this.logDevError('enrichOrdersWithPickupCancellation', error.message);
+      return orders;
+    }
+
+    type TaskEmbed = {
+      id: number;
+      status: string;
+      cancellation_reason: string | null;
+      cancelled_at: string | null;
+    };
+
+    const latestByOrder = new Map<
+      number,
+      { reason: string; cancelledAt: string | null; taskId: number }
+    >();
+
+    for (const row of (data ?? []) as Array<{
+      order_id: number;
+      pickup_tasks: TaskEmbed | TaskEmbed[] | null;
+    }>) {
+      const orderId = Number(row.order_id);
+      if (!Number.isFinite(orderId)) continue;
+
+      const rawTask = row.pickup_tasks;
+      const task = Array.isArray(rawTask) ? rawTask[0] : rawTask;
+      if (!task || task.status !== 'cancelled') continue;
+
+      const reason = (task.cancellation_reason ?? '').trim();
+      if (!reason) continue;
+
+      const taskId = Number(task.id);
+      const existing = latestByOrder.get(orderId);
+      const cancelledAt = task.cancelled_at ?? null;
+      const shouldReplace =
+        !existing ||
+        (cancelledAt ?? '') > (existing.cancelledAt ?? '') ||
+        ((cancelledAt ?? '') === (existing.cancelledAt ?? '') &&
+          (Number.isFinite(taskId) ? taskId : 0) > existing.taskId);
+
+      if (shouldReplace) {
+        latestByOrder.set(orderId, {
+          reason,
+          cancelledAt,
+          taskId: Number.isFinite(taskId) ? taskId : 0,
+        });
+      }
+    }
+
+    if (latestByOrder.size === 0) {
+      return orders;
+    }
+
+    return orders.map((order) => {
+      const info = latestByOrder.get(order.id);
+      if (!info) return order;
+      return {
+        ...order,
+        pickup_task_status: 'cancelled',
+        pickup_cancellation_reason: info.reason,
+        pickup_cancelled_at: info.cancelledAt,
+      };
+    });
   }
 
   /** Exact status tab counts for the authenticated owner (head-only queries). */

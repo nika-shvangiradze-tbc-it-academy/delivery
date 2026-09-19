@@ -192,6 +192,34 @@ export class AdminService {
   }
 
   /**
+   * Fetch every order matching the current Admin Orders filters (all pages).
+   * Used for Excel export — same filter path as getAdminOrders.
+   */
+  async getAllMatchingAdminOrders(
+    filters: AdminOrderFilters,
+  ): Promise<{ data: Order[]; total: number; error: string | null }> {
+    const pageSize = 100;
+    const first = await this.getAdminOrders({ ...filters, page: 1, pageSize });
+    if (first.error) {
+      return { data: [], total: 0, error: first.error };
+    }
+
+    const all: Order[] = [...first.data];
+    const total = first.total;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+    for (let page = 2; page <= totalPages; page++) {
+      const next = await this.getAdminOrders({ ...filters, page, pageSize });
+      if (next.error) {
+        return { data: [], total: 0, error: next.error };
+      }
+      all.push(...next.data);
+    }
+
+    return { data: all, total, error: null };
+  }
+
+  /**
    * Dispatcher planning aggregates (customer / pickup city / pickup location).
    * Requires admin_order_planning_breakdown RPC migration.
    */

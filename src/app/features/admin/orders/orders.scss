@@ -227,7 +227,7 @@
       grid-template-areas:
         'search pickup delivery courier'
         'customer-type customer from to'
-        'payment . . submit';
+        'payment export export submit';
 
       .admin-orders__filter-search {
         grid-area: search;
@@ -264,6 +264,22 @@
 
       .admin-orders__filter-payment {
         grid-area: payment;
+      }
+
+      .admin-orders__excel-export {
+        grid-area: export;
+        width: 100%;
+        background: #db7623;
+        border-color: #db7623;
+        color: #fff;
+        font-weight: 700;
+        cursor: pointer;
+        white-space: nowrap;
+
+        &:disabled {
+          opacity: 0.7;
+          cursor: wait;
+        }
       }
 
       .admin-orders__filter-submit {
@@ -364,6 +380,16 @@
       padding: 7px 10px;
       font-size: 12px;
     }
+
+    &--customer {
+      .admin-orders__planning-label {
+        flex: 0 1 auto;
+        max-width: 32%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
   }
 
   &__planning-label {
@@ -371,6 +397,24 @@
     align-items: center;
     gap: 6px;
     min-width: 0;
+  }
+
+  &__planning-row-pickup {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    font-weight: 500;
+    color: #6b7280;
+    text-align: left;
+
+    &.is-missing {
+      color: #9ca3af;
+      font-style: italic;
+    }
   }
 
   &__planning-count {
@@ -411,6 +455,36 @@
         margin-right: 4px;
       }
     }
+  }
+
+  &__planning-pickup-address {
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #fff7ed;
+    border: 1px solid rgba(219, 118, 35, 0.22);
+    display: grid;
+    gap: 4px;
+  }
+
+  &__planning-pickup-address-label {
+    font-size: 12px;
+    font-weight: 800;
+    color: #9a3412;
+  }
+
+  &__planning-pickup-address-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1f2937;
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: break-word;
   }
 
   &__planning-pickups-title {
@@ -619,9 +693,24 @@
   }
 
   &__customer,
-  &__pickup {
+  &__pickup,
+  &__recipient-address {
     min-width: 9rem;
     max-width: 14rem;
+  }
+
+  &__recipient-address-text {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: normal;
+    line-height: 1.35;
+    color: #374151;
+    font-size: 13px;
+    font-weight: 500;
   }
 
   &__customer-primary,
@@ -1447,6 +1536,20 @@
     color: #4b5563;
   }
 
+  .admin-orders__card-recipient-address {
+    margin: 4px 0 0;
+    font-size: 12px;
+    font-weight: 500;
+    color: #6b7280;
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   .admin-orders__card-pickup {
     display: grid;
     gap: 2px;
@@ -1479,6 +1582,32 @@
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
+  }
+
+  .admin-orders__planning-btn--customer {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'label count'
+      'pickup pickup';
+    align-items: center;
+    column-gap: 10px;
+    row-gap: 4px;
+
+    .admin-orders__planning-label {
+      grid-area: label;
+      max-width: 100%;
+    }
+
+    .admin-orders__planning-row-pickup {
+      grid-area: pickup;
+      max-width: 100%;
+    }
+
+    .admin-orders__planning-count {
+      grid-area: count;
+      margin-left: 0;
+    }
   }
 }
 

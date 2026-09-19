@@ -49,6 +49,7 @@ import {
 import { OrdersService } from '../../../core/services/orders.service';
 import {
   customerDisplay,
+  deliveryRecipientAddress,
   pickupLocationLines,
 } from '../../../core/utils/admin-customer.util';
 import {
@@ -64,6 +65,10 @@ import {
   toCents,
   courierStatusLabel,
 } from '../../../core/utils/order-status.util';
+import {
+  downloadDeliveredOrdersExcel,
+  mapOrderToDeliveredExportRow,
+} from '../../../core/utils/delivered-orders-excel.util';
 import {
   GEORGIAN_CITIES,
   isDeliveryDateAllowed,
@@ -161,6 +166,7 @@ export class AdminOrders implements OnInit {
   readonly groupByOptions = GROUP_BY_OPTIONS;
   readonly customerDisplay = customerDisplay;
   readonly pickupLines = pickupLocationLines;
+  readonly deliveryAddress = deliveryRecipientAddress;
 
   readonly orders = signal<Order[]>([]);
   readonly couriers = signal<CourierOption[]>([]);
@@ -176,6 +182,7 @@ export class AdminOrders implements OnInit {
   readonly loading = signal(true);
   readonly analyticsLoading = signal(false);
   readonly planningLoading = signal(false);
+  readonly exportingExcel = signal(false);
   readonly updating = signal(false);
   readonly errorMessage = signal<string | null>(null);
   readonly successMessage = signal<string | null>(null);
@@ -419,6 +426,25 @@ export class AdminOrders implements OnInit {
   togglePlanningGroup(group: AdminPlanningBucket): void {
     const key = group.key;
     this.expandedPlanningKey.update((current) => (current === key ? null : key));
+  }
+
+  /**
+   * Profile pickup address from planning RPC (profiles.default_* via pickup_locations).
+   * Never uses order delivery/recipient address.
+   */
+  customerPickupAddress(group: AdminPlanningBucket): string {
+    const loc = group.pickup_locations?.[0];
+    if (!loc) {
+      return 'არ არის მითითებული';
+    }
+    const parts = [loc.city, loc.district, loc.address]
+      .map((part) => (part ?? '').trim())
+      .filter((part) => part.length > 0);
+    if (parts.length > 0) {
+      return parts.join(', ');
+    }
+    const label = (loc.label ?? '').trim();
+    return label || 'არ არის მითითებული';
   }
 
   applyPlanningBucket(bucket: AdminPlanningBucket): void {
@@ -693,6 +719,49 @@ export class AdminOrders implements OnInit {
   courierName(courierId: string | null): string {
     if (!courierId) return '—';
     return this.couriers().find((c) => c.id === courierId)?.full_name ?? '—';
+  }
+
+  async exportDeliveredOrdersExcel(): Promise<void> {
+    if (this.statusGroup() !== 'delivered' || this.exportingExcel()) {
+      return;
+    }
+
+    this.exportingExcel.set(true);
+    this.errorMessage.set(null);
+    this.successMessage.set(null);
+
+    try {
+      const filters: AdminOrderFilters = {
+        ...this.currentFilters(),
+        statusGroup: 'delivered',
+        page: 1,
+        pageSize: 100,
+      };
+
+      const { data, error } = await this.adminService.getAllMatchingAdminOrders(filters);
+      if (error) {
+        this.errorMessage.set(error);
+        return;
+      }
+
+      const delivered = data.filter((order) => order.status === 'delivered');
+      if (delivered.length === 0) {
+        this.errorMessage.set('ჩაბარებული შეკვეთები ვერ მოიძებნა');
+        return;
+      }
+
+      const courierNameById = new Map(
+        this.couriers().map((c) => [c.id, (c.full_name ?? '').trim() || '—'] as const),
+      );
+      const rows = delivered.map((order) => mapOrderToDeliveredExportRow(order, courierNameById));
+      downloadDeliveredOrdersExcel(rows);
+      this.successMessage.set(`Excel გადმოწერილია (${rows.length} შეკვეთა)`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Excel ექსპორტი ვერ შესრულდა';
+      this.errorMessage.set(message);
+    } finally {
+      this.exportingExcel.set(false);
+    }
   }
 
   isSelected(orderId: number): boolean {

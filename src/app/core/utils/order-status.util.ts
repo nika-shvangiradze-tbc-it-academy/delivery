@@ -256,6 +256,22 @@ export function normalizeOrder(
       (raw as { owner_name?: string | null }).owner_name != null
         ? String((raw as { owner_name?: string | null }).owner_name).trim() || null
         : undefined,
+    pickup_task_status: (() => {
+      const status = (raw as { pickup_task_status?: string | null }).pickup_task_status;
+      if (status === 'assigned' || status === 'picked_up' || status === 'cancelled') {
+        return status;
+      }
+      return undefined;
+    })(),
+    pickup_cancellation_reason: (() => {
+      const reason = (raw as { pickup_cancellation_reason?: string | null })
+        .pickup_cancellation_reason;
+      if (reason == null) return undefined;
+      const trimmed = String(reason).trim();
+      return trimmed || null;
+    })(),
+    pickup_cancelled_at:
+      (raw as { pickup_cancelled_at?: string | null }).pickup_cancelled_at ?? undefined,
   };
 }
 

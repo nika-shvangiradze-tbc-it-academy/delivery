@@ -113,6 +113,20 @@
         </select>
       }
 
+      @if (showDeliveredAnalytics()) {
+        <button
+          type="button"
+          class="admin-orders__excel-export"
+          [disabled]="exportingExcel()"
+          (click)="exportDeliveredOrdersExcel()"
+        >
+          @if (exportingExcel()) {
+            Excel მზადდება...
+          } @else {
+            📊 Excel-ში გადმოწერა
+          }
+        </button>
+      }
       <button type="submit" class="admin-orders__filter-submit">
         {{ 'admin.applyFilters' | t }}
       </button>
@@ -151,6 +165,7 @@
                 <button
                   type="button"
                   class="admin-orders__planning-btn"
+                  [class.admin-orders__planning-btn--customer]="groupBy() === 'customer'"
                   (click)="
                     groupBy() === 'customer' ? togglePlanningGroup(group) : applyPlanningBucket(group)
                   "
@@ -163,12 +178,29 @@
                     }
                     {{ group.label }}
                   </span>
+                  @if (groupBy() === 'customer') {
+                    @let rowPickup = customerPickupAddress(group);
+                    @let rowPickupMissing = rowPickup === 'არ არის მითითებული';
+                    <span
+                      class="admin-orders__planning-row-pickup"
+                      [class.is-missing]="rowPickupMissing"
+                      [attr.title]="
+                        rowPickupMissing ? 'მისამართი არ არის მითითებული' : rowPickup
+                      "
+                    >
+                      📍
+                      {{
+                        rowPickupMissing ? 'მისამართი არ არის მითითებული' : rowPickup
+                      }}
+                    </span>
+                  }
                   <span class="admin-orders__planning-count">
                     {{ group.order_count }} შეკვეთა
                   </span>
                 </button>
 
                 @if (groupBy() === 'customer' && expandedPlanningKey() === group.key) {
+                  @let pickupAddress = customerPickupAddress(group);
                   <div class="admin-orders__planning-detail">
                     <div class="admin-orders__planning-stats">
                       <p><span>შემკვეთი:</span> {{ group.label }}</p>
@@ -178,6 +210,16 @@
                       <p><span>მოლოდინში შეკვეთები:</span> {{ group.order_count }}</p>
                       <p><span>ამანათები:</span> {{ group.parcel_count ?? 0 }}</p>
                     </div>
+
+                    <p class="admin-orders__planning-pickup-address">
+                      <span class="admin-orders__planning-pickup-address-label">აღების მისამართი:</span>
+                      <span
+                        class="admin-orders__planning-pickup-address-value"
+                        [attr.title]="pickupAddress !== 'არ არის მითითებული' ? pickupAddress : null"
+                      >
+                        {{ pickupAddress }}
+                      </span>
+                    </p>
 
                     <div class="admin-orders__planning-actions">
                       <button
@@ -330,6 +372,7 @@
               <th>აღების ადგილი</th>
               <th>{{ 'orders.deliveryCity' | t }}</th>
               <th>{{ 'orders.recipient' | t }}</th>
+              <th>მიმღების მისამართი</th>
               <th>თანხა</th>
               <th>{{ 'orders.deliveryDate' | t }}</th>
               <th>{{ 'admin.courier' | t }}</th>
@@ -340,6 +383,7 @@
             @for (order of orders(); track order.id) {
               @let cust = customerDisplay(order.sender_name, order.owner_name);
               @let pickup = pickupLines(order);
+              @let recipientAddress = deliveryAddress(order);
               <tr [class.is-selected]="isSelected(order.id)">
                 <td>
                   <input
@@ -390,6 +434,14 @@
                     <span class="admin-orders__fragile" title="მსხვრევადი ამანათი">⚠</span>
                   }
                 </td>
+                <td class="admin-orders__recipient-address">
+                  <span
+                    class="admin-orders__recipient-address-text"
+                    [attr.title]="recipientAddress !== '—' ? recipientAddress : null"
+                  >
+                    {{ recipientAddress }}
+                  </span>
+                </td>
                 <td class="admin-orders__amount">{{ formatGel(order.amount_to_collect) }} ₾</td>
                 <td>{{ order.delivery_date ? (order.delivery_date | date: 'mediumDate') : '—' }}</td>
                 <td>{{ courierName(order.assigned_courier_id) }}</td>
@@ -427,6 +479,7 @@
         @for (order of orders(); track order.id) {
           @let cust = customerDisplay(order.sender_name, order.owner_name);
           @let pickup = pickupLines(order);
+          @let recipientAddress = deliveryAddress(order);
           <article class="admin-orders__card" [class.is-selected]="isSelected(order.id)">
             <div class="admin-orders__card-top">
               <label class="admin-orders__card-check">
@@ -470,6 +523,12 @@
                 @if (order.is_fragile) {
                   <span class="admin-orders__fragile">⚠</span>
                 }
+              </p>
+              <p
+                class="admin-orders__card-recipient-address"
+                [attr.title]="recipientAddress !== '—' ? recipientAddress : null"
+              >
+                {{ recipientAddress }}
               </p>
             </div>
 
