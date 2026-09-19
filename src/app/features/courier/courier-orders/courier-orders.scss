@@ -185,42 +185,6 @@
     }
   }
 
-  &__undo {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
-    padding: 8px 10px;
-    border-radius: 10px;
-    background: #111827;
-    color: #fff;
-    font-size: 12px;
-    font-weight: 600;
-  }
-
-  &__undo-btn {
-    margin-left: auto;
-    border: none;
-    background: #e87518;
-    color: #fff;
-    border-radius: 8px;
-    padding: 5px 10px;
-    font: inherit;
-    font-size: 12px;
-    font-weight: 800;
-    cursor: pointer;
-  }
-
-  &__undo-dismiss {
-    border: none;
-    background: transparent;
-    color: #d1d5db;
-    font-size: 18px;
-    line-height: 1;
-    cursor: pointer;
-    padding: 0 2px;
-  }
-
   &--compact {
     --c-gap: 8px;
   }

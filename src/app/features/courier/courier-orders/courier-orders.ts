@@ -101,9 +101,8 @@ export class CourierOrders implements OnInit, OnDestroy {
   readonly listMode = signal<CourierOrdersListMode>('browse');
   readonly quickFilter = signal<CourierOrdersQuickFilter>('all');
   readonly selectedSortIds = signal<Set<number>>(new Set());
-  readonly undoMessage = signal<string | null>(null);
-  private undoOrderIds: number[] | null = null;
-  private undoTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Skip soft realtime reloads briefly after a successful reorder (avoid list flicker). */
+  private reorderQuietUntil = 0;
 
   readonly statusClass = orderStatusClass;
   readonly formatGel = formatGel;
@@ -176,7 +175,6 @@ export class CourierOrders implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.teardownPickupChannel();
-    this.clearUndo();
   }
 
   async reload(): Promise<void> {
@@ -189,6 +187,9 @@ export class CourierOrders implements OnInit, OnDestroy {
   /** Soft refresh for delivery queue only (orders realtime). */
   private async refreshDeliveryFromRealtime(): Promise<void> {
     if (this.savingId() !== null || this.reordering() || this.completingPickupId()) {
+      return;
+    }
+    if (Date.now() < this.reorderQuietUntil) {
       return;
     }
     await this.loadDeliveryOrdersAndSummary();
@@ -469,11 +470,7 @@ export class CourierOrders implements OnInit, OnDestroy {
     const target = current.find((o) => o.id === orderId);
     if (!target) return;
     const rest = current.filter((o) => o.id !== orderId);
-    await this.persistOrderIds(
-      [target, ...rest].map((o) => o.id),
-      current,
-      'პირველ ადგილზე გადავიდა',
-    );
+    await this.persistOrderIds([target, ...rest].map((o) => o.id), current);
   }
 
   async moveSelectedToFront(): Promise<void> {
@@ -482,54 +479,37 @@ export class CourierOrders implements OnInit, OnDestroy {
     if (selected.size === 0) return;
 
     const current = this.deliveryOrders();
-    // Preserve relative order of selected as they appear in the current full list.
     const selectedOrders = current.filter((o) => selected.has(o.id));
     const rest = current.filter((o) => !selected.has(o.id));
     const ok = await this.persistOrderIds(
       [...selectedOrders, ...rest].map((o) => o.id),
       current,
-      `${selectedOrders.length} შეკვეთა პირველ რიგშია`,
     );
     if (ok) {
       this.exitSortMode();
     }
   }
 
-  async undoLastReorder(): Promise<void> {
-    const ids = this.undoOrderIds;
-    if (!ids || this.reordering()) return;
-    const previous = [...this.deliveryOrders()];
-    this.clearUndo();
-    await this.persistOrderIds(ids, previous, null);
-  }
-
-  dismissUndo(): void {
-    this.clearUndo();
-  }
-
   async onDrop(event: CdkDragDrop<Order[]>): Promise<void> {
     if (!this.canDragReorder()) return;
     if (event.previousIndex === event.currentIndex) return;
 
-    // Indices refer to displayOrders when filter is all (same as full list).
     const previous = [...this.deliveryOrders()];
     const next = [...previous];
     moveItemInArray(next, event.previousIndex, event.currentIndex);
     await this.persistOrderIds(
       next.map((o) => o.id),
       previous,
-      'რიგი შეიცვალა',
     );
   }
 
   /**
    * Persist full delivery queue order via existing courier_reorder_orders RPC.
-   * Returns true on success.
+   * Keeps local list order — does not reload from backend after success.
    */
   private async persistOrderIds(
     orderIds: number[],
     previousOrders: Order[],
-    undoLabel: string | null,
   ): Promise<boolean> {
     const byId = new Map(previousOrders.map((o) => [o.id, o] as const));
     const next = orderIds
@@ -540,18 +520,6 @@ export class CourierOrders implements OnInit, OnDestroy {
       this.errorMessage.set('რიგის შენახვა ვერ მოხერხდა');
       return false;
     }
-
-    const courierId = this.auth.user()?.id ?? null;
-    console.log('CURRENT COURIER ID', courierId);
-    console.log(
-      'ORDERS USED FOR REORDER',
-      next.map((o) => ({
-        id: o.id,
-        status: o.status,
-        assigned_courier_id: o.assigned_courier_id,
-        courier_sort_order: o.courier_sort_order,
-      })),
-    );
 
     this.deliveryOrders.set(next);
     this.reordering.set(true);
@@ -566,38 +534,16 @@ export class CourierOrders implements OnInit, OnDestroy {
       return false;
     }
 
+    // Quiet realtime soft-reloads so the list is not fetched again and reshuffled.
+    this.reorderQuietUntil = Date.now() + 4000;
+
     this.deliveryOrders.set(
       next.map((order, index) => ({
         ...order,
         courier_sort_order: (index + 1) * 10,
       })),
     );
-
-    if (undoLabel) {
-      this.pushUndo(
-        previousOrders.map((o) => o.id),
-        undoLabel,
-      );
-    }
     return true;
-  }
-
-  private pushUndo(previousIds: number[], message: string): void {
-    this.undoOrderIds = previousIds;
-    this.undoMessage.set(message);
-    if (this.undoTimer) {
-      clearTimeout(this.undoTimer);
-    }
-    this.undoTimer = setTimeout(() => this.clearUndo(), 8000);
-  }
-
-  private clearUndo(): void {
-    this.undoOrderIds = null;
-    this.undoMessage.set(null);
-    if (this.undoTimer) {
-      clearTimeout(this.undoTimer);
-      this.undoTimer = null;
-    }
   }
 
   async markPickedUp(order: Order): Promise<void> {

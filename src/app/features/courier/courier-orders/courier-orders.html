@@ -116,18 +116,6 @@
     <p class="courier-active__success" role="status">{{ successMessage() }}</p>
   }
 
-  @if (undoMessage()) {
-    <div class="courier-active__undo" role="status">
-      <span>{{ undoMessage() }}</span>
-      <button type="button" class="courier-active__undo-btn" (click)="undoLastReorder()" [disabled]="reordering()">
-        გაუქმება
-      </button>
-      <button type="button" class="courier-active__undo-dismiss" (click)="dismissUndo()" aria-label="დახურვა">
-        ×
-      </button>
-    </div>
-  }
-
   @if (pickupTasks().length > 0) {
     <section class="courier-pickup" aria-label="აღების დავალებები">
       <div class="courier-pickup__heading">
