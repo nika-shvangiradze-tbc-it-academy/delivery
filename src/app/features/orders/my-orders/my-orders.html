@@ -204,6 +204,16 @@
                 </div>
               }
 
+              @if (hasOrderCancellation(order)) {
+                <div class="my-orders-page__pickup-cancel" role="status">
+                  <p class="my-orders-page__pickup-cancel-status">🔴 გაუქმებული</p>
+                  <p class="my-orders-page__pickup-cancel-label">გაუქმების მიზეზი:</p>
+                  <p class="my-orders-page__pickup-cancel-reason">
+                    {{ order.cancellation_reason }}
+                  </p>
+                </div>
+              }
+
               <dl class="my-orders-page__compact">
                 <div>
                   <dt>{{ 'orders.deliveryCity' | t }}</dt>

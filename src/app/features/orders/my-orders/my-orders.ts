@@ -361,6 +361,11 @@ export class MyOrders implements OnInit {
     );
   }
 
+  /** Delivery order cancel — orders.status = cancelled + orders.cancellation_reason. */
+  hasOrderCancellation(order: Order): boolean {
+    return order.status === 'cancelled' && !!order.cancellation_reason?.trim();
+  }
+
   openEdit(order: Order): void {
     if (!this.canEdit(order)) {
       return;
