@@ -16,6 +16,10 @@ import { SupabaseService } from './supabase.service';
 import { centsToNumber, normalizeOrder, normalizeOrders, toCents } from '../utils/order-status.util';
 import { isDeliveryDateAllowed } from '../constants/cities';
 import {
+  BULK_IMPORT_TOO_MANY_MESSAGE,
+  MAX_BULK_IMPORT_ORDERS,
+} from '../utils/order-excel-import.util';
+import {
   isIsoDateOnly,
   tbilisiDayEndExclusiveIso,
   tbilisiDayStartIso,
@@ -72,6 +76,77 @@ export class OrdersService {
     }
 
     return { data: normalizeOrder(data as Order), error: null };
+  }
+
+  /**
+   * Atomic bulk insert via SECURITY DEFINER RPC.
+   * Ownership and allowed fields are enforced server-side; never trust client user_id/status.
+   */
+  async createBulkOrders(
+    payloads: CreateOrderPayload[],
+  ): Promise<{ createdCount: number; ids: number[]; error: string | null }> {
+    const user = this.auth.user();
+    if (!user) {
+      return { createdCount: 0, ids: [], error: 'Not authenticated' };
+    }
+
+    if (!payloads.length) {
+      return { createdCount: 0, ids: [], error: 'შეკვეთები არ არის ასარჩევი' };
+    }
+
+    if (payloads.length > MAX_BULK_IMPORT_ORDERS) {
+      return { createdCount: 0, ids: [], error: BULK_IMPORT_TOO_MANY_MESSAGE };
+    }
+
+    for (const payload of payloads) {
+      if (!isDeliveryDateAllowed(payload.delivery_date)) {
+        return {
+          createdCount: 0,
+          ids: [],
+          error: 'მიწოდების თარიღი უნდა იყოს ხვალ ან უფრო გვიან.',
+        };
+      }
+      const amount = centsToNumber(toCents(payload.amount_to_collect));
+      if (!(amount >= 0)) {
+        return { createdCount: 0, ids: [], error: 'ასაღები თანხა უნდა იყოს 0 ან მეტი.' };
+      }
+      if (!Number.isInteger(payload.parcel_count) || payload.parcel_count < 1) {
+        return { createdCount: 0, ids: [], error: 'რაოდენობა უნდა იყოს მინიმუმ 1' };
+      }
+    }
+
+    const orders = payloads.map((payload) => ({
+      sender_name: payload.sender_name.trim(),
+      sender_phone: payload.sender_phone.trim(),
+      pickup_city: payload.pickup_city,
+      pickup_district: payload.pickup_district.trim(),
+      pickup_address: payload.pickup_address.trim(),
+      recipient_name: payload.recipient_name.trim(),
+      recipient_phone: payload.recipient_phone.trim(),
+      delivery_city: payload.delivery_city,
+      delivery_district: payload.delivery_district.trim(),
+      delivery_address: payload.delivery_address.trim(),
+      parcel_count: payload.parcel_count,
+      delivery_date: payload.delivery_date,
+      amount_to_collect: centsToNumber(toCents(payload.amount_to_collect)),
+      is_fragile: Boolean(payload.is_fragile),
+      notes: payload.notes?.trim() ? payload.notes.trim() : null,
+    }));
+
+    const { data, error } = await this.supabase.client.rpc('customer_bulk_create_orders', {
+      p_orders: orders,
+    });
+
+    if (error) {
+      return { createdCount: 0, ids: [], error: error.message };
+    }
+
+    const result = data as { created_count?: number; ids?: number[] } | null;
+    const ids = Array.isArray(result?.ids) ? result.ids.map((id) => Number(id)) : [];
+    const createdCount =
+      typeof result?.created_count === 'number' ? result.created_count : ids.length;
+
+    return { createdCount, ids, error: null };
   }
 
   async updateOrderDetails(

@@ -3,6 +3,7 @@ import {
   Component,
   ElementRef,
   OnInit,
+  ViewChild,
   inject,
   signal,
 } from '@angular/core';
@@ -21,6 +22,15 @@ import { OrdersService } from '../../../core/services/orders.service';
 import { ProfileService } from '../../../core/services/profile.service';
 import { DeliveryHeader } from '../../../layout/delivery-header/delivery-header';
 import { centsToNumber, toCents } from '../../../core/utils/order-status.util';
+import {
+  OrderExcelValidationResult,
+  downloadOrderExcelTemplate,
+  formatPreviewDate,
+  markImportFingerprintUsed,
+  parseExcelFile,
+  validateAllRows,
+  wasImportFingerprintUsed,
+} from '../../../core/utils/order-excel-import.util';
 import { DeliveryPriceCalculator } from '../../delivery-price-calculator/delivery-price-calculator';
 
 type CreateOrderField =
@@ -132,10 +142,23 @@ export class CreateOrder implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly host = inject(ElementRef<HTMLElement>);
 
+  @ViewChild('excelFileInput') private excelFileInput?: ElementRef<HTMLInputElement>;
+
   readonly cities = GEORGIAN_CITIES;
   readonly minDeliveryDate = minDeliveryDateIso();
   readonly loading = signal(false);
   readonly errorMessage = signal<string | null>(null);
+
+  readonly excelPanelOpen = signal(false);
+  readonly excelParsing = signal(false);
+  readonly excelImporting = signal(false);
+  readonly excelError = signal<string | null>(null);
+  readonly excelSuccess = signal<string | null>(null);
+  readonly excelFileName = signal<string | null>(null);
+  readonly excelFingerprint = signal<string | null>(null);
+  readonly excelDuplicateWarning = signal(false);
+  readonly excelPreview = signal<OrderExcelValidationResult | null>(null);
+  readonly formatPreviewDate = formatPreviewDate;
 
   readonly form = this.fb.nonNullable.group({
     sender_name: ['', requiredTrimmed],
@@ -244,6 +267,165 @@ export class CreateOrder implements OnInit {
     }
 
     return 'გთხოვთ შეავსოთ ეს ველი სწორად';
+  }
+
+  toggleExcelPanel(): void {
+    const next = !this.excelPanelOpen();
+    this.excelPanelOpen.set(next);
+    if (!next) {
+      this.clearExcelImport();
+    }
+  }
+
+  downloadExcelTemplate(): void {
+    downloadOrderExcelTemplate();
+  }
+
+  openExcelFilePicker(): void {
+    this.excelFileInput?.nativeElement.click();
+  }
+
+  async onExcelFileSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    input.value = '';
+    if (!file) {
+      return;
+    }
+
+    const lower = file.name.toLowerCase();
+    if (!lower.endsWith('.xlsx') && !lower.endsWith('.xls')) {
+      this.excelError.set('მხოლოდ .xlsx ან .xls ფაილია დაშვებული');
+      return;
+    }
+
+    this.excelParsing.set(true);
+    this.excelError.set(null);
+    this.excelSuccess.set(null);
+    this.excelDuplicateWarning.set(false);
+
+    try {
+      const parsed = await parseExcelFile(file);
+      const sender = this.getImportSenderDefaults();
+      if (!sender.ok) {
+        this.excelPreview.set(null);
+        this.excelFileName.set(null);
+        this.excelFingerprint.set(null);
+        this.excelError.set(sender.error);
+        return;
+      }
+
+      const preview = validateAllRows(parsed.rows, sender.value);
+      this.excelPreview.set(preview);
+      this.excelFileName.set(parsed.fileName);
+      this.excelFingerprint.set(parsed.fingerprint);
+      this.excelDuplicateWarning.set(wasImportFingerprintUsed(parsed.fingerprint));
+    } catch (err) {
+      this.excelPreview.set(null);
+      this.excelFileName.set(null);
+      this.excelFingerprint.set(null);
+      this.excelError.set(err instanceof Error ? err.message : 'Excel ფაილის წაკითხვა ვერ მოხერხდა');
+    } finally {
+      this.excelParsing.set(false);
+    }
+  }
+
+  cancelExcelImport(): void {
+    this.clearExcelImport();
+  }
+
+  async confirmExcelImport(): Promise<void> {
+    const preview = this.excelPreview();
+    if (!preview || preview.validCount === 0) {
+      return;
+    }
+
+    const fingerprint = this.excelFingerprint();
+    if (fingerprint && wasImportFingerprintUsed(fingerprint)) {
+      const proceed = window.confirm(
+        'ეს Excel ფაილი უკვე წარმატებით იმპორტირებულია ამ სესიაში. გსურთ ხელახლა შექმნა?',
+      );
+      if (!proceed) {
+        return;
+      }
+    }
+
+    const payloads = preview.rows
+      .filter((row) => row.valid && row.payload)
+      .map((row) => row.payload!);
+
+    this.excelImporting.set(true);
+    this.excelError.set(null);
+    this.excelSuccess.set(null);
+
+    const { createdCount, error } = await this.ordersService.createBulkOrders(payloads);
+
+    this.excelImporting.set(false);
+
+    if (error) {
+      this.excelError.set(error);
+      return;
+    }
+
+    if (fingerprint) {
+      markImportFingerprintUsed(fingerprint);
+    }
+
+    this.clearExcelImport();
+    this.excelSuccess.set(`${createdCount} შეკვეთა წარმატებით შეიქმნა`);
+    await this.router.navigateByUrl('/my-orders');
+  }
+
+  private clearExcelImport(): void {
+    this.excelPreview.set(null);
+    this.excelFileName.set(null);
+    this.excelFingerprint.set(null);
+    this.excelDuplicateWarning.set(false);
+    this.excelError.set(null);
+    this.excelParsing.set(false);
+    this.excelImporting.set(false);
+    if (this.excelFileInput) {
+      this.excelFileInput.nativeElement.value = '';
+    }
+  }
+
+  private getImportSenderDefaults():
+    | { ok: true; value: {
+        sender_name: string;
+        sender_phone: string;
+        pickup_city: string;
+        pickup_district: string;
+        pickup_address: string;
+      } }
+    | { ok: false; error: string } {
+    const value = this.form.getRawValue();
+    const sender_name = value.sender_name.trim();
+    const sender_phone = value.sender_phone.trim();
+    const pickup_city = value.pickup_city;
+    const pickup_district = value.pickup_district.trim();
+    const pickup_address = value.pickup_address.trim();
+
+    if (!sender_name || !sender_phone || !pickup_city || !pickup_district) {
+      return {
+        ok: false,
+        error:
+          'Excel იმპორტამდე შეავსეთ გამგზავნის სახელი, ტელეფონი და აღების ქალაქი/უბანი (მისამართი ფორმიდან ან Excel-ის pickup_location-დან)',
+      };
+    }
+
+    const digits = sender_phone.replace(/\D/g, '');
+    if (digits.length < 6) {
+      return { ok: false, error: 'გამგზავნის ტელეფონი არასწორია' };
+    }
+
+    if (!(GEORGIAN_CITIES as readonly string[]).includes(pickup_city)) {
+      return { ok: false, error: 'აირჩიეთ სწორი აღების ქალაქი' };
+    }
+
+    return {
+      ok: true,
+      value: { sender_name, sender_phone, pickup_city, pickup_district, pickup_address },
+    };
   }
 
   async onSubmit(): Promise<void> {

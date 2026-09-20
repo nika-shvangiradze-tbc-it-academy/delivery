@@ -9,6 +9,198 @@
       <p class="order-form-page__error" role="alert">{{ errorMessage() }}</p>
     }
 
+    @if (excelSuccess()) {
+      <p class="order-form-page__success" role="status">{{ excelSuccess() }}</p>
+    }
+
+    <div class="order-form-page__excel-actions">
+      <button
+        type="button"
+        class="order-form-page__excel-toggle"
+        (click)="toggleExcelPanel()"
+        [attr.aria-expanded]="excelPanelOpen()"
+      >
+        {{ excelPanelOpen() ? ('orders.excelHide' | t) : ('orders.excelUpload' | t) }}
+      </button>
+      <button type="button" class="order-form-page__excel-template" (click)="downloadExcelTemplate()">
+        {{ 'orders.excelDownloadTemplate' | t }}
+      </button>
+    </div>
+
+    @if (excelPanelOpen()) {
+      <section class="order-form-page__excel" aria-label="Excel import">
+        <h2 class="order-form-page__excel-title">{{ 'orders.excelPanelTitle' | t }}</h2>
+        <p class="order-form-page__excel-hint">{{ 'orders.excelSenderHint' | t }}</p>
+
+        <input
+          #excelFileInput
+          class="order-form-page__excel-input"
+          type="file"
+          accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+          (change)="onExcelFileSelected($event)"
+        />
+
+        <button
+          type="button"
+          class="order-form-page__excel-dropzone"
+          (click)="openExcelFilePicker()"
+          [disabled]="excelParsing() || excelImporting()"
+        >
+          <span class="order-form-page__excel-dropzone-icon" aria-hidden="true">📄</span>
+          <span class="order-form-page__excel-dropzone-label">{{ 'orders.excelChooseFile' | t }}</span>
+          <span class="order-form-page__excel-dropzone-meta">.xlsx / .xls</span>
+        </button>
+
+        @if (excelParsing()) {
+          <p class="order-form-page__excel-status">{{ 'common.loading' | t }}</p>
+        }
+
+        @if (excelError()) {
+          <p class="order-form-page__error" role="alert">{{ excelError() }}</p>
+        }
+
+        @if (excelDuplicateWarning()) {
+          <p class="order-form-page__excel-warn" role="status">
+            {{ 'orders.excelDuplicateWarning' | t }}
+          </p>
+        }
+
+        @if (excelPreview(); as preview) {
+          <div class="order-form-page__excel-summary">
+            <p>
+              {{ 'orders.excelImportedRows' | t }}:
+              <strong>{{ preview.total }}</strong>
+              @if (excelFileName(); as name) {
+                <span class="order-form-page__excel-filename">({{ name }})</span>
+              }
+            </p>
+            <p class="order-form-page__excel-summary-ok">
+              {{ 'orders.excelValid' | t }}: <strong>{{ preview.validCount }}</strong>
+            </p>
+            <p class="order-form-page__excel-summary-bad">
+              {{ 'orders.excelErrors' | t }}: <strong>{{ preview.errorCount }}</strong>
+            </p>
+          </div>
+
+          <div class="order-form-page__excel-preview" role="list">
+            @for (row of preview.rows; track row.rowNumber) {
+              <article
+                class="order-form-page__excel-row"
+                [class.order-form-page__excel-row--ok]="row.valid"
+                [class.order-form-page__excel-row--bad]="!row.valid"
+                role="listitem"
+              >
+                <div class="order-form-page__excel-row-top">
+                  <span class="order-form-page__excel-row-num">#{{ row.rowNumber }}</span>
+                  <span class="order-form-page__excel-row-status" [attr.aria-label]="row.valid ? 'valid' : 'invalid'">
+                    @if (row.valid) {
+                      ✓
+                    } @else {
+                      ❌
+                    }
+                  </span>
+                </div>
+                <p class="order-form-page__excel-row-name">{{ row.customerName || '—' }}</p>
+                <p class="order-form-page__excel-row-line">📞 {{ row.phone || '—' }}</p>
+                <p class="order-form-page__excel-row-line">
+                  📍 {{ row.address || '—' }}
+                  @if (row.city) {
+                    <span>· {{ row.city }}</span>
+                  }
+                </p>
+                <p class="order-form-page__excel-row-meta">
+                  <span>{{ formatPreviewDate(row.deliveryDate) }}</span>
+                  <span>📦 {{ row.quantity ?? '—' }}</span>
+                  <span>💰 {{ row.amountToCollect ?? '—' }} ₾</span>
+                </p>
+                @if (row.error) {
+                  <p class="order-form-page__excel-row-error">{{ row.error }}</p>
+                } @else {
+                  <p class="order-form-page__excel-row-ok-label">{{ 'orders.excelRowValid' | t }}</p>
+                }
+              </article>
+            }
+          </div>
+
+          <div class="order-form-page__excel-desktop">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>{{ 'orders.recipient' | t }}</th>
+                  <th>{{ 'orders.recipientPhone' | t }}</th>
+                  <th>{{ 'orders.deliveryAddress' | t }}</th>
+                  <th>{{ 'orders.city' | t }}</th>
+                  <th>{{ 'orders.deliveryDate' | t }}</th>
+                  <th>Qty</th>
+                  <th>₾</th>
+                  <th>{{ 'orders.statusLabel' | t }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of preview.rows; track row.rowNumber) {
+                  <tr [class.order-form-page__excel-tr--bad]="!row.valid">
+                    <td>{{ row.rowNumber }}</td>
+                    <td>{{ row.customerName || '—' }}</td>
+                    <td>{{ row.phone || '—' }}</td>
+                    <td>{{ row.address || '—' }}</td>
+                    <td>{{ row.city || '—' }}</td>
+                    <td>{{ formatPreviewDate(row.deliveryDate) }}</td>
+                    <td>{{ row.quantity ?? '—' }}</td>
+                    <td>{{ row.amountToCollect ?? '—' }}</td>
+                    <td>
+                      @if (row.valid) {
+                        ✓
+                      } @else {
+                        ❌ {{ row.error }}
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <div class="order-form-page__excel-confirm">
+            @if (preview.validCount > 0) {
+              <button
+                type="button"
+                class="order-form-page__submit"
+                (click)="confirmExcelImport()"
+                [disabled]="excelImporting()"
+              >
+                @if (excelImporting()) {
+                  {{ 'common.loading' | t }}
+                } @else if (preview.errorCount > 0) {
+                  {{ 'orders.excelCreateValidOnly' | t }} ({{ preview.validCount }})
+                } @else {
+                  {{ 'orders.excelCreateOrders' | t }} ({{ preview.validCount }})
+                }
+              </button>
+            }
+            <button
+              type="button"
+              class="order-form-page__excel-cancel"
+              (click)="cancelExcelImport()"
+              [disabled]="excelImporting()"
+            >
+              {{ 'orders.excelCancel' | t }}
+            </button>
+            @if (preview.errorCount > 0) {
+              <button
+                type="button"
+                class="order-form-page__excel-reupload"
+                (click)="openExcelFilePicker()"
+                [disabled]="excelImporting() || excelParsing()"
+              >
+                {{ 'orders.excelReupload' | t }}
+              </button>
+            }
+          </div>
+        }
+      </section>
+    }
+
     <form class="order-form-page__form" [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
       <fieldset>
         <legend>{{ 'orders.senderInfo' | t }}</legend>

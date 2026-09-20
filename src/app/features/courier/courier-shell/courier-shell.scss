@@ -1,7 +1,7 @@
 .courier-shell {
   min-height: 100vh;
   background: #f7f8fa;
-  padding: 12px 12px 36px;
+  padding: 12px 12px 72px;
   color: #111827;
   max-width: 430px;
   margin: 0 auto;
@@ -129,7 +129,7 @@
   &__scroll-top {
     position: fixed;
     left: 50%;
-    bottom: max(20px, env(safe-area-inset-bottom, 0px) + 20px);
+    bottom: max(4px, env(safe-area-inset-bottom, 0px));
     z-index: 40;
     width: 44px;
     height: 44px;
