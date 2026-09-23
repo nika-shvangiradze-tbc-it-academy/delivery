@@ -98,7 +98,7 @@ export const uiTranslationsEn = {
     december: 'December',
   },
   seo: {
-    title: 'Location — Courier and parcel delivery across Georgia',
+    title: 'Location — Fast and reliable courier service in Georgia',
     description:
       'Location — fast and reliable courier service in Georgia. Parcel delivery in Tbilisi and the regions, transparent pricing, and door-to-door service.',
   },
@@ -535,7 +535,7 @@ export const uiTranslationsKa = {
     december: 'დეკემბერი',
   },
   seo: {
-    title: 'Location — საკურიერო და ამანათების მიწოდების სერვისი საქართველოში',
+    title: 'Location — სწრაფი და საიმედო საკურიერო სერვისი საქართველოში',
     description:
       'Location — სწრაფი და საიმედო საკურიერო სერვისი საქართველოში. ამანათების მიწოდება თბილისში და რეგიონებში, გამჭვირვალე ფასებით და კარიდან კარამდე სერვისით.',
   },
