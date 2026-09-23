@@ -203,24 +203,16 @@ export class CourierOrders implements OnInit, OnDestroy {
       const { data, error } = await this.courierService.getMyPickupTasks();
       const tasks = data ?? [];
 
-      console.log('[Pickup] before signal set:', tasks);
-
       // Assign into pickupTasks only — never into deliveryOrders/orders.
       this.pickupTasks.set(tasks);
 
-      console.log('[Pickup] signal after set:', this.pickupTasks());
-
       if (error) {
-        console.error('[CourierOrders] loadPickupTasks error', error);
         this.errorMessage.set(error);
       }
     } catch (err) {
-      console.error('[CourierOrders] loadPickupTasks threw', err);
       const message = err instanceof Error ? err.message : 'Pickup tasks load failed';
       this.errorMessage.set(message);
-      console.log('[Pickup] before signal set:', []);
       this.pickupTasks.set([]);
-      console.log('[Pickup] signal after set:', this.pickupTasks());
     } finally {
       this.pickupLoading.set(false);
     }
@@ -257,7 +249,6 @@ export class CourierOrders implements OnInit, OnDestroy {
     const { data: sessionData } = await this.supabase.client.auth.getSession();
     const userId = sessionData.session?.user?.id ?? this.auth.user()?.id ?? null;
     if (!userId) {
-      console.error('[Pickup] realtime: no session user');
       return;
     }
 
@@ -273,7 +264,6 @@ export class CourierOrders implements OnInit, OnDestroy {
           filter: `assigned_courier_id=eq.${userId}`,
         },
         () => {
-          console.log('[Pickup] realtime INSERT → reload');
           this.zone.run(() => {
             void this.loadPickupTasks();
           });
@@ -288,15 +278,12 @@ export class CourierOrders implements OnInit, OnDestroy {
           filter: `assigned_courier_id=eq.${userId}`,
         },
         () => {
-          console.log('[Pickup] realtime UPDATE → reload');
           this.zone.run(() => {
             void this.loadPickupTasks();
           });
         },
       )
-      .subscribe((status) => {
-        console.log('[Pickup] realtime status', status);
-      });
+      .subscribe();
   }
 
   private teardownPickupChannel(): void {

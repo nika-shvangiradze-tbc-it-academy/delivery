@@ -1,4 +1,4 @@
-import { Injectable, inject, isDevMode } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import {
   ADMIN_ACTIVE_STATUS_FILTER,
   ADMIN_ACTIVE_STATUSES,
@@ -90,7 +90,6 @@ export class AdminService {
     }
 
     if (statsResult.error) {
-      this.logSupabaseError('getDashboardStats', statsResult.error);
       return { data: this.emptyStats(), error: statsResult.error.message };
     }
 
@@ -142,7 +141,6 @@ export class AdminService {
       .limit(limit);
 
     if (error) {
-      this.logSupabaseError('getRecentOrders', error);
       return { data: [], error: error.message };
     }
 
@@ -177,7 +175,6 @@ export class AdminService {
     const { data, error, count } = await query;
 
     if (error) {
-      this.logSupabaseError('getAdminOrders', error);
       return { data: [], total: 0, page, pageSize, error: error.message };
     }
 
@@ -257,7 +254,6 @@ export class AdminService {
     });
 
     if (error) {
-      this.logSupabaseError('getOrderPlanningBreakdown', error);
       return { data: { total: 0, groups: [] }, error: error.message };
     }
 
@@ -277,7 +273,6 @@ export class AdminService {
       .limit(500);
 
     if (error) {
-      this.logSupabaseError('getOrderCustomers', error);
       return { data: [], error: error.message };
     }
 
@@ -328,7 +323,6 @@ export class AdminService {
     );
 
     if (rpcError) {
-      this.logSupabaseError('getAdminOrdersViaCustomerTypeRpc', rpcError);
       // Fallback until migration is applied: sender-name legal-entity markers only.
       return this.getAdminOrdersCustomerTypeFallback(filters, page, pageSize, customerType);
     }
@@ -352,7 +346,6 @@ export class AdminService {
       .in('id', ids);
 
     if (error) {
-      this.logSupabaseError('getAdminOrdersViaCustomerTypeRpc.select', error);
       return { data: [], total: 0, page, pageSize, error: error.message };
     }
 
@@ -403,7 +396,6 @@ export class AdminService {
 
     const { data, error, count } = await query;
     if (error) {
-      this.logSupabaseError('getAdminOrdersCustomerTypeFallback', error);
       return { data: [], total: 0, page, pageSize, error: error.message };
     }
 
@@ -476,7 +468,6 @@ export class AdminService {
       .in('id', userIds);
 
     if (error) {
-      this.logSupabaseError('enrichOrdersWithOwners', error);
       return orders;
     }
 
@@ -583,7 +574,6 @@ export class AdminService {
     });
 
     if (error) {
-      this.logSupabaseError('assignPickup', error);
       return { updated: 0, tasksCreated: 0, tasksUpdated: 0, error: error.message };
     }
 
@@ -616,7 +606,6 @@ export class AdminService {
     });
 
     if (error) {
-      this.logSupabaseError('getPickupTasks', error);
       return { data: { tasks: [], counts: emptyCounts }, error: error.message };
     }
 
@@ -790,7 +779,6 @@ export class AdminService {
     });
 
     if (error) {
-      this.logSupabaseError('getDeliveredAnalytics', error);
       return { data: emptyDeliveredAnalytics(), error: error.message };
     }
 
@@ -966,7 +954,6 @@ export class AdminService {
       .single();
 
     if (error) {
-      this.logSupabaseError('updateOrderStatus', error);
       return { data: null, error: error.message };
     }
 
@@ -996,7 +983,6 @@ export class AdminService {
     const { error } = await this.supabase.client.from('orders').delete().eq('id', orderId);
 
     if (error) {
-      this.logSupabaseError('deleteOrder', error);
       return { error: error.message };
     }
 
@@ -1026,7 +1012,6 @@ export class AdminService {
         .select(ADMIN_ORDER_LIST_COLUMNS);
 
       if (error) {
-        this.logSupabaseError('assignCouriersBulk', error);
         return { data: [], error: error.message };
       }
 
@@ -1060,11 +1045,9 @@ export class AdminService {
     ]);
 
     if (officeResult.error) {
-      this.logSupabaseError('assignCouriersBulk.office', officeResult.error);
       return { data: [], error: officeResult.error.message };
     }
     if (otherResult.error) {
-      this.logSupabaseError('assignCouriersBulk.other', otherResult.error);
       return { data: [], error: otherResult.error.message };
     }
 
@@ -1102,7 +1085,6 @@ export class AdminService {
       if (error.code === 'PGRST200' || error.message?.includes('Could not find')) {
         return this.getOrderStatusAuditFallback(orderId);
       }
-      this.logSupabaseError('getOrderStatusAudit', error);
       return { data: [], error: error.message };
     }
 
@@ -1121,7 +1103,6 @@ export class AdminService {
       .order('changed_at', { ascending: false });
 
     if (error) {
-      this.logSupabaseError('getOrderStatusAuditFallback', error);
       return { data: [], error: error.message };
     }
 
@@ -1148,7 +1129,6 @@ export class AdminService {
         .in('id', actorIds);
 
       if (profileError) {
-        this.logSupabaseError('getOrderStatusAuditFallback.profiles', profileError);
       } else {
         nameById = new Map(
           (profiles ?? []).map((p: { id: string; full_name: string }) => [p.id, p.full_name]),
@@ -1259,20 +1239,6 @@ export class AdminService {
       .trim();
   }
 
-  private logSupabaseError(
-    context: string,
-    error: { message?: string; details?: string; hint?: string; code?: string },
-  ): void {
-    if (!isDevMode()) {
-      return;
-    }
-    console.error(`[AdminService.${context}]`, {
-      message: error.message,
-      details: error.details,
-      hint: error.hint,
-      code: error.code,
-    });
-  }
 
   private emptyStats(): AdminDashboardStats {
     return {

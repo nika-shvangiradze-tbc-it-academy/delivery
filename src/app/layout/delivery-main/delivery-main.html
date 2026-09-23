@@ -3,7 +3,7 @@
 
   <app-landing></app-landing>
 
-  @defer (on idle; prefetch on idle) {
+  @defer (on idle) {
     <app-pricing></app-pricing>
   } @placeholder {
     <div class="main__defer-slot" aria-hidden="true"></div>
@@ -31,7 +31,7 @@
   }
 
 
-  @defer (on idle; prefetch on idle) {
+  @defer (on idle) {
     <app-rate></app-rate>
   } @placeholder {
     <div class="main__defer-slot" aria-hidden="true"></div>
@@ -49,13 +49,13 @@
     <div class="main__defer-slot" aria-hidden="true"></div>
   }
 
-  @defer (on idle; prefetch on idle) {
+  @defer (on idle) {
     <app-about></app-about>
   } @placeholder {
     <div class="main__defer-slot" aria-hidden="true"></div>
   }
 
-  @defer (on idle; prefetch on idle) {
+  @defer (on idle) {
     <app-delivery-footer></app-delivery-footer>
   } @placeholder {
     <div class="main__defer-slot main__defer-slot--footer" aria-hidden="true"></div>

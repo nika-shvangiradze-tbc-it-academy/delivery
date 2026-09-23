@@ -1,4 +1,4 @@
-import { Injectable, inject, isDevMode } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import {
   AdminOrderEditPayload,
   CreateOrderPayload,
@@ -339,28 +339,10 @@ export class OrdersService {
     const { data, error, count } = await query;
 
     if (error) {
-      this.logDevError('getMyOrders', error.message);
       return { data: [], total: 0, page, pageSize, error: error.message };
     }
 
-    // Diagnosis: raw orders from Supabase (no pickup embed on this query).
-    console.log('CUSTOMER ORDERS RAW:', data);
-
     const orders = await this.enrichOrdersWithPickupCancellation(normalizeOrders(data ?? []));
-
-    console.log(
-      'CUSTOMER ORDERS ENRICHED PICKUP CANCEL:',
-      orders
-        .filter((o) => o.pickup_task_status === 'cancelled' || o.id === 63)
-        .map((o) => ({
-          id: o.id,
-          status: o.status,
-          order_cancellation_reason: o.cancellation_reason,
-          pickup_task_status: o.pickup_task_status,
-          pickup_cancellation_reason: o.pickup_cancellation_reason,
-          pickup_cancelled_at: o.pickup_cancelled_at,
-        })),
-    );
 
     return {
       data: orders,
@@ -395,16 +377,7 @@ export class OrdersService {
       .select('order_id, pickup_task_id')
       .in('order_id', orderIds);
 
-    console.log('CANCELLED PICKUP DATA pathA links:', {
-      authUserId: user?.id ?? null,
-      orderIds,
-      error: linksResult.error?.message ?? null,
-      rows: linksResult.data,
-    });
-
-    if (linksResult.error) {
-      this.logDevError('enrichOrdersWithPickupCancellation.links', linksResult.error.message);
-    } else {
+    if (!linksResult.error) {
       const links = (linksResult.data ?? []) as Array<{
         order_id: number | string;
         pickup_task_id: number | string;
@@ -423,14 +396,7 @@ export class OrdersService {
           .select('id, status, cancellation_reason, cancelled_at, customer_id')
           .in('id', taskIds);
 
-        console.log('CANCELLED PICKUP DATA pathA tasks:', {
-          error: tasksResult.error?.message ?? null,
-          rows: tasksResult.data,
-        });
-
-        if (tasksResult.error) {
-          this.logDevError('enrichOrdersWithPickupCancellation.tasks', tasksResult.error.message);
-        } else {
+        if (!tasksResult.error) {
           const cancelledByTaskId = this.indexCancelledPickupTasks(tasksResult.data ?? []);
           for (const link of links) {
             const orderId = Number(link.order_id);
@@ -452,11 +418,6 @@ export class OrdersService {
         .eq('customer_id', user.id)
         .eq('status', 'cancelled');
 
-      console.log('CANCELLED PICKUP DATA pathB myCancelledTasks:', {
-        error: myTasksResult.error?.message ?? null,
-        rows: myTasksResult.data,
-      });
-
       if (!myTasksResult.error && (myTasksResult.data?.length ?? 0) > 0) {
         const cancelledByTaskId = this.indexCancelledPickupTasks(myTasksResult.data ?? []);
         const myTaskIds = [...cancelledByTaskId.keys()];
@@ -465,11 +426,6 @@ export class OrdersService {
             .from('pickup_task_orders')
             .select('order_id, pickup_task_id')
             .in('pickup_task_id', myTaskIds);
-
-          console.log('CANCELLED PICKUP DATA pathB links:', {
-            error: myLinksResult.error?.message ?? null,
-            rows: myLinksResult.data,
-          });
 
           if (!myLinksResult.error) {
             for (const link of (myLinksResult.data ?? []) as Array<{
@@ -487,8 +443,6 @@ export class OrdersService {
         }
       }
     }
-
-    console.log('CANCELLED PICKUP DATA latestByOrder:', [...latestByOrder.entries()]);
 
     return this.applyPickupCancelEnrichment(orders, latestByOrder);
   }
@@ -598,7 +552,6 @@ export class OrdersService {
       null;
 
     if (firstError) {
-      this.logDevError('getMyOrderStatusCounts', firstError);
       return { data: empty, error: firstError };
     }
 
@@ -656,7 +609,6 @@ export class OrdersService {
     const { data, error } = await this.supabase.client.rpc('user_delivered_analytics', params);
 
     if (error) {
-      this.logDevError('getMyDeliveredAnalytics', error.message);
       return { data: empty, error: error.message };
     }
 
@@ -686,7 +638,6 @@ export class OrdersService {
 
     if (error || newestError) {
       const message = error?.message ?? newestError?.message ?? 'Failed to load years';
-      this.logDevError('getMyOrderYears', message);
       return { data: this.defaultYearOptions(), error: message };
     }
 
@@ -773,12 +724,6 @@ export class OrdersService {
       years.push(y);
     }
     return years;
-  }
-
-  private logDevError(context: string, message: string): void {
-    if (isDevMode()) {
-      console.error(`[OrdersService] ${context}:`, message);
-    }
   }
 
   async getOrderById(orderId: number): Promise<{ data: Order | null; error: string | null }> {

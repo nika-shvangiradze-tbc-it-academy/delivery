@@ -1,4 +1,4 @@
-import { Injectable, inject, isDevMode } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import {
   COURIER_ACTIVE_STATUS_FILTER,
   COURIER_ACTIVE_STATUSES,
@@ -83,7 +83,6 @@ export class CourierService {
 
     const { data: sessionData, error: sessionError } = await this.supabase.client.auth.getSession();
     if (sessionError) {
-      console.error('[Pickup] session error', sessionError);
       return { data: [], error: sessionError.message };
     }
 
@@ -107,8 +106,7 @@ export class CourierService {
       return { data: normalizedTasks, error: null };
     }
 
-    console.error('[Pickup] embed query failed, trying two-step fetch', embedded.error);
-
+    // Embed failed — fall back to flat two-step fetch.
     const flat = await this.supabase.client
       .from('pickup_tasks')
       .select(PICKUP_TASKS_FLAT)
@@ -118,7 +116,6 @@ export class CourierService {
       .order('id', { ascending: false });
 
     if (flat.error) {
-      console.error('[Pickup] flat query failed', flat.error);
       return { data: [], error: flat.error.message };
     }
 
@@ -180,7 +177,6 @@ export class CourierService {
     });
 
     if (error) {
-      this.logRpcError('courier_complete_pickup', error);
       return { updated: 0, error: this.mapCourierRpcError(error.message) };
     }
 
@@ -220,7 +216,6 @@ export class CourierService {
     });
 
     if (error) {
-      this.logRpcError('courier_cancel_pickup', error);
       return { success: false, error: this.mapCourierRpcError(error.message) };
     }
 
@@ -293,11 +288,10 @@ export class CourierService {
     const { data, error } = await this.supabase.client.rpc('courier_complete_order', rpcArgs);
 
     if (error) {
-      this.logRpcError('courier_complete_order', error);
       return { data: null, error: this.mapCourierRpcError(error.message) };
     }
 
-    return this.normalizeRpcRow(data, 'courier_complete_order');
+    return this.normalizeRpcRow(data);
   }
 
   async cancelOrder(
@@ -321,11 +315,10 @@ export class CourierService {
     });
 
     if (error) {
-      this.logRpcError('courier_cancel_order', error);
       return { data: null, error: this.mapCourierRpcError(error.message) };
     }
 
-    return this.normalizeRpcRow(data, 'courier_cancel_order');
+    return this.normalizeRpcRow(data);
   }
 
   async changeOrderStatus(
@@ -369,11 +362,10 @@ export class CourierService {
     const { data, error } = await this.supabase.client.rpc('courier_change_order_status', rpcArgs);
 
     if (error) {
-      this.logRpcError('courier_change_order_status', error);
       return { data: null, error: this.mapCourierRpcError(error.message) };
     }
 
-    return this.normalizeRpcRow(data, 'courier_change_order_status');
+    return this.normalizeRpcRow(data);
   }
 
   async reorderActiveOrders(orderIds: number[]): Promise<{ error: string | null }> {
@@ -382,7 +374,6 @@ export class CourierService {
     });
 
     if (error) {
-      this.logRpcError('courier_reorder_orders', error);
       return { error: this.mapReorderError(error.message) };
     }
 
@@ -457,7 +448,6 @@ export class CourierService {
       } = await this.supabase.client.auth.getSession();
 
       if (sessionError) {
-        this.logDevError('Courier session check failed', sessionError);
         return { error: sessionError.message || 'Session check failed' };
       }
 
@@ -475,7 +465,6 @@ export class CourierService {
 
       return { error: null };
     } catch (err) {
-      this.logDevError('Courier session check unexpected error', err);
       const message = err instanceof Error ? err.message : 'Unexpected session error';
       return { error: message };
     }
@@ -483,13 +472,11 @@ export class CourierService {
 
   private normalizeRpcRow(
     data: unknown,
-    rpcName: string,
   ): { data: Order | null; error: string | null } {
     const row = Array.isArray(data) ? data[0] : data;
     const normalized = normalizeOrder(row as Order);
 
     if (!normalized) {
-      this.logDevError(`${rpcName} returned empty data`, data);
       return {
         data: null,
         error: 'შეკვეთის განახლება ვერ მოხერხდა. სცადეთ თავიდან.',
@@ -532,28 +519,6 @@ export class CourierService {
     return message || 'შეცდომა მოხდა';
   }
 
-  private logRpcError(
-    rpcName: string,
-    error: { message?: string; details?: string; hint?: string; code?: string },
-  ): void {
-    this.logDevError(`${rpcName} failed`, {
-      message: error.message,
-      details: error.details,
-      hint: error.hint,
-      code: error.code,
-    });
-  }
-
-  private logDevError(context: string, details?: unknown): void {
-    if (!isDevMode()) {
-      return;
-    }
-    if (details !== undefined) {
-      console.error(`[CourierService] ${context}:`, details);
-    } else {
-      console.error(`[CourierService] ${context}`);
-    }
-  }
 
   private async getMyOrdersByStatuses(
     statuses: string[],
@@ -599,13 +564,11 @@ export class CourierService {
 
   private normalizePickupTask(raw: unknown): PickupTask | null {
     if (!raw || typeof raw !== 'object') {
-      console.error('[CourierService] normalizePickupTask: non-object row', raw);
       return null;
     }
     const r = raw as Record<string, unknown>;
     const id = Number(r['id']);
     if (!Number.isFinite(id) || id <= 0) {
-      console.error('[CourierService] normalizePickupTask: invalid id', r['id'], raw);
       return null;
     }
     const statusRaw = r['status'];

@@ -1,8 +1,17 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  OnInit,
+  ViewChild,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslatePipe } from '../../../core/pipes/t.pipe';
 import { AuthService } from '../../../core/services/auth.service';
+import { I18nService } from '../../../core/services/i18n.service';
 import { DeliveryHeader } from '../../../layout/delivery-header/delivery-header';
 
 @Component({
@@ -15,8 +24,11 @@ import { DeliveryHeader } from '../../../layout/delivery-header/delivery-header'
 export class Login implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly auth = inject(AuthService);
+  private readonly i18n = inject(I18nService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+
+  @ViewChild('authFormEl') private readonly authFormEl?: ElementRef<HTMLFormElement>;
 
   readonly loading = signal(false);
   readonly errorMessage = signal<string | null>(null);
@@ -34,26 +46,72 @@ export class Login implements OnInit {
     }
   }
 
+  isFieldInvalid(controlName: 'email' | 'password'): boolean {
+    const control = this.form.controls[controlName];
+    return control.invalid && control.touched;
+  }
+
+  fieldErrorKey(controlName: 'email' | 'password'): string | null {
+    const control = this.form.controls[controlName];
+    if (!control.touched) {
+      return null;
+    }
+    if (controlName === 'email') {
+      if (control.hasError('required')) {
+        return 'auth.emailRequired';
+      }
+      if (control.hasError('email')) {
+        return 'auth.emailInvalid';
+      }
+      return null;
+    }
+    if (control.hasError('required')) {
+      return 'auth.passwordRequired';
+    }
+    if (control.hasError('minlength')) {
+      return 'auth.passwordMinLength';
+    }
+    return null;
+  }
+
   async onSubmit(): Promise<void> {
+    if (this.loading()) {
+      return;
+    }
+
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      this.focusFirstInvalid();
       return;
     }
 
     this.loading.set(true);
     this.errorMessage.set(null);
 
-    const { email, password, rememberMe } = this.form.getRawValue();
-    const { error } = await this.auth.login(email, password, rememberMe);
+    try {
+      const { email, password, rememberMe } = this.form.getRawValue();
+      const { error } = await this.auth.login(email, password, rememberMe);
 
-    this.loading.set(false);
+      if (error) {
+        this.errorMessage.set(this.i18n.t(error));
+        return;
+      }
 
-    if (error) {
-      this.errorMessage.set(error);
+      await this.router.navigateByUrl(await this.resolvePostLoginPath());
+    } catch {
+      this.errorMessage.set(this.i18n.t('auth.genericError'));
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  private focusFirstInvalid(): void {
+    const form = this.authFormEl?.nativeElement;
+    if (!form) {
       return;
     }
-
-    await this.router.navigateByUrl(await this.resolvePostLoginPath());
+    const invalid = form.querySelector<HTMLElement>('input.ng-invalid');
+    invalid?.focus();
   }
 
   private async resolvePostLoginPath(): Promise<string> {

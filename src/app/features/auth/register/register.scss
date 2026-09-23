@@ -162,6 +162,10 @@
     cursor: pointer;
     margin-top: 8px;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
 
     &:hover:not(:disabled) {
       box-shadow: 0 10px 28px rgba(219, 118, 35, 0.45);
@@ -172,6 +176,16 @@
       opacity: 0.7;
       cursor: not-allowed;
     }
+  }
+
+  &__submit-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: auth-submit-spin 0.7s linear infinite;
+    flex-shrink: 0;
   }
 
   &__switch {
@@ -194,5 +208,11 @@
     &__panel {
       padding: 28px 18px;
     }
+  }
+}
+
+@keyframes auth-submit-spin {
+  to {
+    transform: rotate(360deg);
   }
 }

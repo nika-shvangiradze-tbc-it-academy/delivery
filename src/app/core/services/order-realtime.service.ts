@@ -4,7 +4,6 @@ import {
   RealtimePostgresChangesPayload,
 } from '@supabase/supabase-js';
 import { Subject } from 'rxjs';
-import { environment } from '../../../environments/environment';
 import { AuthService } from './auth.service';
 import { SupabaseService } from './supabase.service';
 
@@ -161,7 +160,6 @@ export class OrderRealtimeService {
 
   /** Hard refresh for courier logo click — immediate, no debounce. */
   requestCourierManualRefresh(): void {
-    this.log('courier manual refresh requested');
     this.zone.run(() => {
       this.courierManualRefreshSubject.next();
     });
@@ -244,11 +242,7 @@ export class OrderRealtimeService {
             table: 'pickup_tasks',
             filter: `assigned_courier_id=eq.${userId}`,
           },
-          (payload) => {
-            this.log('relevant pickup task event', {
-              source: 'pickup_tasks',
-              event: payload.eventType,
-            });
+          (_payload) => {
             this.queueChange({
               eventType: 'INSERT',
               orderId: null,
@@ -266,11 +260,7 @@ export class OrderRealtimeService {
             table: 'pickup_tasks',
             filter: `assigned_courier_id=eq.${userId}`,
           },
-          (payload) => {
-            this.log('relevant pickup task event', {
-              source: 'pickup_tasks',
-              event: payload.eventType,
-            });
+          (_payload) => {
             this.queueChange({
               eventType: 'UPDATE',
               orderId: null,
@@ -290,11 +280,6 @@ export class OrderRealtimeService {
           },
           (payload) => {
             const row = (payload.new ?? {}) as { order_id?: number; event_type?: string };
-            this.log('relevant order event', {
-              source: 'courier_order_events',
-              event: payload.eventType,
-              row,
-            });
             this.queueChange({
               eventType: 'UPDATE',
               orderId: row.order_id ?? null,
@@ -306,15 +291,9 @@ export class OrderRealtimeService {
         );
     }
 
-    channel.subscribe((status, err) => {
-      if (status === 'SUBSCRIBED') {
-        this.log('SUBSCRIBED', { channel: channelName, role });
-      } else if (status === 'CLOSED') {
-        this.log('CLOSED', { channel: channelName, role });
-      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+    channel.subscribe((status) => {
+      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
         // Transient Realtime failures are expected; reconnect handles recovery.
-        // Dev-only log — do not spam production console on network blips.
-        this.log('channel error', { status, err, channel: channelName, role });
         this.scheduleReconnect(role, userId, generation);
       }
     });
@@ -347,7 +326,6 @@ export class OrderRealtimeService {
       if (this.activeRole !== role || this.activeUserId !== userId) {
         return;
       }
-      this.log('reconnecting channel', { role, userId });
       if (this.channel) {
         void this.supabase.client.removeChannel(this.channel);
         this.channel = null;
@@ -378,16 +356,6 @@ export class OrderRealtimeService {
     }
 
     const orderId = next?.id ?? prev?.id ?? null;
-    this.log('relevant order event', {
-      source: 'orders',
-      role,
-      event: eventType,
-      orderId,
-      status: next?.status ?? prev?.status ?? null,
-      isFragile: next?.is_fragile ?? prev?.is_fragile ?? null,
-      oldCourier: prev?.assigned_courier_id ?? null,
-      newCourier: next?.assigned_courier_id ?? null,
-    });
 
     this.queueChange({
       eventType,
@@ -418,17 +386,6 @@ export class OrderRealtimeService {
     }
 
     const eventType = this.mapEventType(payload.eventType) ?? 'UPDATE';
-
-    this.log('relevant order event', {
-      source: 'orders',
-      role: 'courier',
-      event: eventType,
-      orderId: next.id ?? prev.id ?? null,
-      oldCourier: prev.assigned_courier_id ?? null,
-      newCourier: next.assigned_courier_id ?? null,
-      status: next.status ?? prev.status ?? null,
-      isFragile: next.is_fragile ?? prev.is_fragile ?? null,
-    });
 
     this.queueChange({
       eventType,
@@ -481,7 +438,6 @@ export class OrderRealtimeService {
   }
 
   private emitChange(role: OrderRealtimeRole, change: OrderRealtimeChange): void {
-    this.log('emitting debounced change', { role, event: change.eventType, orderId: change.orderId });
     this.zone.run(() => {
       switch (role) {
         case 'admin':
@@ -497,14 +453,4 @@ export class OrderRealtimeService {
     });
   }
 
-  private log(message: string, data?: unknown): void {
-    if (environment.production) {
-      return;
-    }
-    if (data !== undefined) {
-      console.info(`[OrderRealtime] ${message}`, data);
-    } else {
-      console.info(`[OrderRealtime] ${message}`);
-    }
-  }
 }

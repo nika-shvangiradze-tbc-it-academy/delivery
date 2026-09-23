@@ -9,20 +9,47 @@
       <p class="auth-page__error" role="alert">{{ errorMessage() }}</p>
     }
 
-    <form class="auth-page__form" [formGroup]="form" (ngSubmit)="onSubmit()">
-      <label class="auth-page__field">
+    <form #authFormEl class="auth-page__form" [formGroup]="form" (ngSubmit)="onSubmit()">
+      <label class="auth-page__field" [class.auth-page__field--invalid]="isFieldInvalid('fullName')">
         <span>{{ 'auth.fullName' | t }}</span>
-        <input type="text" formControlName="fullName" autocomplete="name" />
+        <input
+          type="text"
+          formControlName="fullName"
+          autocomplete="name"
+          [attr.aria-invalid]="isFieldInvalid('fullName')"
+          [attr.aria-describedby]="fieldErrorKey('fullName') ? 'register-fullname-error' : null"
+        />
+        @if (fieldErrorKey('fullName'); as errKey) {
+          <p id="register-fullname-error" class="auth-page__field-error" role="alert">{{ errKey | t }}</p>
+        }
       </label>
 
-      <label class="auth-page__field">
+      <label class="auth-page__field" [class.auth-page__field--invalid]="isFieldInvalid('phone')">
         <span>{{ 'auth.phone' | t }}</span>
-        <input type="tel" formControlName="phone" autocomplete="tel" />
+        <input
+          type="tel"
+          formControlName="phone"
+          autocomplete="tel"
+          [attr.aria-invalid]="isFieldInvalid('phone')"
+          [attr.aria-describedby]="fieldErrorKey('phone') ? 'register-phone-error' : null"
+        />
+        @if (fieldErrorKey('phone'); as errKey) {
+          <p id="register-phone-error" class="auth-page__field-error" role="alert">{{ errKey | t }}</p>
+        }
       </label>
 
-      <label class="auth-page__field">
+      <label class="auth-page__field" [class.auth-page__field--invalid]="isFieldInvalid('email')">
         <span>{{ 'auth.email' | t }}</span>
-        <input type="email" formControlName="email" autocomplete="email" />
+        <input
+          type="email"
+          formControlName="email"
+          autocomplete="email"
+          [attr.aria-invalid]="isFieldInvalid('email')"
+          [attr.aria-describedby]="fieldErrorKey('email') ? 'register-email-error' : null"
+        />
+        @if (fieldErrorKey('email'); as errKey) {
+          <p id="register-email-error" class="auth-page__field-error" role="alert">{{ errKey | t }}</p>
+        }
       </label>
 
       <div class="auth-page__field" [class.auth-page__field--invalid]="isPasswordInvalid()">
@@ -102,8 +129,13 @@
         <span>{{ 'auth.rememberMe' | t }}</span>
       </label>
 
-      <button class="auth-page__submit" type="submit" [disabled]="loading() || form.invalid">
-        {{ loading() ? ('auth.loading' | t) : ('auth.registerAction' | t) }}
+      <button class="auth-page__submit" type="submit" [disabled]="loading()" [attr.aria-busy]="loading()">
+        @if (loading()) {
+          <span class="auth-page__submit-spinner" aria-hidden="true"></span>
+          <span>{{ 'auth.signingUp' | t }}</span>
+        } @else {
+          <span>{{ 'auth.registerAction' | t }}</span>
+        }
       </button>
     </form>
 

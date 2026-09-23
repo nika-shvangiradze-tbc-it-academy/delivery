@@ -1,8 +1,17 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  OnInit,
+  ViewChild,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { TranslatePipe } from '../../../core/pipes/t.pipe';
 import { AuthService } from '../../../core/services/auth.service';
+import { I18nService } from '../../../core/services/i18n.service';
 import { passwordMatchValidator } from '../../../core/validators/password-match.validator';
 import { DeliveryHeader } from '../../../layout/delivery-header/delivery-header';
 
@@ -16,7 +25,10 @@ import { DeliveryHeader } from '../../../layout/delivery-header/delivery-header'
 export class Register implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly auth = inject(AuthService);
+  private readonly i18n = inject(I18nService);
   private readonly router = inject(Router);
+
+  @ViewChild('authFormEl') private readonly authFormEl?: ElementRef<HTMLFormElement>;
 
   readonly loading = signal(false);
   readonly errorMessage = signal<string | null>(null);
@@ -48,6 +60,35 @@ export class Register implements OnInit {
 
   toggleConfirmPasswordVisibility(): void {
     this.showConfirmPassword.update((v) => !v);
+  }
+
+  isFieldInvalid(controlName: 'fullName' | 'phone' | 'email'): boolean {
+    const control = this.form.controls[controlName];
+    return control.invalid && control.touched;
+  }
+
+  fieldErrorKey(controlName: 'fullName' | 'phone' | 'email'): string | null {
+    const control = this.form.controls[controlName];
+    if (!control.touched) {
+      return null;
+    }
+    if (controlName === 'fullName') {
+      return control.hasError('required') || control.hasError('minlength')
+        ? 'auth.fullNameRequired'
+        : null;
+    }
+    if (controlName === 'phone') {
+      return control.hasError('required') || control.hasError('minlength')
+        ? 'auth.phoneRequired'
+        : null;
+    }
+    if (control.hasError('required')) {
+      return 'auth.emailRequired';
+    }
+    if (control.hasError('email')) {
+      return 'auth.emailInvalid';
+    }
+    return null;
   }
 
   isPasswordInvalid(): boolean {
@@ -92,30 +133,48 @@ export class Register implements OnInit {
   }
 
   async onSubmit(): Promise<void> {
+    if (this.loading()) {
+      return;
+    }
+
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      this.focusFirstInvalid();
       return;
     }
 
     this.loading.set(true);
     this.errorMessage.set(null);
 
-    const value = this.form.getRawValue();
-    const { error } = await this.auth.register({
-      fullName: value.fullName,
-      phone: value.phone,
-      email: value.email,
-      password: value.password,
-      rememberMe: value.rememberMe,
-    });
+    try {
+      const value = this.form.getRawValue();
+      const { error } = await this.auth.register({
+        fullName: value.fullName,
+        phone: value.phone,
+        email: value.email,
+        password: value.password,
+        rememberMe: value.rememberMe,
+      });
 
-    this.loading.set(false);
+      if (error) {
+        this.errorMessage.set(this.i18n.t(error));
+        return;
+      }
 
-    if (error) {
-      this.errorMessage.set(error);
+      await this.router.navigateByUrl(await this.auth.resolveHomePath());
+    } catch {
+      this.errorMessage.set(this.i18n.t('auth.genericError'));
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  private focusFirstInvalid(): void {
+    const form = this.authFormEl?.nativeElement;
+    if (!form) {
       return;
     }
-
-    await this.router.navigateByUrl(await this.auth.resolveHomePath());
+    const invalid = form.querySelector<HTMLElement>('input.ng-invalid');
+    invalid?.focus();
   }
 }

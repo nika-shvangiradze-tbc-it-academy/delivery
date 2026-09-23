@@ -216,49 +216,53 @@ export class AuthService {
   async register(payload: RegisterPayload): Promise<{ error: string | null }> {
     setRememberMe(payload.rememberMe !== false);
 
-    const { data, error } = await this.supabase.client.auth.signUp({
-      email: payload.email,
-      password: payload.password,
-      options: {
-        data: {
+    try {
+      const { data, error } = await this.supabase.client.auth.signUp({
+        email: payload.email,
+        password: payload.password,
+        options: {
+          data: {
+            full_name: payload.fullName,
+            phone: payload.phone,
+          },
+        },
+      });
+
+      if (error) {
+        return { error: this.mapAuthError(error) };
+      }
+
+      const userId = data.user?.id;
+      if (!userId) {
+        return { error: 'auth.genericError' };
+      }
+
+      const { error: profileError } = await this.supabase.client.from('profiles').upsert(
+        {
+          id: userId,
           full_name: payload.fullName,
           phone: payload.phone,
+          // Role is enforced by DB (insert check + protect_profile_role trigger).
+          // Never accept admin/courier from the client.
+          role: 'user',
         },
-      },
-    });
+        { onConflict: 'id' },
+      );
 
-    if (error) {
-      return { error: error.message };
+      if (profileError) {
+        return { error: this.mapAuthError(profileError) };
+      }
+
+      if (data.session) {
+        await this.applySession(data.session);
+      } else {
+        await this.loadProfile(userId);
+      }
+
+      return { error: null };
+    } catch (err) {
+      return { error: this.mapAuthError(err) };
     }
-
-    const userId = data.user?.id;
-    if (!userId) {
-      return { error: 'Registration succeeded but user was not returned.' };
-    }
-
-    const { error: profileError } = await this.supabase.client.from('profiles').upsert(
-      {
-        id: userId,
-        full_name: payload.fullName,
-        phone: payload.phone,
-        // Role is enforced by DB (insert check + protect_profile_role trigger).
-        // Never accept admin/courier from the client.
-        role: 'user',
-      },
-      { onConflict: 'id' },
-    );
-
-    if (profileError) {
-      return { error: profileError.message };
-    }
-
-    if (data.session) {
-      await this.applySession(data.session);
-    } else {
-      await this.loadProfile(userId);
-    }
-
-    return { error: null };
   }
 
   async login(
@@ -268,17 +272,109 @@ export class AuthService {
   ): Promise<{ error: string | null }> {
     setRememberMe(rememberMe);
 
-    const { data, error } = await this.supabase.client.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { data, error } = await this.supabase.client.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) {
-      return { error: error.message };
+      if (error) {
+        return { error: this.mapAuthError(error) };
+      }
+
+      await this.applySession(data.session);
+      return { error: null };
+    } catch (err) {
+      return { error: this.mapAuthError(err) };
+    }
+  }
+
+  /**
+   * Maps Supabase/Auth errors to i18n keys. Never returns raw technical messages.
+   */
+  private mapAuthError(error: unknown): string {
+    const message = this.extractErrorMessage(error).toLowerCase();
+    const code = this.extractErrorCode(error).toLowerCase();
+
+    if (
+      code === 'invalid_credentials' ||
+      message.includes('invalid login credentials') ||
+      message.includes('invalid credentials') ||
+      message.includes('email not confirmed')
+    ) {
+      return 'auth.invalidCredentials';
     }
 
-    await this.applySession(data.session);
-    return { error: null };
+    if (
+      code === 'user_already_exists' ||
+      message.includes('user already registered') ||
+      message.includes('already been registered') ||
+      message.includes('already registered')
+    ) {
+      return 'auth.emailAlreadyRegistered';
+    }
+
+    if (
+      code === 'weak_password' ||
+      (message.includes('password') &&
+        (message.includes('weak') ||
+          message.includes('at least') ||
+          message.includes('too short') ||
+          message.includes('least 6')))
+    ) {
+      return 'auth.weakPassword';
+    }
+
+    if (
+      code === 'over_request_rate_limit' ||
+      message.includes('rate limit') ||
+      message.includes('too many requests') ||
+      message.includes('too many attempts')
+    ) {
+      return 'auth.rateLimited';
+    }
+
+    if (
+      this.isTransientNetworkError(message) ||
+      message.includes('failed to fetch') ||
+      message.includes('network')
+    ) {
+      return 'auth.networkError';
+    }
+
+    if (
+      message.includes('unable to validate email') ||
+      message.includes('invalid email') ||
+      (message.includes('email address') && message.includes('invalid'))
+    ) {
+      return 'auth.emailInvalid';
+    }
+
+    return 'auth.genericError';
+  }
+
+  private extractErrorMessage(error: unknown): string {
+    if (!error) {
+      return '';
+    }
+    if (typeof error === 'string') {
+      return error;
+    }
+    if (typeof error === 'object' && 'message' in error) {
+      const msg = (error as { message?: unknown }).message;
+      return typeof msg === 'string' ? msg : '';
+    }
+    return '';
+  }
+
+  private extractErrorCode(error: unknown): string {
+    if (!error || typeof error !== 'object') {
+      return '';
+    }
+    if ('code' in error && typeof (error as { code?: unknown }).code === 'string') {
+      return (error as { code: string }).code;
+    }
+    return '';
   }
 
   async logout(): Promise<{ error: string | null }> {

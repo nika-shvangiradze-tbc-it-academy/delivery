@@ -9,15 +9,33 @@
       <p class="auth-page__error" role="alert">{{ errorMessage() }}</p>
     }
 
-    <form class="auth-page__form" [formGroup]="form" (ngSubmit)="onSubmit()">
-      <label class="auth-page__field">
+    <form #authFormEl class="auth-page__form" [formGroup]="form" (ngSubmit)="onSubmit()">
+      <label class="auth-page__field" [class.auth-page__field--invalid]="isFieldInvalid('email')">
         <span>{{ 'auth.email' | t }}</span>
-        <input type="email" formControlName="email" autocomplete="email" />
+        <input
+          type="email"
+          formControlName="email"
+          autocomplete="email"
+          [attr.aria-invalid]="isFieldInvalid('email')"
+          [attr.aria-describedby]="fieldErrorKey('email') ? 'login-email-error' : null"
+        />
+        @if (fieldErrorKey('email'); as errKey) {
+          <p id="login-email-error" class="auth-page__field-error" role="alert">{{ errKey | t }}</p>
+        }
       </label>
 
-      <label class="auth-page__field">
+      <label class="auth-page__field" [class.auth-page__field--invalid]="isFieldInvalid('password')">
         <span>{{ 'auth.password' | t }}</span>
-        <input type="password" formControlName="password" autocomplete="current-password" />
+        <input
+          type="password"
+          formControlName="password"
+          autocomplete="current-password"
+          [attr.aria-invalid]="isFieldInvalid('password')"
+          [attr.aria-describedby]="fieldErrorKey('password') ? 'login-password-error' : null"
+        />
+        @if (fieldErrorKey('password'); as errKey) {
+          <p id="login-password-error" class="auth-page__field-error" role="alert">{{ errKey | t }}</p>
+        }
       </label>
 
       <label class="auth-page__remember">
@@ -25,8 +43,13 @@
         <span>{{ 'auth.rememberMe' | t }}</span>
       </label>
 
-      <button class="auth-page__submit" type="submit" [disabled]="loading()">
-        {{ loading() ? ('auth.loading' | t) : ('auth.loginAction' | t) }}
+      <button class="auth-page__submit" type="submit" [disabled]="loading()" [attr.aria-busy]="loading()">
+        @if (loading()) {
+          <span class="auth-page__submit-spinner" aria-hidden="true"></span>
+          <span>{{ 'auth.signingIn' | t }}</span>
+        } @else {
+          <span>{{ 'auth.loginAction' | t }}</span>
+        }
       </button>
     </form>
 
