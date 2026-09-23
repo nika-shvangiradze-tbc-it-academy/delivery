@@ -670,7 +670,7 @@ export const translationResources = {
         liveUpdates: 'შეკვეთების მონიტორინგი',
         sameDayDispatch: 'აღება/ჩაბარება ერთ დღეს',
         trainedCouriers: 'გამოცდილი კურიერები',
-        priorityHandling: 'პრიორიტეტული დამუშავება',
+        priorityHandling: 'კარიდან კარამდე სერვისი',
         instantSupport: 'მყისიერი მხარდაჭერა',
         flexiblePickup: 'მოქნილი აღების დრო',
         safeHandling: 'ამანათების უსაფრთხო გადაზიდვა',
