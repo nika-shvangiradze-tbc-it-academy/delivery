@@ -113,28 +113,28 @@ const EMPTY_PLANNING: AdminPlanningBreakdown = {
   groups: [],
 };
 
-const EMPTY_MESSAGES: Record<AdminStatusGroup, string> = {
-  pending: 'მოლოდინში შეკვეთები არ არის',
-  office: 'ოფისში შეკვეთები არ მოიძებნა',
-  active: 'აქტიური შეკვეთები არ მოიძებნა',
-  delivered: 'ჩაბარებული შეკვეთები არ მოიძებნა',
-  cancelled: 'გაუქმებული შეკვეთები არ მოიძებნა',
-  all: 'შეკვეთები არ მოიძებნა',
+const EMPTY_MESSAGE_KEYS: Record<AdminStatusGroup, string> = {
+  pending: 'adminUi.emptyPending',
+  office: 'adminUi.emptyOffice',
+  active: 'adminUi.emptyActive',
+  delivered: 'adminUi.emptyDelivered',
+  cancelled: 'adminUi.emptyCancelled',
+  all: 'adminUi.emptyAll',
 };
 
-const TAB_LABELS: Record<AdminStatusGroup, string> = {
-  pending: 'მოლოდინში',
-  office: 'ოფისში',
-  active: 'აქტიური',
-  delivered: 'ჩაბარებული',
-  cancelled: 'გაუქმებული',
-  all: 'ყველა',
+const TAB_LABEL_KEYS: Record<AdminStatusGroup, string> = {
+  pending: 'ui.pending',
+  office: 'ui.atOffice',
+  active: 'ui.active',
+  delivered: 'ui.delivered',
+  cancelled: 'ui.cancelled',
+  all: 'ui.all',
 };
 
-const GROUP_BY_OPTION_KEYS: Array<{ value: AdminOrderGroupBy; label: string }> = [
-  { value: 'none', label: 'დაჯგუფება: გამორთული' },
-  { value: 'customer', label: 'დაჯგუფება: შემკვეთი' },
-  { value: 'pickup_city', label: 'დაჯგუფება: აღების ქალაქი' },
+const GROUP_BY_OPTIONS: Array<{ value: AdminOrderGroupBy; labelKey: string }> = [
+  { value: 'none', labelKey: 'adminUi.groupByNone' },
+  { value: 'customer', labelKey: 'adminUi.groupByCustomer' },
+  { value: 'pickup_city', labelKey: 'adminUi.groupByPickupCity' },
 ];
 
 @Component({
@@ -165,8 +165,8 @@ export class AdminOrders implements OnInit {
   readonly statusGroups = ADMIN_STATUS_GROUPS;
   readonly pageSizes = ADMIN_ORDER_PAGE_SIZES;
   readonly unassignedCourier = ADMIN_COURIER_UNASSIGNED;
-  readonly tabLabels = TAB_LABELS;
-  readonly groupByOptions = GROUP_BY_OPTION_KEYS;
+  readonly tabLabelKeys = TAB_LABEL_KEYS;
+  readonly groupByOptions = GROUP_BY_OPTIONS;
   readonly customerDisplay = customerDisplay;
   readonly pickupLines = pickupLocationLines;
   readonly deliveryAddress = deliveryRecipientAddress;
@@ -219,7 +219,10 @@ export class AdminOrders implements OnInit {
     () => this.orders().length > 0 && this.selectedIds().size === this.orders().length,
   );
   readonly totalPages = computed(() => Math.max(1, Math.ceil(this.total() / this.pageSize())));
-  readonly emptyMessage = computed(() => EMPTY_MESSAGES[this.statusGroup()]);
+  readonly emptyMessage = computed(() => {
+    this.i18n.currentLanguage();
+    return i18next.t(EMPTY_MESSAGE_KEYS[this.statusGroup()]);
+  });
   readonly showDeliveredAnalytics = computed(() => this.statusGroup() === 'delivered');
   readonly showPlanning = computed(() => this.groupBy() !== 'none');
   /** Customer grouping is pickup planning only — never show the order table. */

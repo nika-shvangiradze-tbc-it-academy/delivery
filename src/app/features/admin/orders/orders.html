@@ -19,7 +19,7 @@
           [attr.aria-selected]="statusGroup() === group"
           (click)="selectStatusGroup(group)"
         >
-          {{ tabLabels[group] }}
+          {{ tabLabelKeys[group] | t }}
         </button>
       }
     </div>
@@ -108,7 +108,7 @@
           (ngModelChange)="onGroupByChange($event)"
         >
           @for (opt of groupByOptions; track opt.value) {
-            <option [ngValue]="opt.value">{{ opt.label }}</option>
+            <option [ngValue]="opt.value">{{ opt.labelKey | t }}</option>
           }
         </select>
       }
@@ -136,7 +136,7 @@
       <section class="admin-orders__planning" aria-label="{{ 'adminUi.planningLabel' | t }}">
         <div class="admin-orders__planning-head">
           <h2>
-            {{ tabLabels[statusGroup()] }}
+            {{ tabLabelKeys[statusGroup()] | t }}
             <span class="admin-orders__planning-total">({{ planning().total || total() }})</span>
           </h2>
           @if (planningLoading()) {

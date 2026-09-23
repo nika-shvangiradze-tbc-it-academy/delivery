@@ -196,6 +196,8 @@ export const uiTranslationsEn = {
     hide: 'Hide',
     amountGel: 'Amount to collect (₾)',
     editOrderTitle: 'Edit order #{{id}}',
+    updatedSuccess: 'Order #{{id}} updated successfully',
+    saveFailed: 'Could not save',
   },
   courier: {
     activeOrdersTitle: 'Current orders',
@@ -323,6 +325,8 @@ export const uiTranslationsEn = {
     defaultDistrict: 'Default district',
     defaultAddress: 'Default address',
     registeredPrefix: 'Registered:',
+    defaultsPendingMigration:
+      'Profile saved, but default address fields do not exist in the database yet. Run the SQL migration.',
   },
   adminUi: {
     pickupCityAll: 'Pickup city: all',
@@ -626,6 +630,9 @@ export const uiTranslationsKa = {
     amountFromCustomer: 'მომხმარებლისგან ასაღები თანხა (₾)',
     fragileParcel: 'მსხვრევადი ამანათი',
     orderStatusFilter: 'შეკვეთის სტატუსი',
+    hide: 'დამალვა',
+    amountGel: 'ასაღები თანხა (₾)',
+    editOrderTitle: 'შეკვეთის რედაქტირება #{{id}}',
     updatedSuccess: 'შეკვეთა #{{id}} წარმატებით განახლდა',
     saveFailed: 'შენახვა ვერ მოხერხდა',
   },
@@ -755,6 +762,8 @@ export const uiTranslationsKa = {
     defaultDistrict: 'ნაგულისხმევი უბანი',
     defaultAddress: 'ნაგულისხმევი მისამართი',
     registeredPrefix: 'რეგისტრაცია:',
+    defaultsPendingMigration:
+      'პროფილი შეინახა, მაგრამ default მისამართის ველები ჯერ არ არსებობს ბაზაში. გაუშვი SQL მიგრაცია.',
   },
   adminUi: {
     pickupCityAll: 'აღების ქალაქი: ყველა',

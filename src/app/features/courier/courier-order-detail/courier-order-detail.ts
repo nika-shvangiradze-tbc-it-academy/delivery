@@ -134,7 +134,7 @@ export class CourierOrderDetail implements OnInit {
 
       if (error || !data) {
         this.errorMessage.set(error ?? i18next.t('courier.pickupFailed'));
-        if (error?.includes('სესია არ არის აქტიური')) {
+        if (error?.includes(i18next.t('ui.sessionExpired')) || error?.includes('სესია არ არის აქტიური')) {
           await this.router.navigateByUrl('/login');
         }
         return;
@@ -174,7 +174,7 @@ export class CourierOrderDetail implements OnInit {
 
       if (error || !data) {
         this.errorMessage.set(error ?? i18next.t('courier.deliverFailed'));
-        if (error?.includes('სესია არ არის აქტიური')) {
+        if (error?.includes(i18next.t('ui.sessionExpired')) || error?.includes('სესია არ არის აქტიური')) {
           await this.router.navigateByUrl('/login');
         }
         return;
@@ -244,7 +244,7 @@ export class CourierOrderDetail implements OnInit {
 
       if (error || !data) {
         this.errorMessage.set(error ?? i18next.t('courier.cancelFailed'));
-        if (error?.includes('სესია არ არის აქტიური')) {
+        if (error?.includes(i18next.t('ui.sessionExpired')) || error?.includes('სესია არ არის აქტიური')) {
           await this.router.navigateByUrl('/login');
         }
         return;

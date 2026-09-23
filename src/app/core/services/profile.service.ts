@@ -1,4 +1,5 @@
 import { Injectable, inject } from '@angular/core';
+import i18next from 'i18next';
 import { Profile, ProfileRow, ProfileUpdate } from '../models/profile.model';
 import { AuthService } from './auth.service';
 import { SupabaseService } from './supabase.service';
@@ -72,8 +73,7 @@ export class ProfileService {
         this.auth.setProfile(profile);
         return {
           data: profile,
-          error:
-            'პროფილი შეინახა, მაგრამ default მისამართის ველები ჯერ არ არსებობს ბაზაში. გაუშვი SQL მიგრაცია.',
+          error: i18next.t('profileUi.defaultsPendingMigration'),
         };
       }
     }
