@@ -22,11 +22,21 @@
       <div class="delivery-footer__col">
         <h2 class="delivery-footer__heading">{{ 'footer.explore' | t }}</h2>
         <ul class="delivery-footer__links">
-          <li><a routerLink="/" fragment="home">{{ 'nav.home' | t }}</a></li>
-          <li><a routerLink="/" fragment="pricing">{{ 'nav.pricing' | t }}</a></li>
-          <li><a routerLink="/" fragment="cities">{{ 'nav.cities' | t }}</a></li>
-          <li><a routerLink="/" fragment="about">{{ 'nav.about' | t }}</a></li>
-          <li><a routerLink="/" fragment="contact">{{ 'nav.contact' | t }}</a></li>
+          <li>
+            <a href="/#home" (click)="onNavClick('home', $event)">{{ 'nav.home' | t }}</a>
+          </li>
+          <li>
+            <a href="/#pricing" (click)="onNavClick('pricing', $event)">{{ 'nav.pricing' | t }}</a>
+          </li>
+          <li>
+            <a href="/#cities" (click)="onNavClick('cities', $event)">{{ 'nav.cities' | t }}</a>
+          </li>
+          <li>
+            <a href="/#about" (click)="onNavClick('about', $event)">{{ 'nav.about' | t }}</a>
+          </li>
+          <li>
+            <a href="#contact" (click)="onNavClick('contact', $event)">{{ 'nav.contact' | t }}</a>
+          </li>
         </ul>
       </div>
 

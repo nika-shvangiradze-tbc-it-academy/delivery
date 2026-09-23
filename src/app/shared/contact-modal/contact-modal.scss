@@ -1,0 +1,105 @@
+.contact-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #2323288c;
+
+  &__panel {
+    position: relative;
+    width: min(440px, 100%);
+    padding: 32px 28px 28px;
+    border-radius: 20px;
+    background: #fff;
+  }
+
+  &__close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 40px;
+    height: 40px;
+    border: 0;
+    border-radius: 12px;
+    cursor: pointer;
+    background: transparent;
+    color: #535353;
+
+    svg {
+      width: 20px;
+    }
+  }
+
+  &__accent {
+    width: 36px;
+    height: 4px;
+    border-radius: 4px;
+    background: #ee7720;
+  }
+
+  &__title {
+    margin: 8px 0 10px;
+    font-size: 28px;
+    color: #2f2f2f;
+  }
+
+  &__lead {
+    margin: 0 0 24px;
+    color: #666;
+    line-height: 1.5;
+  }
+
+  &__actions {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 12px;
+  }
+
+  &__link {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px;
+    border-radius: 14px;
+    text-decoration: none;
+    color: #333;
+    border: 1px solid #ddd;
+
+    &--primary {
+      border-color: rgba(238, 119, 32, 0.35);
+      background: rgba(238, 119, 32, 0.04);
+    }
+  }
+
+  &__link-icon {
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    color: #ee7720;
+    flex-shrink: 0;
+
+    svg {
+      width: 22px;
+    }
+  }
+
+  &__link-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  &__link-label {
+    font-size: 11px;
+    color: #888;
+  }
+
+  &__link-value {
+    font-weight: 600;
+  }
+}

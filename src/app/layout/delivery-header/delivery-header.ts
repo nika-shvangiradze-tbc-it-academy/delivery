@@ -12,13 +12,15 @@ import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { TranslatePipe } from '../../core/pipes/t.pipe';
 import { AppLanguage } from '../../core/i18n/translations';
 import { AuthService } from '../../core/services/auth.service';
+import { ContactModalService } from '../../core/services/contact-modal.service';
 import { I18nService } from '../../core/services/i18n.service';
+import { ContactModal } from '../../shared/contact-modal/contact-modal';
 
 type SectionId = 'home' | 'about' | 'pricing' | 'cities' | 'contact';
 
 @Component({
   selector: 'app-delivery-header',
-  imports: [TranslatePipe, RouterLink, RouterLinkActive],
+  imports: [TranslatePipe, RouterLink, RouterLinkActive, ContactModal],
   templateUrl: './delivery-header.html',
   styleUrl: './delivery-header.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -27,6 +29,7 @@ export class DeliveryHeader implements AfterViewInit, OnDestroy {
   private readonly i18nService = inject(I18nService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly contactModal = inject(ContactModalService);
 
   readonly isMenuOpen = signal(false);
   readonly activeSection = signal<SectionId>('home');
@@ -40,7 +43,7 @@ export class DeliveryHeader implements AfterViewInit, OnDestroy {
   /** Public site nav for guests and normal users (not admin/courier). */
   readonly showPublicNav = computed(() => !this.isAdmin() && !this.isCourier());
 
-  private readonly sectionIds: SectionId[] = ['home', 'pricing', 'cities', 'about', 'contact'];
+  private readonly sectionIds: SectionId[] = ['home', 'cities', 'pricing', 'about', 'contact'];
   private sectionElements: HTMLElement[] = [];
   private rafId = 0;
   private scrollRetryTimer: ReturnType<typeof setTimeout> | null = null;
@@ -92,6 +95,11 @@ export class DeliveryHeader implements AfterViewInit, OnDestroy {
     event.preventDefault();
     this.activeSection.set(sectionId);
     this.closeMenu();
+
+    if (sectionId === 'contact') {
+      this.contactModal.open();
+      return;
+    }
 
     if (this.router.url.split('#')[0] !== '/') {
       await this.router.navigateByUrl(`/#${sectionId}`);
