@@ -1,4 +1,5 @@
 import { Injectable, inject } from '@angular/core';
+import i18next from 'i18next';
 import {
   AdminOrderEditPayload,
   CreateOrderPayload,
@@ -39,12 +40,12 @@ export class OrdersService {
     }
 
     if (!isDeliveryDateAllowed(payload.delivery_date)) {
-      return { data: null, error: 'მიწოდების თარიღი უნდა იყოს ხვალ ან უფრო გვიან.' };
+      return { data: null, error: i18next.t('validation.deliveryDateTomorrow') };
     }
 
     const amount = centsToNumber(toCents(payload.amount_to_collect));
     if (!(amount >= 0)) {
-      return { data: null, error: 'ასაღები თანხა უნდა იყოს 0 ან მეტი.' };
+      return { data: null, error: i18next.t('validation.amountMinZeroShort') };
     }
 
     const { data, error } = await this.supabase.client
@@ -91,7 +92,7 @@ export class OrdersService {
     }
 
     if (!payloads.length) {
-      return { createdCount: 0, ids: [], error: 'შეკვეთები არ არის ასარჩევი' };
+      return { createdCount: 0, ids: [], error: i18next.t('excel.noOrdersSelected') };
     }
 
     if (payloads.length > MAX_BULK_IMPORT_ORDERS) {
@@ -103,15 +104,15 @@ export class OrdersService {
         return {
           createdCount: 0,
           ids: [],
-          error: 'მიწოდების თარიღი უნდა იყოს ხვალ ან უფრო გვიან.',
+          error: i18next.t('validation.deliveryDateTomorrow'),
         };
       }
       const amount = centsToNumber(toCents(payload.amount_to_collect));
       if (!(amount >= 0)) {
-        return { createdCount: 0, ids: [], error: 'ასაღები თანხა უნდა იყოს 0 ან მეტი.' };
+        return { createdCount: 0, ids: [], error: i18next.t('validation.amountMinZeroShort') };
       }
       if (!Number.isInteger(payload.parcel_count) || payload.parcel_count < 1) {
-        return { createdCount: 0, ids: [], error: 'რაოდენობა უნდა იყოს მინიმუმ 1' };
+        return { createdCount: 0, ids: [], error: i18next.t('validation.parcelCountMin') };
       }
     }
 
@@ -160,16 +161,16 @@ export class OrdersService {
         originalValue: options?.originalDeliveryDate,
       })
     ) {
-      return { data: null, error: 'მიწოდების თარიღი უნდა იყოს ხვალ ან უფრო გვიან.' };
+      return { data: null, error: i18next.t('validation.deliveryDateTomorrow') };
     }
 
     if (payload.parcel_count < 1) {
-      return { data: null, error: 'გადასაცემი ერთეულების რაოდენობა უნდა იყოს 1 ან მეტი.' };
+      return { data: null, error: i18next.t('validation.parcelCountMinShort') };
     }
 
     const amount = centsToNumber(toCents(payload.amount_to_collect));
     if (!(amount >= 0)) {
-      return { data: null, error: 'ასაღები თანხა უნდა იყოს 0 ან მეტი.' };
+      return { data: null, error: i18next.t('validation.amountMinZeroShort') };
     }
 
     const { data, error } = await this.supabase.client
@@ -223,16 +224,16 @@ export class OrdersService {
         originalValue: options?.originalDeliveryDate,
       })
     ) {
-      return { data: null, error: 'მიწოდების თარიღი უნდა იყოს ხვალ ან უფრო გვიან.' };
+      return { data: null, error: i18next.t('validation.deliveryDateTomorrow') };
     }
 
     if (payload.parcel_count < 1) {
-      return { data: null, error: 'გადასაცემი ერთეულების რაოდენობა უნდა იყოს 1 ან მეტი.' };
+      return { data: null, error: i18next.t('validation.parcelCountMinShort') };
     }
 
     const amount = centsToNumber(toCents(payload.amount_to_collect));
     if (!(amount >= 0)) {
-      return { data: null, error: 'ასაღები თანხა უნდა იყოს 0 ან მეტი.' };
+      return { data: null, error: i18next.t('validation.amountMinZeroShort') };
     }
 
     const updatePayload = {
@@ -269,7 +270,7 @@ export class OrdersService {
     if (!data) {
       return {
         data: null,
-        error: 'შეკვეთის რედაქტირება შესაძლებელია მხოლოდ მოლოდინის სტატუსში.',
+        error: i18next.t('excel.editPendingOnly'),
       };
     }
 
@@ -278,7 +279,7 @@ export class OrdersService {
 
   private mapOwnerEditError(message: string): string {
     if (message.includes('Order can only be edited while pending')) {
-      return 'შეკვეთის რედაქტირება შესაძლებელია მხოლოდ მოლოდინის სტატუსში.';
+      return i18next.t('excel.editPendingOnly');
     }
     return message;
   }

@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -22,6 +23,7 @@ import {
   formatTbilisiDotDateTime,
 } from '../../../core/utils/order-status.util';
 import { DeliveryHeader } from '../../../layout/delivery-header/delivery-header';
+import { TranslatePipe } from '../../../core/pipes/t.pipe';
 
 const EMPTY_COUNTS: AdminPickupTaskCounts = {
   assigned: 0,
@@ -31,7 +33,7 @@ const EMPTY_COUNTS: AdminPickupTaskCounts = {
 
 @Component({
   selector: 'app-admin-pickup-tasks',
-  imports: [DeliveryHeader],
+  imports: [DeliveryHeader, TranslatePipe],
   templateUrl: './pickup-tasks.html',
   styleUrl: './pickup-tasks.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -111,11 +113,11 @@ export class AdminPickupTasks implements OnInit, OnDestroy {
   statusLabel(status: PickupTask['status']): string {
     switch (status) {
       case 'picked_up':
-        return 'აღებული';
+        return i18next.t('ui.pickedUp');
       case 'cancelled':
-        return 'გაუქმებული';
+        return i18next.t('ui.cancelled');
       default:
-        return 'მიმდინარე';
+        return i18next.t('adminUi.current');
     }
   }
 

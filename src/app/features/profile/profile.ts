@@ -13,6 +13,7 @@ import { passwordMatchValidator } from '../../core/validators/password-match.val
 import { orderStatusClass, orderStatusLabelKey } from '../../core/utils/order-status.util';
 import { GEORGIAN_CITIES } from '../../core/constants/cities';
 import { DeliveryHeader } from '../../layout/delivery-header/delivery-header';
+import i18next from 'i18next';
 
 @Component({
   selector: 'app-profile',
@@ -176,12 +177,12 @@ export class ProfilePage implements OnInit {
     this.saving.set(false);
 
     if (error || !data) {
-      this.errorMessage.set(error ?? 'შენახვა ვერ მოხერხდა');
+      this.errorMessage.set(error ?? i18next.t('ui.saveFailed'));
       return;
     }
 
     this.profile.set(data);
-    this.successMessage.set('მონაცემები შენახულია');
+    this.successMessage.set(i18next.t('ui.dataSaved'));
   }
 
   async changePassword(): Promise<void> {

@@ -65,7 +65,7 @@
 
       <div class="profile-page__grid">
         <article class="profile-page__card">
-          <h2>ჩემი მონაცემები</h2>
+          <h2>{{ 'profileUi.myData' | t }}</h2>
           <form class="profile-page__form" [formGroup]="defaultsForm" (ngSubmit)="saveDefaults()">
             <label>
               <span>{{ 'auth.fullName' | t }}</span>
@@ -80,27 +80,27 @@
               <input [value]="p.email" disabled />
             </label>
             <label>
-              <span>ნაგულისხმევი ქალაქი</span>
+              <span>{{ 'profileUi.defaultCity' | t }}</span>
               <select formControlName="default_city">
-                <option value="">აირჩიე ქალაქი</option>
+                <option value="">{{ 'ui.selectCity' | t }}</option>
                 @for (city of cities; track city) {
                   <option [value]="city">{{ city }}</option>
                 }
               </select>
             </label>
             <label>
-              <span>ნაგულისხმევი უბანი</span>
+              <span>{{ 'profileUi.defaultDistrict' | t }}</span>
               <input formControlName="default_district" />
             </label>
             <label>
-              <span>ნაგულისხმევი მისამართი</span>
+              <span>{{ 'profileUi.defaultAddress' | t }}</span>
               <input formControlName="default_address" />
             </label>
             <p class="profile-page__hint">
-              რეგისტრაცია: {{ p.created_at | date: 'mediumDate' }}
+              {{ 'profileUi.registeredPrefix' | t }} {{ p.created_at | date: 'mediumDate' }}
             </p>
             <button type="submit" class="profile-page__cta" [disabled]="saving()">
-              {{ saving() ? 'ინახება...' : 'შენახვა' }}
+              {{ saving() ? ('ui.saving' | t) : ('ui.save' | t) }}
             </button>
           </form>
         </article>

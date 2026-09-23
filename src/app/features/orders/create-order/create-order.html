@@ -242,7 +242,7 @@
               [attr.aria-invalid]="isFieldInvalid('pickup_city')"
               [attr.aria-describedby]="isFieldInvalid('pickup_city') ? fieldErrorId('pickup_city') : null"
             >
-              <option value="">აირჩიე ქალაქი</option>
+              <option value="">{{ 'ui.selectCity' | t }}</option>
               @for (city of cities; track city) {
                 <option [value]="city">{{ city }}</option>
               }
@@ -283,7 +283,7 @@
           </label>
           <label class="order-form-page__full order-form-page__check">
             <input type="checkbox" formControlName="remember_sender" />
-            <span>ჩემი მონაცემების დამახსოვრება</span>
+            <span>{{ 'ui.rememberMyData' | t }}</span>
           </label>
         </div>
       </fieldset>
@@ -327,7 +327,7 @@
               [attr.aria-invalid]="isFieldInvalid('delivery_city')"
               [attr.aria-describedby]="isFieldInvalid('delivery_city') ? fieldErrorId('delivery_city') : null"
             >
-              <option value="">აირჩიე ქალაქი</option>
+              <option value="">{{ 'ui.selectCity' | t }}</option>
               @for (city of cities; track city) {
                 <option [value]="city">{{ city }}</option>
               }
@@ -409,7 +409,7 @@
             }
           </label>
           <label class="order-form-page__field" data-field="amount_to_collect" [class.order-form-page__field--invalid]="isFieldInvalid('amount_to_collect')">
-            <span>მომხმარებლისგან ასაღები თანხა (₾)</span>
+            <span>{{ 'ui.amountFromCustomer' | t }}</span>
             <input
               type="text"
               inputmode="decimal"
@@ -426,7 +426,7 @@
           </label>
           <label class="order-form-page__full order-form-page__check">
             <input type="checkbox" formControlName="is_fragile" />
-            <span>მსხვრევადი ამანათი</span>
+            <span>{{ 'ui.fragileParcel' | t }}</span>
           </label>
           <label class="order-form-page__full">
             <span>{{ 'orders.notes' | t }}</span>

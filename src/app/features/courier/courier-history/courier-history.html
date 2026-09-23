@@ -1,10 +1,10 @@
 <section class="courier-history">
   <div class="courier-history__heading">
-    <h2>ისტორია</h2>
-    <p>მიწოდების და აღების დასრულებული დავალებები</p>
+    <h2>{{ 'courier.historyTitle' | t }}</h2>
+    <p>{{ 'courier.historyLead' | t }}</p>
   </div>
 
-  <div class="courier-history__sections" role="tablist" aria-label="ისტორიის ტიპი">
+  <div class="courier-history__sections" role="tablist" [attr.aria-label]="'courier.historyType' | t">
     <button
       type="button"
       class="courier-history__section-tab"
@@ -13,7 +13,7 @@
       [attr.aria-selected]="historySection() === 'delivery'"
       (click)="setHistorySection('delivery')"
     >
-      მიწოდებული შეკვეთები
+      {{ 'courier.deliveredOrdersTab' | t }}
     </button>
     <button
       type="button"
@@ -23,7 +23,7 @@
       [attr.aria-selected]="historySection() === 'pickup'"
       (click)="setHistorySection('pickup')"
     >
-      აღებული დავალებები
+      {{ 'courier.pickedUpTasksTab' | t }}
     </button>
   </div>
 
@@ -36,23 +36,23 @@
   }
 
   @if (historySection() === 'delivery') {
-    <div class="courier-history__filters" role="tablist" aria-label="მიწოდების ფილტრი">
-      @for (option of filterOptions; track option.id) {
+    <div class="courier-history__filters" role="tablist" [attr.aria-label]="'courier.deliveryFilter' | t">
+      @for (option of filterOptions; track option) {
         <button
           type="button"
           class="courier-history__filter"
           role="tab"
-          [class.is-active]="historyFilter() === option.id"
-          [attr.aria-selected]="historyFilter() === option.id"
-          (click)="setHistoryFilter(option.id)"
+          [class.is-active]="historyFilter() === option"
+          [attr.aria-selected]="historyFilter() === option"
+          (click)="setHistoryFilter(option)"
         >
-          {{ option.label }}
+          {{ filterLabel(option) }}
         </button>
       }
     </div>
 
     @if (loading()) {
-      <p class="courier-history__muted">იტვირთება...</p>
+      <p class="courier-history__muted">{{ 'courier.loading' | t }}</p>
     } @else if (filteredOrders().length === 0) {
       <p class="courier-history__muted">{{ emptyStateText() }}</p>
     } @else {
@@ -68,7 +68,7 @@
             </div>
 
             @if (order.is_fragile) {
-              <p class="history-card__fragile" role="status">⚠ მსხვრევადი</p>
+              <p class="history-card__fragile" role="status">⚠ {{ 'courier.fragile' | t }}</p>
             }
 
             <p class="history-card__phone">📞 {{ formatPhone(order.recipient_phone) }}</p>
@@ -76,19 +76,19 @@
 
             <div class="history-card__meta">
               <p>
-                <span>ასაღები</span>
+                <span>{{ 'courier.amountDue' | t }}</span>
                 {{ formatGel(order.amount_to_collect) }} ₾
               </p>
               <p>
-                <span>აღებული</span>
+                <span>{{ 'courier.amountTaken' | t }}</span>
                 {{ formatGel(order.collected_amount) }} ₾
               </p>
               <p>
-                <span>გადახდა</span>
+                <span>{{ 'ui.payment' | t }}</span>
                 {{ paymentLabel(order.payment_method) }}
               </p>
               <p>
-                <span>{{ order.status === 'cancelled' ? 'გაუქმდა' : 'ჩაბარდა' }}</span>
+                <span>{{ order.status === 'cancelled' ? ('courier.wasCancelled' | t) : ('courier.wasDelivered' | t) }}</span>
                 {{
                   completedAt(order)
                     ? (completedAt(order) | date: 'd MMM y, HH:mm')
@@ -99,14 +99,14 @@
 
             @if (order.cancellation_reason) {
               <div class="history-card__cancel-reason" role="note">
-                <p class="history-card__cancel-reason-label">გაუქმების მიზეზი</p>
+                <p class="history-card__cancel-reason-label">{{ 'courier.cancelReason' | t }}</p>
                 <p class="history-card__cancel-reason-text">{{ order.cancellation_reason }}</p>
               </div>
             }
 
             @if (editingId() === order.id) {
               <div class="history-card__correct">
-                <p class="history-card__correct-label">ახალი სტატუსი</p>
+                <p class="history-card__correct-label">{{ 'courier.newStatus' | t }}</p>
                 <div class="history-card__status-grid">
                   @for (status of correctionStatuses; track status) {
                     <button
@@ -125,7 +125,7 @@
                 </div>
 
                 @if (needsPayment()) {
-                  <p class="history-card__correct-label">გადახდა</p>
+                  <p class="history-card__correct-label">{{ 'ui.payment' | t }}</p>
                   <div class="history-card__pay-toggle">
                     <button
                       type="button"
@@ -134,7 +134,7 @@
                       [disabled]="savingId() === order.id"
                       (click)="selectDraftPayment('cash')"
                     >
-                      ქეში
+                      {{ 'ui.cash' | t }}
                     </button>
                     <button
                       type="button"
@@ -143,7 +143,7 @@
                       [disabled]="savingId() === order.id"
                       (click)="selectDraftPayment('card')"
                     >
-                      ბარათი
+                      {{ 'ui.card' | t }}
                     </button>
                   </div>
                 }
@@ -155,7 +155,7 @@
                     [disabled]="savingId() === order.id"
                     (click)="saveCorrection(order)"
                   >
-                    {{ savingId() === order.id ? 'ინახება...' : 'შენახვა' }}
+                    {{ savingId() === order.id ? ('ui.saving' | t) : ('ui.save' | t) }}
                   </button>
                   <button
                     type="button"
@@ -163,7 +163,7 @@
                     [disabled]="savingId() === order.id"
                     (click)="closeCorrection()"
                   >
-                    დახურვა
+                    {{ 'ui.close' | t }}
                   </button>
                 </div>
               </div>
@@ -174,7 +174,7 @@
                 [disabled]="savingId() !== null"
                 (click)="openCorrection(order)"
               >
-                სტატუსის შეცვლა
+                {{ 'courier.changeStatus' | t }}
               </button>
             }
           </article>
@@ -182,23 +182,23 @@
       </div>
     }
   } @else {
-    <div class="courier-history__filters" role="tablist" aria-label="აღების ფილტრი">
-      @for (option of pickupFilterOptions; track option.id) {
+    <div class="courier-history__filters" role="tablist" aria-label="{{'courier.pickupFilter' | t}}">
+      @for (option of pickupFilterOptions; track option) {
         <button
           type="button"
           class="courier-history__filter"
           role="tab"
-          [class.is-active]="pickupHistoryFilter() === option.id"
-          [attr.aria-selected]="pickupHistoryFilter() === option.id"
-          (click)="setPickupHistoryFilter(option.id)"
+          [class.is-active]="pickupHistoryFilter() === option"
+          [attr.aria-selected]="pickupHistoryFilter() === option"
+          (click)="setPickupHistoryFilter(option)"
         >
-          {{ option.label }}
+          {{ pickupFilterLabel(option) }}
         </button>
       }
     </div>
 
     @if (loading()) {
-      <p class="courier-history__muted">იტვირთება...</p>
+      <p class="courier-history__muted">{{ 'courier.loading' | t }}</p>
     } @else if (filteredPickupTasks().length === 0) {
       <p class="courier-history__muted">{{ pickupEmptyStateText() }}</p>
     } @else {
@@ -214,19 +214,19 @@
 
             <dl class="pickup-history-card__fields">
               <div>
-                <dt>Customer</dt>
+                <dt>{{ 'ui.customer' | t }}</dt>
                 <dd>{{ task.customer_name || '—' }}</dd>
               </div>
               <div>
-                <dt>Phone</dt>
+                <dt>{{ 'ui.phone' | t }}</dt>
                 <dd>{{ task.pickup_phone ? formatPhone(task.pickup_phone) : '—' }}</dd>
               </div>
               <div>
-                <dt>შეკვეთები</dt>
+                <dt>{{ 'courier.ordersLabel' | t }}</dt>
                 <dd>{{ task.order_count }}</dd>
               </div>
               <div>
-                <dt>ამანათები</dt>
+                <dt>{{ 'courier.parcelsLabel' | t }}</dt>
                 <dd>{{ task.parcel_count }}</dd>
               </div>
             </dl>
@@ -238,16 +238,16 @@
 
             @if (task.status === 'picked_up' && task.completed_at) {
               <p class="pickup-history-card__time">
-                აღების დრო: {{ formatPickupTime(task.completed_at) }}
+                {{ 'courier.pickupTime' | t: { time: formatPickupTime(task.completed_at) } }}
               </p>
             }
             @if (task.status === 'cancelled') {
               @if (task.cancellation_reason) {
-                <p class="pickup-history-card__reason">მიზეზი: {{ task.cancellation_reason }}</p>
+                <p class="pickup-history-card__reason">{{ 'courier.reasonWithValue' | t: { reason: task.cancellation_reason } }}</p>
               }
               @if (task.cancelled_at) {
                 <p class="pickup-history-card__time pickup-history-card__time--cancel">
-                  გაუქმების დრო: {{ formatCancelTime(task.cancelled_at) }}
+                  {{ 'courier.cancelTime' | t: { time: formatCancelTime(task.cancelled_at) } }}
                 </p>
               }
             }

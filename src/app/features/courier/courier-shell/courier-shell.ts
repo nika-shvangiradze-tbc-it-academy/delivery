@@ -10,10 +10,12 @@ import {
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { CourierRealtimeService } from '../../../core/services/courier-realtime.service';
+import { TranslatePipe } from '../../../core/pipes/t.pipe';
+import i18next from 'i18next';
 
 @Component({
   selector: 'app-courier-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslatePipe],
   templateUrl: './courier-shell.html',
   styleUrl: './courier-shell.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -25,7 +27,7 @@ export class CourierShell {
 
   private static readonly SCROLL_TOP_THRESHOLD_PX = 280;
 
-  readonly courierName = computed(() => this.auth.profile()?.full_name ?? 'კურიერი');
+  readonly courierName = computed(() => this.auth.profile()?.full_name ?? i18next.t('ui.courier'));
   readonly loggingOut = signal(false);
   readonly logoutError = signal<string | null>(null);
   readonly showScrollTop = signal(false);
@@ -82,7 +84,7 @@ export class CourierShell {
 
       await this.router.navigateByUrl('/login');
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'გასვლა ვერ მოხერხდა';
+      const message = err instanceof Error ? err.message : i18next.t('courier.logoutFailed');
       this.logoutError.set(message);
       this.loggingOut.set(false);
     }

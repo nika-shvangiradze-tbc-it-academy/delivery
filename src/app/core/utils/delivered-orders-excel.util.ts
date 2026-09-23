@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx';
+import i18next from 'i18next';
 import { Order } from '../models/order.model';
-import { courierStatusLabel } from './order-status.util';
+import { courierStatusLabel, paymentMethodLabel } from './order-status.util';
 
 export interface DeliveredOrderExportRow {
   orderId: number;
@@ -19,24 +20,26 @@ export interface DeliveredOrderExportRow {
   status: string;
 }
 
-const EXPORT_HEADERS = [
-  'შეკვეთის ID',
-  'ჩაბარების თარიღი',
-  'ჩაბარების დრო',
-  'კლიენტი',
-  'ტელეფონი',
-  'კურიერი',
-  'ქალაქი',
-  'რაიონი',
-  'მისამართი',
-  'ამანათების რაოდენობა',
-  'ასაღები თანხა',
-  'მიღებული თანხა',
-  'გადახდის მეთოდი',
-  'სტატუსი',
-] as const;
-
 const COLUMN_WIDTHS = [12, 14, 12, 22, 14, 16, 14, 14, 28, 14, 14, 14, 14, 14];
+
+function exportHeaders(): string[] {
+  return [
+    i18next.t('excel.headerOrderId'),
+    i18next.t('excel.headerDeliveredDate'),
+    i18next.t('excel.headerDeliveredTime'),
+    i18next.t('excel.headerCustomer'),
+    i18next.t('excel.headerPhone'),
+    i18next.t('excel.headerCourier'),
+    i18next.t('excel.headerCity'),
+    i18next.t('excel.headerDistrict'),
+    i18next.t('excel.headerAddress'),
+    i18next.t('excel.headerParcelCount'),
+    i18next.t('excel.headerAmountToCollect'),
+    i18next.t('excel.headerCollectedAmount'),
+    i18next.t('excel.headerPaymentMethod'),
+    i18next.t('excel.headerStatus'),
+  ];
+}
 
 function tbilisiParts(iso: string | null | undefined): { date: string; time: string } {
   if (!iso) {
@@ -61,12 +64,6 @@ function tbilisiParts(iso: string | null | undefined): { date: string; time: str
     date: `${get('day')}.${get('month')}.${get('year')}`,
     time: `${get('hour')}:${get('minute')}`,
   };
-}
-
-function exportPaymentLabel(method: Order['payment_method']): string {
-  if (method === 'cash') return 'ნაღდი';
-  if (method === 'card') return 'ბარათი';
-  return '—';
 }
 
 function displayText(value: string | null | undefined): string {
@@ -95,7 +92,7 @@ export function mapOrderToDeliveredExportRow(
     parcelCount: Number.isFinite(order.parcel_count) ? order.parcel_count : 0,
     amountToCollect: Number.isFinite(order.amount_to_collect) ? order.amount_to_collect : 0,
     collectedAmount: Number.isFinite(order.collected_amount) ? order.collected_amount : 0,
-    paymentMethod: exportPaymentLabel(order.payment_method),
+    paymentMethod: paymentMethodLabel(order.payment_method),
     status: courierStatusLabel(order.status),
   };
 }
@@ -133,12 +130,11 @@ function todayIsoDate(): string {
 
 export function buildDeliveredOrdersExcelFilename(): string {
   const day = todayIsoDate();
-  // Prefer Georgian filename; ASCII fallback if the environment rejects it.
+  const prefix = i18next.t('excel.fileDeliveredPrefix');
   try {
-    const georgian = `ჩაბარებული_შეკვეთები_${day}.xlsx`;
-    // Encode/decode round-trip sanity check
-    if (decodeURIComponent(encodeURIComponent(georgian)) === georgian) {
-      return georgian;
+    const name = `${prefix}_${day}.xlsx`;
+    if (decodeURIComponent(encodeURIComponent(name)) === name) {
+      return name;
     }
   } catch {
     // fall through
@@ -147,12 +143,13 @@ export function buildDeliveredOrdersExcelFilename(): string {
 }
 
 export function buildDeliveredOrdersWorkbook(rows: DeliveredOrderExportRow[]): XLSX.WorkBook {
-  const aoa: (string | number)[][] = [Array.from(EXPORT_HEADERS), ...rows.map(rowToAoA)];
+  const headers = exportHeaders();
+  const aoa: (string | number)[][] = [headers, ...rows.map(rowToAoA)];
   const worksheet = XLSX.utils.aoa_to_sheet(aoa);
 
   worksheet['!cols'] = COLUMN_WIDTHS.map((wch) => ({ wch }));
   const lastRow = Math.max(1, rows.length + 1);
-  const lastCol = EXPORT_HEADERS.length - 1;
+  const lastCol = headers.length - 1;
   const range = XLSX.utils.encode_range({
     s: { r: 0, c: 0 },
     e: { r: lastRow - 1, c: lastCol },
@@ -160,8 +157,7 @@ export function buildDeliveredOrdersWorkbook(rows: DeliveredOrderExportRow[]): X
   worksheet['!autofilter'] = { ref: range };
   worksheet['!views'] = [{ state: 'frozen', ySplit: 1, topLeftCell: 'A2', activeCell: 'A2' }];
 
-  // Bold header row (supported when the writer persists styles).
-  for (let c = 0; c < EXPORT_HEADERS.length; c++) {
+  for (let c = 0; c < headers.length; c++) {
     const addr = XLSX.utils.encode_cell({ r: 0, c });
     const cell = worksheet[addr];
     if (cell && typeof cell === 'object') {
@@ -173,12 +169,11 @@ export function buildDeliveredOrdersWorkbook(rows: DeliveredOrderExportRow[]): X
   }
 
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'ჩაბარებული');
+  XLSX.utils.book_append_sheet(workbook, worksheet, i18next.t('excel.sheetDelivered'));
   return workbook;
 }
 
 export function downloadDeliveredOrdersExcel(rows: DeliveredOrderExportRow[]): void {
   const workbook = buildDeliveredOrdersWorkbook(rows);
-  const filename = buildDeliveredOrdersExcelFilename();
-  XLSX.writeFile(workbook, filename, { bookType: 'xlsx', cellStyles: true });
+  XLSX.writeFile(workbook, buildDeliveredOrdersExcelFilename());
 }

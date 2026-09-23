@@ -9,6 +9,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import i18next from 'i18next';
 import { DatePipe } from '@angular/common';
 import {
   CdkDrag,
@@ -24,6 +25,7 @@ import { CourierRealtimeService } from '../../../core/services/courier-realtime.
 import { CourierService } from '../../../core/services/courier.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { SupabaseService } from '../../../core/services/supabase.service';
+import { TranslatePipe } from '../../../core/pipes/t.pipe';
 import {
   buildTelHref,
   courierStatusLabel,
@@ -52,7 +54,7 @@ function readStoredViewMode(): CourierOrdersViewMode {
 
 @Component({
   selector: 'app-courier-orders',
-  imports: [DatePipe, CdkDropList, CdkDrag, CdkDragHandle],
+  imports: [DatePipe, CdkDropList, CdkDrag, CdkDragHandle, TranslatePipe],
   templateUrl: './courier-orders.html',
   styleUrl: './courier-orders.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -320,7 +322,7 @@ export class CourierOrders implements OnInit, OnDestroy {
       return;
     }
 
-    this.successMessage.set(`აღება შესრულებულია — ${updated} შეკვეთა`);
+    this.successMessage.set(i18next.t('courier.pickupCompletedCount', { count: updated }));
     await Promise.all([this.loadPickupTasks(), this.loadDeliveryOrdersAndSummary()]);
   }
 
@@ -343,7 +345,7 @@ export class CourierOrders implements OnInit, OnDestroy {
 
     const reason = this.pickupCancelReason().trim();
     if (!reason) {
-      this.pickupCancelError.set('გთხოვთ მიუთითოთ გაუქმების მიზეზი');
+      this.pickupCancelError.set(i18next.t('courier.pickupCancelReasonRequired'));
       return;
     }
 
@@ -356,13 +358,13 @@ export class CourierOrders implements OnInit, OnDestroy {
     this.cancellingPickupId.set(null);
 
     if (error || !success) {
-      this.pickupCancelError.set(error ?? 'აღების გაუქმება ვერ მოხერხდა');
+      this.pickupCancelError.set(error ?? i18next.t('courier.pickupCancelFailed'));
       return;
     }
 
     this.pickupCancelTask.set(null);
     this.pickupCancelReason.set('');
-    this.successMessage.set('აღების დავალება გაუქმებულია');
+    this.successMessage.set(i18next.t('courier.pickupCancelledSuccess'));
     await Promise.all([this.loadPickupTasks(), this.loadDeliveryOrdersAndSummary()]);
   }
 
@@ -502,7 +504,7 @@ export class CourierOrders implements OnInit, OnDestroy {
       parsed <= max;
 
     if (!valid) {
-      this.errorMessage.set('არასწორი პოზიცია');
+      this.errorMessage.set(i18next.t('courier.invalidPosition'));
       this.successMessage.set(null);
       return;
     }
@@ -511,7 +513,7 @@ export class CourierOrders implements OnInit, OnDestroy {
 
     const ok = await this.moveOrderToPosition(orderId, parsed);
     if (ok) {
-      this.successMessage.set(`შეკვეთა გადატანილია მე-${parsed} პოზიციაზე`);
+      this.successMessage.set(i18next.t('courier.movedToPosition', { pos: parsed }));
       this.errorMessage.set(null);
     }
   }
@@ -533,7 +535,7 @@ export class CourierOrders implements OnInit, OnDestroy {
       targetPosition < 1 ||
       targetPosition > max
     ) {
-      this.errorMessage.set('არასწორი პოზიცია');
+      this.errorMessage.set(i18next.t('courier.invalidPosition'));
       this.successMessage.set(null);
       return false;
     }
@@ -597,7 +599,7 @@ export class CourierOrders implements OnInit, OnDestroy {
       .filter((o): o is Order => Boolean(o));
 
     if (next.length !== previousOrders.length) {
-      this.errorMessage.set('რიგის შენახვა ვერ მოხერხდა');
+      this.errorMessage.set(i18next.t('courier.reorderSaveFailed'));
       return false;
     }
 
@@ -641,8 +643,8 @@ export class CourierOrders implements OnInit, OnDestroy {
       );
 
       if (error || !data) {
-        this.errorMessage.set(error ?? 'აღება ვერ მოხერხდა');
-        if (error?.includes('სესია არ არის აქტიური')) {
+        this.errorMessage.set(error ?? i18next.t('courier.pickupFailed'));
+        if (error?.includes(i18next.t('ui.sessionExpired')) || error?.includes('სესია არ არის აქტიური')) {
           await this.router.navigateByUrl('/login');
         }
         return;
@@ -651,10 +653,10 @@ export class CourierOrders implements OnInit, OnDestroy {
       this.deliveryOrders.update((list) =>
         list.map((item) => (item.id === order.id ? { ...item, ...data } : item)),
       );
-      this.successMessage.set('შეკვეთა აღებულია');
+      this.successMessage.set(i18next.t('courier.orderPickedUp'));
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
-      this.errorMessage.set(`აღება ვერ მოხერხდა: ${message}`);
+      this.errorMessage.set(i18next.t('courier.pickupFailedWithReason', { message }));
     } finally {
       this.savingId.set(null);
     }
@@ -668,7 +670,7 @@ export class CourierOrders implements OnInit, OnDestroy {
   async markDelivered(order: Order): Promise<void> {
     const payment = this.selectedPayment(order.id);
     if (!payment) {
-      this.errorMessage.set('აირჩიეთ გადახდის მეთოდი — ქეში ან ბარათი.');
+      this.errorMessage.set(i18next.t('courier.paymentRequired'));
       this.successMessage.set(null);
       if (!this.isExpanded(order.id)) {
         this.toggleDetails(order.id);
@@ -689,19 +691,19 @@ export class CourierOrders implements OnInit, OnDestroy {
       );
 
       if (error || !data) {
-        this.errorMessage.set(error ?? 'ჩაბარება ვერ მოხერხდა');
-        if (error?.includes('სესია არ არის აქტიური')) {
+        this.errorMessage.set(error ?? i18next.t('courier.deliverFailed'));
+        if (error?.includes(i18next.t('ui.sessionExpired')) || error?.includes('სესია არ არის აქტიური')) {
           await this.router.navigateByUrl('/login');
         }
         return;
       }
 
       this.removeFromActive(order.id);
-      this.successMessage.set('შეკვეთა ჩაბარდა');
+      this.successMessage.set(i18next.t('courier.orderDelivered'));
       await this.refreshSummary();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
-      this.errorMessage.set(`ჩაბარება ვერ მოხერხდა: ${message}`);
+      this.errorMessage.set(i18next.t('courier.deliverFailedWithReason', { message }));
     } finally {
       this.savingId.set(null);
     }
@@ -734,7 +736,7 @@ export class CourierOrders implements OnInit, OnDestroy {
       .map((value) => String(value ?? '').trim())
       .find((value) => value.length > 0) ?? '';
     if (!reason) {
-      this.cancelReasonError.set('გთხოვთ მიუთითოთ გაუქმების მიზეზი');
+      this.cancelReasonError.set(i18next.t('courier.pickupCancelReasonRequired'));
       this.errorMessage.set(null);
       return;
     }
@@ -757,8 +759,8 @@ export class CourierOrders implements OnInit, OnDestroy {
       );
 
       if (error || !data) {
-        this.errorMessage.set(error ?? 'გაუქმება ვერ მოხერხდა');
-        if (error?.includes('სესია არ არის აქტიური')) {
+        this.errorMessage.set(error ?? i18next.t('courier.cancelFailed'));
+        if (error?.includes(i18next.t('ui.sessionExpired')) || error?.includes('სესია არ არის აქტიური')) {
           await this.router.navigateByUrl('/login');
         }
         return;
@@ -768,11 +770,11 @@ export class CourierOrders implements OnInit, OnDestroy {
       this.cancelReasonDraft.set('');
       this.cancelReasonError.set(null);
       this.removeFromActive(order.id);
-      this.successMessage.set('შეკვეთა გაუქმდა');
+      this.successMessage.set(i18next.t('courier.orderCancelled'));
       await this.refreshSummary();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
-      this.errorMessage.set(`გაუქმება ვერ მოხერხდა: ${message}`);
+      this.errorMessage.set(i18next.t('courier.cancelFailedWithReason', { message }));
     } finally {
       this.savingId.set(null);
     }

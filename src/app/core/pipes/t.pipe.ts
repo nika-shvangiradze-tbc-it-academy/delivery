@@ -24,8 +24,8 @@ export class TranslatePipe implements PipeTransform, OnDestroy {
     this.changeDetectorRef.markForCheck();
   });
 
-  transform(key: string): string {
-    return this.i18nService.t(key);
+  transform(key: string, params?: Record<string, unknown>): string {
+    return params ? this.i18nService.t(key, params) : this.i18nService.t(key);
   }
 
   ngOnDestroy(): void {

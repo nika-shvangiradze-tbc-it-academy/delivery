@@ -7,7 +7,7 @@
       <a routerLink="/create-order" class="my-orders-page__cta">{{ 'nav.createOrder' | t }}</a>
     </div>
 
-    <div class="my-orders-page__filters" role="tablist" aria-label="შეკვეთის სტატუსი">
+    <div class="my-orders-page__filters" role="tablist" aria-label="{{'ordersUi.orderStatusFilter' | t}}">
       @for (option of statusFilters; track option.id) {
         <button
           type="button"
@@ -74,7 +74,7 @@
             >
               <option value="">—</option>
               @for (month of months; track month.value) {
-                <option [value]="month.value">{{ month.label }}</option>
+                <option [value]="month.value">{{ month.labelKey | t }}</option>
               }
             </select>
           </label>
@@ -195,9 +195,9 @@
               @if (hasPickupCancellation(order)) {
                 <div class="my-orders-page__pickup-cancel" role="status">
                   <p class="my-orders-page__pickup-cancel-status">
-                    🔴 აღების დავალება გაუქმებულია
+                    🔴 {{ 'ordersUi.pickupCancelledBanner' | t }}
                   </p>
-                  <p class="my-orders-page__pickup-cancel-label">გაუქმების მიზეზი:</p>
+                  <p class="my-orders-page__pickup-cancel-label">{{ 'ordersUi.pickupCancelReason' | t }}</p>
                   <p class="my-orders-page__pickup-cancel-reason">
                     {{ order.pickup_cancellation_reason }}
                   </p>
@@ -206,8 +206,8 @@
 
               @if (hasOrderCancellation(order)) {
                 <div class="my-orders-page__pickup-cancel" role="status">
-                  <p class="my-orders-page__pickup-cancel-status">🔴 გაუქმებული</p>
-                  <p class="my-orders-page__pickup-cancel-label">გაუქმების მიზეზი:</p>
+                  <p class="my-orders-page__pickup-cancel-status">🔴 {{ 'ordersUi.cancelledBadge' | t }}</p>
+                  <p class="my-orders-page__pickup-cancel-label">{{ 'ordersUi.pickupCancelReason' | t }}</p>
                   <p class="my-orders-page__pickup-cancel-reason">
                     {{ order.cancellation_reason }}
                   </p>
@@ -238,18 +238,18 @@
                   <dd>{{ order.parcel_count }} {{ 'orders.units' | t }}</dd>
                 </div>
                 <div>
-                  <dt>ასაღები თანხა</dt>
+                  <dt>{{ 'ui.amountToCollect' | t }}</dt>
                   <dd>{{ formatGel(order.amount_to_collect) }} ₾</dd>
                 </div>
               </dl>
 
               <div class="my-orders-page__actions">
                 <button type="button" class="my-orders-page__details-btn" (click)="toggleDetails(order.id)">
-                  {{ expandedId() === order.id ? 'დამალვა' : 'დეტალები' }}
+                  {{ expandedId() === order.id ? ('ordersUi.hide' | t) : ('ui.details' | t) }}
                 </button>
                 @if (canEdit(order)) {
                   <button type="button" class="my-orders-page__edit-btn" (click)="openEdit(order)">
-                    რედაქტირება
+                    {{ 'ui.edit' | t }}
                   </button>
                 }
               </div>
@@ -311,8 +311,8 @@
   <div class="my-orders-page__modal" (click)="closeEdit()">
     <div class="my-orders-page__modal-panel" (click)="$event.stopPropagation()">
       <div class="my-orders-page__modal-head">
-        <h2>შეკვეთის რედაქტირება #{{ order.id }}</h2>
-        <button type="button" (click)="closeEdit()" aria-label="დახურვა">×</button>
+        <h2>{{ 'ordersUi.editOrderTitle' | t: { id: order.id } }}</h2>
+        <button type="button" (click)="closeEdit()" [attr.aria-label]="'ui.close' | t">×</button>
       </div>
 
       @if (editError()) {
@@ -332,7 +332,7 @@
           <label>
             <span>{{ 'orders.pickupCity' | t }}</span>
             <select formControlName="pickup_city">
-              <option value="">აირჩიე ქალაქი</option>
+              <option value="">{{ 'ui.selectCity' | t }}</option>
               @for (city of cities; track city) {
                 <option [value]="city">{{ city }}</option>
               }
@@ -358,7 +358,7 @@
           <label>
             <span>{{ 'orders.deliveryCity' | t }}</span>
             <select formControlName="delivery_city">
-              <option value="">აირჩიე ქალაქი</option>
+              <option value="">{{ 'ui.selectCity' | t }}</option>
               @for (city of cities; track city) {
                 <option [value]="city">{{ city }}</option>
               }
@@ -382,12 +382,12 @@
             <input type="date" [attr.min]="minDeliveryDate" formControlName="delivery_date" />
           </label>
           <label>
-            <span>ასაღები თანხა (₾)</span>
+            <span>{{ 'ordersUi.amountGel' | t }}</span>
             <input type="text" inputmode="decimal" formControlName="amount_to_collect" />
           </label>
           <label class="full my-orders-page__check">
             <input type="checkbox" formControlName="is_fragile" />
-            <span>მსხვრევადი ამანათი</span>
+            <span>{{ 'ui.fragileParcel' | t }}</span>
           </label>
           <label class="full">
             <span>{{ 'orders.notes' | t }}</span>
@@ -397,10 +397,10 @@
 
         <div class="my-orders-page__edit-actions">
           <button type="submit" class="my-orders-page__save-btn" [disabled]="saving()">
-            {{ saving() ? 'ინახება...' : 'შენახვა' }}
+            {{ saving() ? ('ui.saving' | t) : ('ui.save' | t) }}
           </button>
           <button type="button" class="my-orders-page__cancel-btn" (click)="closeEdit()" [disabled]="saving()">
-            გაუქმება
+            {{ 'ui.cancel' | t }}
           </button>
         </div>
       </form>

@@ -3,17 +3,17 @@
 <section class="admin-pickup">
   <div class="admin-pickup__container">
     <div class="admin-pickup__header">
-      <h1 class="admin-pickup__title">აღების დავალებები</h1>
+      <h1 class="admin-pickup__title">{{ 'adminUi.pickupTasksTitle' | t }}</h1>
     </div>
 
-    <div class="admin-pickup__summary" aria-label="აღების სტატისტიკა">
+    <div class="admin-pickup__summary" [attr.aria-label]="'adminUi.pickupStats' | t">
       <button
         type="button"
         class="admin-pickup__stat"
         [class.is-active]="statusFilter() === 'assigned'"
         (click)="setStatusFilter('assigned')"
       >
-        <span>მიმდინარე</span>
+        <span>{{ 'adminUi.current' | t }}</span>
         <strong>{{ counts().assigned }}</strong>
       </button>
       <button
@@ -22,7 +22,7 @@
         [class.is-active]="statusFilter() === 'picked_up'"
         (click)="setStatusFilter('picked_up')"
       >
-        <span>აღებული</span>
+        <span>{{ 'adminUi.pickedUp' | t }}</span>
         <strong>{{ counts().picked_up }}</strong>
       </button>
       <button
@@ -31,52 +31,52 @@
         [class.is-active]="statusFilter() === 'cancelled'"
         (click)="setStatusFilter('cancelled')"
       >
-        <span>გაუქმებული</span>
+        <span>{{ 'adminUi.cancelled' | t }}</span>
         <strong>{{ counts().cancelled }}</strong>
       </button>
     </div>
 
-    <div class="admin-pickup__filters" role="tablist" aria-label="აღების ფილტრი">
+    <div class="admin-pickup__filters" role="tablist" aria-label="{{ 'adminUi.pickupFilter' | t }}">
       <button
         type="button"
         [class.is-active]="statusFilter() === 'all'"
         (click)="setStatusFilter('all')"
       >
-        ყველა
+        {{ 'adminUi.all' | t }}
       </button>
       <button
         type="button"
         [class.is-active]="statusFilter() === 'assigned'"
         (click)="setStatusFilter('assigned')"
       >
-        მიმდინარე
+        {{ 'adminUi.current' | t }}
       </button>
       <button
         type="button"
         [class.is-active]="statusFilter() === 'picked_up'"
         (click)="setStatusFilter('picked_up')"
       >
-        აღებული
+        {{ 'adminUi.pickedUp' | t }}
       </button>
       <button
         type="button"
         [class.is-active]="statusFilter() === 'cancelled'"
         (click)="setStatusFilter('cancelled')"
       >
-        გაუქმებული
+        {{ 'adminUi.cancelled' | t }}
       </button>
     </div>
 
     @if (loading()) {
-      <p class="admin-pickup__muted">იტვირთება…</p>
+      <p class="admin-pickup__muted">{{ 'adminUi.loading' | t }}</p>
     } @else if (errorMessage()) {
       <p class="admin-pickup__error" role="alert">
-        აღების დავალებები ვერ ჩაიტვირთა. გაუშვით მიგრაცია
+        {{ 'adminUi.pickupLoadFailed' | t }}
         <code>20260920_pickup_tasks_cancel_and_history.sql</code>
         — {{ errorMessage() }}
       </p>
     } @else if (tasks().length === 0) {
-      <p class="admin-pickup__muted">აღების დავალებები არ არის</p>
+      <p class="admin-pickup__muted">{{ 'adminUi.emptyPickupTasks' | t }}</p>
     } @else {
       <div class="admin-pickup__list">
         @for (task of tasks(); track task.id) {
@@ -117,15 +117,15 @@
             </p>
 
             <div class="admin-pickup__meta">
-              <p>შექმნა: {{ formatAuditTime(task.created_at) }}</p>
+              <p>{{ 'adminUi.createdAt' | t: { time: formatAuditTime(task.created_at) } }}</p>
               @if (task.status === 'picked_up' && task.completed_at) {
-                <p>აღების დრო: {{ formatAuditTime(task.completed_at) }}</p>
+                <p>{{ 'adminUi.pickupTimeLabel' | t: { time: formatAuditTime(task.completed_at) } }}</p>
               }
               @if (task.cancelled_at) {
-                <p>გაუქმება: {{ formatCancelTime(task.cancelled_at) }}</p>
+                <p>{{ 'adminUi.cancelLabel' | t: { time: formatCancelTime(task.cancelled_at) } }}</p>
               }
               @if (task.status === 'cancelled' && task.cancellation_reason) {
-                <p class="admin-pickup__reason">მიზეზი: {{ task.cancellation_reason }}</p>
+                <p class="admin-pickup__reason">{{ 'adminUi.reasonLabel' | t: { reason: task.cancellation_reason } }}</p>
               }
             </div>
           </article>

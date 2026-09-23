@@ -1,4 +1,5 @@
 import { Injectable, inject } from '@angular/core';
+import i18next from 'i18next';
 import {
   COURIER_ACTIVE_STATUS_FILTER,
   COURIER_ACTIVE_STATUSES,
@@ -164,7 +165,7 @@ export class CourierService {
    */
   async completePickup(pickupTaskId: number): Promise<{ updated: number; error: string | null }> {
     if (!Number.isFinite(pickupTaskId) || pickupTaskId <= 0) {
-      return { updated: 0, error: 'აღების დავალება არასწორია' };
+      return { updated: 0, error: i18next.t('courier.invalidPickupTask') };
     }
 
     const sessionCheck = await this.requireCourierSession(0);
@@ -195,14 +196,14 @@ export class CourierService {
     reason: string,
   ): Promise<{ success: boolean; error: string | null }> {
     if (!Number.isFinite(pickupTaskId) || pickupTaskId <= 0) {
-      return { success: false, error: 'აღების დავალება არასწორია' };
+      return { success: false, error: i18next.t('courier.invalidPickupTask') };
     }
     const trimmed = reason.trim();
     if (!trimmed) {
-      return { success: false, error: 'გთხოვთ მიუთითოთ გაუქმების მიზეზი' };
+      return { success: false, error: i18next.t('courier.pickupCancelReasonRequired') };
     }
     if (trimmed.length > 500) {
-      return { success: false, error: 'მიზეზი ძალიან გრძელია (მაქს. 500 სიმბოლო)' };
+      return { success: false, error: i18next.t('courier.reasonTooLong') };
     }
 
     const sessionCheck = await this.requireCourierSession(0);
@@ -221,7 +222,7 @@ export class CourierService {
 
     const root = (data && typeof data === 'object' ? data : {}) as Record<string, unknown>;
     const success = root['success'] === true || root['status'] === 'cancelled';
-    return { success, error: success ? null : 'აღების გაუქმება ვერ მოხერხდა' };
+    return { success, error: success ? null : i18next.t('courier.pickupCancelFailed') };
   }
 
   private pickupStatusSortRank(status: PickupTask['status']): number {
@@ -277,7 +278,7 @@ export class CourierService {
     }
 
     if (paymentMethod !== 'cash' && paymentMethod !== 'card') {
-      return { data: null, error: 'აირჩიეთ გადახდის მეთოდი — ქეში ან ბარათი.' };
+      return { data: null, error: i18next.t('courier.paymentRequired') };
     }
 
     const rpcArgs = {
@@ -306,7 +307,7 @@ export class CourierService {
 
     const reason = cancellationReason.trim();
     if (!reason) {
-      return { data: null, error: 'გთხოვთ მიუთითოთ გაუქმების მიზეზი' };
+      return { data: null, error: i18next.t('courier.pickupCancelReasonRequired') };
     }
 
     const { data, error } = await this.supabase.client.rpc('courier_cancel_order', {
@@ -334,18 +335,18 @@ export class CourierService {
 
     const status = parseCourierStatus(newStatus);
     if (!status) {
-      return { data: null, error: `არასწორი სტატუსი: ${String(newStatus)}` };
+      return { data: null, error: i18next.t('courier.invalidStatus', { status: String(newStatus) }) };
     }
 
     // History corrections / RPC allow only picked_up | delivered | cancelled.
     if (status === 'pending') {
-      return { data: null, error: 'მოლოდინში სტატუსზე დაბრუნება შეუძლებელია' };
+      return { data: null, error: i18next.t('courier.cannotReturnPending') };
     }
 
     if (status === 'delivered') {
       const payment = parsePaymentMethod(paymentMethod);
       if (!payment) {
-        return { data: null, error: 'აირჩიეთ გადახდის მეთოდი — ქეში ან ბარათი.' };
+        return { data: null, error: i18next.t('courier.paymentRequired') };
       }
     }
 
@@ -382,13 +383,13 @@ export class CourierService {
 
   private mapReorderError(message: string): string {
     if (/every order must be assigned to you and active/i.test(message)) {
-      return 'ამ შეკვეთის გადაადგილება ამ ეტაპზე შეუძლებელია';
+      return i18next.t('courier.reorderNotAllowed');
     }
     if (/Duplicate order ids/i.test(message)) {
-      return 'რიგის შენახვა ვერ მოხერხდა (დუბლირებული შეკვეთა)';
+      return i18next.t('courier.reorderDuplicate');
     }
     if (/Only couriers can reorder/i.test(message)) {
-      return 'რიგის შეცვლა მხოლოდ კურიერს შეუძლია';
+      return i18next.t('courier.reorderCourierOnly');
     }
     return message;
   }
@@ -453,14 +454,14 @@ export class CourierService {
 
       if (!session?.user) {
         // Expected auth expiry — UI shows message / redirects to login.
-        return { error: 'სესია არ არის აქტიური. გთხოვთ თავიდან შეხვიდეთ.' };
+        return { error: i18next.t('ui.sessionExpired') };
       }
 
       const userId = session.user.id;
 
       if (assignedCourierId && assignedCourierId !== userId) {
         // Expected authorization rejection — caller surfaces UI feedback.
-        return { error: 'ამ შეკვეთის შეცვლის უფლება არ გაქვთ.' };
+        return { error: i18next.t('ui.noPermission') };
       }
 
       return { error: null };
@@ -479,7 +480,7 @@ export class CourierService {
     if (!normalized) {
       return {
         data: null,
-        error: 'შეკვეთის განახლება ვერ მოხერხდა. სცადეთ თავიდან.',
+        error: i18next.t('ui.updateFailed'),
       };
     }
 
@@ -489,34 +490,34 @@ export class CourierService {
   private mapCourierRpcError(message: string): string {
     const lower = message.toLowerCase();
     if (lower.includes('cancellation reason is required')) {
-      return 'გთხოვთ მიუთითოთ გაუქმების მიზეზი';
+      return i18next.t('courier.pickupCancelReasonRequired');
     }
     if (lower.includes('cancellation reason is too long')) {
-      return 'მიზეზი ძალიან გრძელია (მაქს. 500 სიმბოლო)';
+      return i18next.t('courier.reasonTooLong');
     }
     if (lower.includes('pickup task is not active') || lower.includes('not your pickup task')) {
-      return 'აღების დავალება აღარ არის აქტიური.';
+      return i18next.t('courier.pickupNotActive');
     }
     if (
       lower.includes('cancellation reason cannot be changed') ||
       lower.includes('cancellation reason can only be set')
     ) {
-      return 'გაუქმების მიზეზის შეცვლა შეუძლებელია.';
+      return i18next.t('courier.cancelReasonLocked');
     }
     if (lower.includes('payment method required') || lower.includes('invalid payment')) {
-      return 'აირჩიეთ გადახდის მეთოდი — ქეში ან ბარათი.';
+      return i18next.t('courier.paymentRequired');
     }
     if (
       lower.includes('not found') ||
       lower.includes('not assigned') ||
       lower.includes('only couriers')
     ) {
-      return 'ამ შეკვეთის შეცვლის უფლება არ გაქვთ.';
+      return i18next.t('ui.noPermission');
     }
     if (lower.includes('not authenticated')) {
-      return 'სესია არ არის აქტიური. გთხოვთ თავიდან შეხვიდეთ.';
+      return i18next.t('ui.sessionExpired');
     }
-    return message || 'შეცდომა მოხდა';
+    return message || i18next.t('ui.genericError');
   }
 
 

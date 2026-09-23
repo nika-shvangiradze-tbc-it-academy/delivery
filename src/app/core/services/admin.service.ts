@@ -1,4 +1,5 @@
 import { Injectable, inject } from '@angular/core';
+import i18next from 'i18next';
 import {
   ADMIN_ACTIVE_STATUS_FILTER,
   ADMIN_ACTIVE_STATUSES,
@@ -903,7 +904,7 @@ export class AdminService {
         const r = (row && typeof row === 'object' ? row : {}) as Record<string, unknown>;
         return {
           courier_id: typeof r['courier_id'] === 'string' ? r['courier_id'] : null,
-          full_name: typeof r['full_name'] === 'string' ? r['full_name'] : 'მიუნიჭებელი',
+          full_name: typeof r['full_name'] === 'string' ? r['full_name'] : i18next.t('adminUi.unassigned'),
           order_count: asNumber(r['order_count']),
           parcel_count: asNumber(r['parcel_count']),
           total_amount: asNumber(r['total_amount']),
@@ -977,7 +978,7 @@ export class AdminService {
   /** Permanently delete one order (admin RLS). Cascades status audit rows. */
   async deleteOrder(orderId: number): Promise<{ error: string | null }> {
     if (!Number.isFinite(orderId)) {
-      return { error: 'არასწორი შეკვეთის ID' };
+      return { error: i18next.t('adminUi.invalidOrderId') };
     }
 
     const { error } = await this.supabase.client.from('orders').delete().eq('id', orderId);
@@ -995,7 +996,7 @@ export class AdminService {
   ): Promise<{ data: Order[]; error: string | null }> {
     const uniqueIds = [...new Set(orderIds)].filter((id) => Number.isFinite(id));
     if (uniqueIds.length === 0) {
-      return { data: [], error: 'შეკვეთები არ არის მონიშნული' };
+      return { data: [], error: i18next.t('adminUi.noOrdersSelected') };
     }
 
     const updatedAt = new Date().toISOString();
@@ -1070,7 +1071,7 @@ export class AdminService {
     orderId: number,
   ): Promise<{ data: OrderStatusAuditEntry[]; error: string | null }> {
     if (!Number.isFinite(orderId)) {
-      return { data: [], error: 'არასწორი შეკვეთის ID' };
+      return { data: [], error: i18next.t('adminUi.invalidOrderId') };
     }
 
     const { data, error } = await this.supabase.client

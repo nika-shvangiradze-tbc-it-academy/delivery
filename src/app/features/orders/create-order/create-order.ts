@@ -7,6 +7,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import i18next from 'i18next';
 import {
   AbstractControl,
   FormBuilder,
@@ -212,61 +213,61 @@ export class CreateOrder implements OnInit {
     if (field === 'sender_phone' || field === 'recipient_phone') {
       if (control.hasError('required')) {
         return field === 'sender_phone'
-          ? 'გთხოვთ მიუთითოთ გამგზავნის ტელეფონი'
-          : 'გთხოვთ მიუთითოთ მიმღების ტელეფონი';
+          ? i18next.t('validation.senderPhoneRequired')
+          : i18next.t('validation.recipientPhoneRequired');
       }
       if (control.hasError('phoneInvalid') || control.hasError('minlength')) {
-        return 'მიუთითეთ სწორი ტელეფონის ნომერი';
+        return i18next.t('validation.phoneInvalid');
       }
     }
 
     if (field === 'parcel_count') {
       if (control.hasError('required')) {
-        return 'გთხოვთ მიუთითოთ გადასაცემი ერთეულების რაოდენობა';
+        return i18next.t('validation.parcelCountRequired');
       }
       if (control.hasError('parcelMin') || control.hasError('min')) {
-        return 'რაოდენობა უნდა იყოს მინიმუმ 1';
+        return i18next.t('validation.parcelCountMin');
       }
     }
 
     if (field === 'delivery_date') {
       if (control.hasError('required')) {
-        return 'გთხოვთ აირჩიოთ მიწოდების თარიღი';
+        return i18next.t('validation.deliveryDateRequired');
       }
       if (control.hasError('deliveryDateTooSoon')) {
-        return 'აირჩიეთ დაშვებული მიწოდების თარიღი';
+        return i18next.t('validation.deliveryDateInvalid');
       }
     }
 
     if (field === 'amount_to_collect') {
       if (control.hasError('required')) {
-        return 'გთხოვთ მიუთითოთ თანხა';
+        return i18next.t('validation.amountRequired');
       }
       if (control.hasError('amountInvalid')) {
-        return 'თანხა არ შეიძლება იყოს 0 ₾-ზე ნაკლები';
+        return i18next.t('validation.amountMinZero');
       }
     }
 
     if (control.hasError('required')) {
       const requiredMessages: Record<CreateOrderField, string> = {
-        sender_name: 'გთხოვთ მიუთითოთ გამგზავნის სახელი',
-        sender_phone: 'გთხოვთ მიუთითოთ გამგზავნის ტელეფონი',
-        pickup_city: 'გთხოვთ აირჩიოთ აღების ქალაქი',
-        pickup_district: 'გთხოვთ მიუთითოთ აღების უბანი',
-        pickup_address: 'გთხოვთ მიუთითოთ აღების მისამართი',
-        recipient_name: 'გთხოვთ მიუთითოთ მიმღების სახელი',
-        recipient_phone: 'გთხოვთ მიუთითოთ მიმღების ტელეფონი',
-        delivery_city: 'გთხოვთ აირჩიოთ მიწოდების ქალაქი',
-        delivery_district: 'გთხოვთ მიუთითოთ მიწოდების უბანი',
-        delivery_address: 'გთხოვთ მიუთითოთ მიწოდების მისამართი',
-        parcel_count: 'გთხოვთ მიუთითოთ გადასაცემი ერთეულების რაოდენობა',
-        delivery_date: 'გთხოვთ აირჩიოთ მიწოდების თარიღი',
-        amount_to_collect: 'გთხოვთ მიუთითოთ თანხა',
+        sender_name: i18next.t('validation.senderNameRequired'),
+        sender_phone: i18next.t('validation.senderPhoneRequired'),
+        pickup_city: i18next.t('validation.pickupCityRequired'),
+        pickup_district: i18next.t('validation.pickupDistrictRequired'),
+        pickup_address: i18next.t('validation.pickupAddressRequired'),
+        recipient_name: i18next.t('validation.recipientNameRequired'),
+        recipient_phone: i18next.t('validation.recipientPhoneRequired'),
+        delivery_city: i18next.t('validation.deliveryCityRequired'),
+        delivery_district: i18next.t('validation.deliveryDistrictRequired'),
+        delivery_address: i18next.t('validation.deliveryAddressRequired'),
+        parcel_count: i18next.t('validation.parcelCountRequired'),
+        delivery_date: i18next.t('validation.deliveryDateRequired'),
+        amount_to_collect: i18next.t('validation.amountRequired'),
       };
       return requiredMessages[field];
     }
 
-    return 'გთხოვთ შეავსოთ ეს ველი სწორად';
+    return i18next.t('validation.fieldInvalid');
   }
 
   toggleExcelPanel(): void {
@@ -295,7 +296,7 @@ export class CreateOrder implements OnInit {
 
     const lower = file.name.toLowerCase();
     if (!lower.endsWith('.xlsx') && !lower.endsWith('.xls')) {
-      this.excelError.set('მხოლოდ .xlsx ან .xls ფაილია დაშვებული');
+      this.excelError.set(i18next.t('excel.onlyXlsx'));
       return;
     }
 
@@ -324,7 +325,7 @@ export class CreateOrder implements OnInit {
       this.excelPreview.set(null);
       this.excelFileName.set(null);
       this.excelFingerprint.set(null);
-      this.excelError.set(err instanceof Error ? err.message : 'Excel ფაილის წაკითხვა ვერ მოხერხდა');
+      this.excelError.set(err instanceof Error ? err.message : i18next.t('excel.readFailed'));
     } finally {
       this.excelParsing.set(false);
     }
@@ -343,7 +344,7 @@ export class CreateOrder implements OnInit {
     const fingerprint = this.excelFingerprint();
     if (fingerprint && wasImportFingerprintUsed(fingerprint)) {
       const proceed = window.confirm(
-        'ეს Excel ფაილი უკვე წარმატებით იმპორტირებულია ამ სესიაში. გსურთ ხელახლა შექმნა?',
+        i18next.t('excel.duplicateConfirm'),
       );
       if (!proceed) {
         return;
@@ -372,7 +373,7 @@ export class CreateOrder implements OnInit {
     }
 
     this.clearExcelImport();
-    this.excelSuccess.set(`${createdCount} შეკვეთა წარმატებით შეიქმნა`);
+    this.excelSuccess.set(i18next.t('excel.createdCount', { count: createdCount }));
     await this.router.navigateByUrl('/my-orders');
   }
 
@@ -409,17 +410,17 @@ export class CreateOrder implements OnInit {
       return {
         ok: false,
         error:
-          'Excel იმპორტამდე შეავსეთ გამგზავნის სახელი, ტელეფონი და აღების ქალაქი/უბანი (მისამართი ფორმიდან ან Excel-ის pickup_location-დან)',
+          i18next.t('validation.excelFillSenderFirst'),
       };
     }
 
     const digits = sender_phone.replace(/\D/g, '');
     if (digits.length < 6) {
-      return { ok: false, error: 'გამგზავნის ტელეფონი არასწორია' };
+      return { ok: false, error: i18next.t('validation.senderPhoneInvalid') };
     }
 
     if (!(GEORGIAN_CITIES as readonly string[]).includes(pickup_city)) {
-      return { ok: false, error: 'აირჩიეთ სწორი აღების ქალაქი' };
+      return { ok: false, error: i18next.t('validation.pickupCityInvalid') };
     }
 
     return {

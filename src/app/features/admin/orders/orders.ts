@@ -7,6 +7,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import i18next from 'i18next';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DatePipe } from '@angular/common';
 import {
@@ -130,7 +131,7 @@ const TAB_LABELS: Record<AdminStatusGroup, string> = {
   all: 'ყველა',
 };
 
-const GROUP_BY_OPTIONS: Array<{ value: AdminOrderGroupBy; label: string }> = [
+const GROUP_BY_OPTION_KEYS: Array<{ value: AdminOrderGroupBy; label: string }> = [
   { value: 'none', label: 'დაჯგუფება: გამორთული' },
   { value: 'customer', label: 'დაჯგუფება: შემკვეთი' },
   { value: 'pickup_city', label: 'დაჯგუფება: აღების ქალაქი' },
@@ -165,7 +166,7 @@ export class AdminOrders implements OnInit {
   readonly pageSizes = ADMIN_ORDER_PAGE_SIZES;
   readonly unassignedCourier = ADMIN_COURIER_UNASSIGNED;
   readonly tabLabels = TAB_LABELS;
-  readonly groupByOptions = GROUP_BY_OPTIONS;
+  readonly groupByOptions = GROUP_BY_OPTION_KEYS;
   readonly customerDisplay = customerDisplay;
   readonly pickupLines = pickupLocationLines;
   readonly deliveryAddress = deliveryRecipientAddress;
@@ -437,7 +438,7 @@ export class AdminOrders implements OnInit {
   customerPickupAddress(group: AdminPlanningBucket): string {
     const loc = group.pickup_locations?.[0];
     if (!loc) {
-      return 'არ არის მითითებული';
+      return i18next.t('ui.notSpecified');
     }
     const parts = [loc.city, loc.district, loc.address]
       .map((part) => (part ?? '').trim())
@@ -446,7 +447,7 @@ export class AdminOrders implements OnInit {
       return parts.join(', ');
     }
     const label = (loc.label ?? '').trim();
-    return label || 'არ არის მითითებული';
+    return label || i18next.t('ui.notSpecified');
   }
 
   applyPlanningBucket(bucket: AdminPlanningBucket): void {
@@ -481,7 +482,7 @@ export class AdminOrders implements OnInit {
     const courierId = this.dispatchCourierId();
     if (!group?.user_id) return;
     if (!courierId) {
-      this.errorMessage.set('აირჩიე კურიერი');
+      this.errorMessage.set(i18next.t('adminUi.selectCourier'));
       return;
     }
 
@@ -500,7 +501,7 @@ export class AdminOrders implements OnInit {
     if (error) {
       this.errorMessage.set(
         error.includes('admin_assign_pickup') || error.includes('Could not find')
-          ? 'აღების დავალება ვერ გაიგზავნა. გაუშვით მიგრაცია 20260919_pickup_one_customer_location.sql'
+          ? i18next.t('adminUi.pickupSendFailedMigration')
           : error,
       );
       return;
@@ -508,8 +509,8 @@ export class AdminOrders implements OnInit {
 
     this.successMessage.set(
       tasksUpdated > 0
-        ? `აღების კურიერი განახლდა (${updated} შეკვეთა) — ${group.label}`
-        : `აღების დავალება შეიქმნა (${updated} შეკვეთა) — ${group.label}`,
+        ? i18next.t('adminUi.pickupCourierUpdated', { count: updated, label: group.label })
+        : i18next.t('adminUi.pickupTaskCreatedCount', { count: updated, label: group.label }),
     );
     this.closeDispatch();
     void this.loadOrders();
@@ -675,7 +676,7 @@ export class AdminOrders implements OnInit {
 
     if (this.editForm.invalid) {
       this.editForm.markAllAsTouched();
-      this.errorMessage.set('გთხოვთ შეავსოთ ყველა სავალდებულო ველი.');
+      this.errorMessage.set(i18next.t('validation.requiredFields'));
       return;
     }
 
@@ -686,7 +687,7 @@ export class AdminOrders implements OnInit {
         originalValue: order.delivery_date,
       })
     ) {
-      this.errorMessage.set('მიწოდების თარიღი უნდა იყოს ხვალ ან უფრო გვიან.');
+      this.errorMessage.set(i18next.t('validation.deliveryDateTomorrow'));
       return;
     }
 
@@ -706,12 +707,12 @@ export class AdminOrders implements OnInit {
     this.updating.set(false);
 
     if (error || !data) {
-      this.errorMessage.set(error ?? 'შენახვა ვერ მოხერხდა');
+      this.errorMessage.set(error ?? i18next.t('ui.saveFailed'));
       return;
     }
 
     this.patchOrDropOrder(data);
-    this.successMessage.set(`შეკვეთა #${order.id} განახლდა`);
+    this.successMessage.set(i18next.t('adminUi.orderUpdated', { id: order.id }));
     this.closeEdit();
     if (this.statusGroup() === 'delivered') {
       void this.loadDeliveredAnalytics(this.currentFilters());
@@ -748,7 +749,7 @@ export class AdminOrders implements OnInit {
 
       const delivered = data.filter((order) => order.status === 'delivered');
       if (delivered.length === 0) {
-        this.errorMessage.set('ჩაბარებული შეკვეთები ვერ მოიძებნა');
+        this.errorMessage.set(i18next.t('adminUi.noDeliveredForExcel'));
         return;
       }
 
@@ -757,9 +758,9 @@ export class AdminOrders implements OnInit {
       );
       const rows = delivered.map((order) => mapOrderToDeliveredExportRow(order, courierNameById));
       downloadDeliveredOrdersExcel(rows);
-      this.successMessage.set(`Excel გადმოწერილია (${rows.length} შეკვეთა)`);
+      this.successMessage.set(i18next.t('adminUi.excelDownloaded', { count: rows.length }));
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Excel ექსპორტი ვერ შესრულდა';
+      const message = err instanceof Error ? err.message : i18next.t('adminUi.excelExportFailed');
       this.errorMessage.set(message);
     } finally {
       this.exportingExcel.set(false);
@@ -791,11 +792,11 @@ export class AdminOrders implements OnInit {
     const courierId = this.bulkCourierId();
     const ids = [...this.selectedIds()];
     if (!courierId) {
-      this.errorMessage.set('აირჩიე კურიერი');
+      this.errorMessage.set(i18next.t('adminUi.selectCourier'));
       return;
     }
     if (ids.length === 0) {
-      this.errorMessage.set('მონიშნე ერთი ან მეტი შეკვეთა');
+      this.errorMessage.set(i18next.t('adminUi.selectOrders'));
       return;
     }
 
@@ -812,14 +813,14 @@ export class AdminOrders implements OnInit {
     }
 
     this.selectedIds.set(new Set());
-    this.successMessage.set(`${data.length} შეკვეთა მიენიჭა კურიერს`);
+    this.successMessage.set(i18next.t('adminUi.assignedToCourier', { count: data.length }));
     await this.loadOrders();
   }
 
   async unassignSelected(): Promise<void> {
     const ids = [...this.selectedIds()];
     if (ids.length === 0) {
-      this.errorMessage.set('მონიშნე ერთი ან მეტი შეკვეთა');
+      this.errorMessage.set(i18next.t('adminUi.selectOrders'));
       return;
     }
 
@@ -836,7 +837,7 @@ export class AdminOrders implements OnInit {
     }
 
     this.selectedIds.set(new Set());
-    this.successMessage.set(`${data.length} შეკვეთიდან კურიერი მოიხსნა`);
+    this.successMessage.set(i18next.t('adminUi.unassignedFromCourier', { count: data.length }));
     await this.loadOrders();
   }
 
@@ -860,7 +861,7 @@ export class AdminOrders implements OnInit {
           item.id === order.id ? { ...item, status: previousStatus } : item,
         ),
       );
-      this.errorMessage.set(error ?? 'სტატუსის განახლება ვერ მოხერხდა');
+      this.errorMessage.set(error ?? i18next.t('adminUi.statusUpdateFailed'));
       return;
     }
 

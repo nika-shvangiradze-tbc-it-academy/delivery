@@ -29,8 +29,8 @@ export class I18nService {
     this.updateDocumentLanguage(savedLanguage);
   }
 
-  t(key: string): string {
-    return i18next.t(key);
+  t(key: string, options?: Record<string, unknown>): string {
+    return options ? i18next.t(key, options) : i18next.t(key);
   }
 
   async setLanguage(language: AppLanguage): Promise<void> {

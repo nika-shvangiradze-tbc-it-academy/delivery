@@ -1,17 +1,17 @@
 <div class="courier-detail">
-  <a routerLink="/courier/orders" class="courier-detail__back">← უკან</a>
+  <a routerLink="/courier/orders" class="courier-detail__back">← {{ 'ui.back' | t }}</a>
 
   @if (loading()) {
-    <p class="courier-detail__muted">იტვირთება...</p>
+    <p class="courier-detail__muted">{{ 'courier.loading' | t }}</p>
   } @else if (errorMessage() && !order()) {
     <p class="courier-detail__error">{{ errorMessage() }}</p>
   } @else if (order(); as o) {
-    <h1>შეკვეთა #{{ o.id }}</h1>
+    <h1>{{ 'courier.orderTitle' | t: { id: o.id } }}</h1>
     <p class="courier-detail__recipient">{{ o.recipient_name }}</p>
 
     <div class="courier-detail__meta">
       <p>
-        <strong>ტელეფონი:</strong>
+        <strong>{{ 'ui.phone' | t }}:</strong>
         <a class="courier-detail__phone-link" [href]="telHref(o.recipient_phone)">
           <svg class="courier-detail__phone-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <path
@@ -22,26 +22,26 @@
           {{ formatPhone(o.recipient_phone) }}
         </a>
       </p>
-      <p><strong>ქალაქი:</strong> {{ o.delivery_city }}</p>
-      <p><strong>უბანი:</strong> {{ o.delivery_district || '—' }}</p>
-      <p><strong>მისამართი:</strong> {{ o.delivery_address }}</p>
-      <p><strong>გადასაცემი ერთეულების რაოდენობა:</strong> {{ o.parcel_count }}</p>
+      <p><strong>{{ 'courier.city' | t }}:</strong> {{ o.delivery_city }}</p>
+      <p><strong>{{ 'courier.district' | t }}:</strong> {{ o.delivery_district || '—' }}</p>
+      <p><strong>{{ 'ui.address' | t }}:</strong> {{ o.delivery_address }}</p>
+      <p><strong>{{ 'courier.parcelCount' | t }}:</strong> {{ o.parcel_count }}</p>
       @if (o.is_fragile) {
-        <p class="courier-detail__fragile" role="status">⚠ მსხვრევადი</p>
+        <p class="courier-detail__fragile" role="status">⚠ {{ 'courier.fragile' | t }}</p>
       }
-      <p><strong>ასაღები თანხა:</strong> {{ formatGel(o.amount_to_collect) }} ₾</p>
+      <p><strong>{{ 'ui.amountToCollect' | t }}:</strong> {{ formatGel(o.amount_to_collect) }} ₾</p>
       <p>
-        <strong>თარიღი:</strong>
+        <strong>{{ 'courier.deliveryDate' | t }}:</strong>
         {{ o.delivery_date ? (o.delivery_date | date: 'mediumDate') : '—' }}
       </p>
       @if (o.notes) {
-        <p><strong>შენიშვნა:</strong> {{ o.notes }}</p>
+        <p><strong>{{ 'courier.note' | t }}:</strong> {{ o.notes }}</p>
       }
       <p>
-        <strong>სტატუსი:</strong>
+        <strong>{{ 'ui.status' | t }}:</strong>
         <span [class]="statusClass(o.status)">{{ statusLabel(o.status) }}</span>
       </p>
-      <p><strong>გადახდა:</strong> {{ paymentLabel(o.payment_method) }}</p>
+      <p><strong>{{ 'ui.payment' | t }}:</strong> {{ paymentLabel(o.payment_method) }}</p>
     </div>
 
     <div class="courier-detail__actions">
@@ -73,10 +73,10 @@
             [disabled]="saving()"
             (click)="markPickedUp()"
           >
-            {{ saving() ? 'ინახება...' : 'აღებულია' }}
+            {{ saving() ? ('ui.saving' | t) : ('courier.pickedUpAction' | t) }}
           </button>
         } @else {
-          <p class="courier-detail__complete-label">გადახდა:</p>
+          <p class="courier-detail__complete-label">{{ 'courier.paymentLabel' | t }}</p>
           <div class="courier-detail__pay-toggle">
             <button
               type="button"
@@ -85,7 +85,7 @@
               [disabled]="saving()"
               (click)="selectPayment('cash')"
             >
-              ქეში
+              {{ 'ui.cash' | t }}
             </button>
             <button
               type="button"
@@ -94,7 +94,7 @@
               [disabled]="saving()"
               (click)="selectPayment('card')"
             >
-              ბარათი
+              {{ 'ui.card' | t }}
             </button>
           </div>
 
@@ -104,13 +104,13 @@
             [disabled]="saving()"
             (click)="markDelivered()"
           >
-            {{ saving() ? 'ინახება...' : 'ჩაბარებულია' }}
+            {{ saving() ? ('ui.saving' | t) : ('courier.deliveredAction' | t) }}
           </button>
 
           @if (confirmingCancel()) {
             <div class="courier-detail__cancel-confirm">
               <label class="courier-detail__cancel-label" for="cancel-reason-detail">
-                გაუქმების მიზეზი
+                {{ 'courier.cancelReason' | t }}
               </label>
               <textarea
                 id="cancel-reason-detail"
@@ -119,7 +119,7 @@
                 rows="3"
                 maxlength="500"
                 [disabled]="saving()"
-                placeholder="მიუთითეთ გაუქმების მიზეზი..."
+                [attr.placeholder]="'courier.cancelReasonPlaceholder' | t"
                 (input)="onCancelReasonInput($event)"
               ></textarea>
               @if (cancelReasonError()) {
@@ -132,7 +132,7 @@
                   [disabled]="saving()"
                   (click)="confirmCancel(cancelReasonInput.value)"
                 >
-                  {{ saving() ? 'ინახება...' : 'დიახ' }}
+                  {{ saving() ? ('ui.saving' | t) : ('ui.yes' | t) }}
                 </button>
                 <button
                   type="button"
@@ -140,7 +140,7 @@
                   [disabled]="saving()"
                   (click)="dismissCancel()"
                 >
-                  არა
+                  {{ 'ui.no' | t }}
                 </button>
               </div>
             </div>
@@ -151,7 +151,7 @@
               [disabled]="saving()"
               (click)="requestCancel()"
             >
-              გაუქმება
+              {{ 'courier.cancelAction' | t }}
             </button>
           }
         }

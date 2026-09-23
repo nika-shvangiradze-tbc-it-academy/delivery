@@ -7,7 +7,9 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import i18next from 'i18next';
 import { DatePipe } from '@angular/common';
+import { TranslatePipe } from '../../../core/pipes/t.pipe';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import {
@@ -37,7 +39,7 @@ export type HistorySection = 'delivery' | 'pickup';
 
 @Component({
   selector: 'app-courier-history',
-  imports: [DatePipe],
+  imports: [DatePipe, TranslatePipe],
   templateUrl: './courier-history.html',
   styleUrl: './courier-history.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -62,19 +64,12 @@ export class CourierHistory implements OnInit {
   readonly historyFilter = signal<HistoryFilter>('all');
   readonly pickupHistoryFilter = signal<CourierPickupHistoryFilter>('all');
 
-  readonly filterOptions: ReadonlyArray<{ id: HistoryFilter; label: string }> = [
-    { id: 'all', label: 'ყველა' },
-    { id: 'delivered', label: 'ჩაბარებული' },
-    { id: 'cancelled', label: 'გაუქმებული' },
-  ];
+  readonly filterOptions: ReadonlyArray<HistoryFilter> = ['all', 'delivered', 'cancelled'];
 
-  readonly pickupFilterOptions: ReadonlyArray<{
-    id: CourierPickupHistoryFilter;
-    label: string;
-  }> = [
-    { id: 'all', label: 'ყველა' },
-    { id: 'picked_up', label: 'აღებული' },
-    { id: 'cancelled', label: 'გაუქმებული' },
+  readonly pickupFilterOptions: ReadonlyArray<CourierPickupHistoryFilter> = [
+    'all',
+    'picked_up',
+    'cancelled',
   ];
 
   readonly filteredOrders = computed(() => {
@@ -135,25 +130,47 @@ export class CourierHistory implements OnInit {
     this.pickupHistoryFilter.set(filter);
   }
 
+  filterLabel(id: HistoryFilter): string {
+    switch (id) {
+      case 'delivered':
+        return i18next.t('ui.delivered');
+      case 'cancelled':
+        return i18next.t('ui.cancelled');
+      default:
+        return i18next.t('ui.all');
+    }
+  }
+
+  pickupFilterLabel(id: CourierPickupHistoryFilter): string {
+    switch (id) {
+      case 'picked_up':
+        return i18next.t('ui.pickedUp');
+      case 'cancelled':
+        return i18next.t('ui.cancelled');
+      default:
+        return i18next.t('ui.all');
+    }
+  }
+
   emptyStateText(): string {
     switch (this.historyFilter()) {
       case 'delivered':
-        return 'ჩაბარებული შეკვეთები არ არის.';
+        return i18next.t('courier.emptyDeliveredHistory');
       case 'cancelled':
-        return 'გაუქმებული შეკვეთები არ არის.';
+        return i18next.t('courier.emptyCancelledHistory');
       default:
-        return 'ისტორია ცარიელია.';
+        return i18next.t('courier.emptyHistory');
     }
   }
 
   pickupEmptyStateText(): string {
     switch (this.pickupHistoryFilter()) {
       case 'picked_up':
-        return 'აღებული დავალებები არ არის.';
+        return i18next.t('courier.emptyPickedUpTasks');
       case 'cancelled':
-        return 'გაუქმებული აღების დავალებები არ არის.';
+        return i18next.t('courier.emptyCancelledPickupTasks');
       default:
-        return 'აღების ისტორია ცარიელია.';
+        return i18next.t('courier.emptyPickupHistory');
     }
   }
 
@@ -180,7 +197,7 @@ export class CourierHistory implements OnInit {
   }
 
   pickupStatusLabel(status: PickupTask['status']): string {
-    return status === 'cancelled' ? 'გაუქმებული' : 'აღებული';
+    return status === 'cancelled' ? i18next.t('ui.cancelled') : i18next.t('ui.pickedUp');
   }
 
   async reload(): Promise<void> {
@@ -255,7 +272,7 @@ export class CourierHistory implements OnInit {
     const payment = this.draftPayment();
 
     if (newStatus === 'delivered' && !payment) {
-      this.errorMessage.set('აირჩიეთ გადახდის მეთოდი — ქეში ან ბარათი.');
+      this.errorMessage.set(i18next.t('courier.paymentRequired'));
       return;
     }
 
@@ -276,13 +293,13 @@ export class CourierHistory implements OnInit {
         await this.router.navigateByUrl('/login');
         return;
       }
-      this.errorMessage.set(error ?? 'სტატუსის შეცვლა ვერ მოხერხდა');
+      this.errorMessage.set(error ?? i18next.t('courier.statusUpdateFailed'));
       return;
     }
 
     this.orders.update((list) => list.map((item) => (item.id === data.id ? data : item)));
     this.editingId.set(null);
     this.draftPayment.set(null);
-    this.successMessage.set('სტატუსი განახლდა');
+    this.successMessage.set(i18next.t('courier.statusUpdated'));
   }
 }

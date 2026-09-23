@@ -5,7 +5,7 @@
         type="button"
         class="courier-shell__logo"
         (click)="onLogoClick()"
-        aria-label="მიმდინარე შეკვეთების განახლება"
+        [attr.aria-label]="'courier.refreshActiveAria' | t"
       >
         <img
           src="/assets/header/location.svg"
@@ -16,7 +16,7 @@
         />
         <span class="courier-shell__logo-text">Location</span>
       </button>
-      <h1>კურიერის პანელი</h1>
+      <h1>{{ 'courier.panelTitle' | t }}</h1>
       <p class="courier-shell__name">{{ courierName() }}</p>
     </div>
     <button
@@ -29,9 +29,9 @@
     >
       @if (loggingOut()) {
         <span class="courier-shell__logout-spinner" aria-hidden="true"></span>
-        <span>გასვლა...</span>
+        <span>{{ 'courier.loggingOut' | t }}</span>
       } @else {
-        გასვლა
+        {{ 'courier.logout' | t }}
       }
     </button>
   </header>
@@ -46,14 +46,14 @@
       routerLinkActive="is-active"
       class="courier-shell__tab"
     >
-      მიმდინარე
+      {{ 'courier.navActive' | t }}
     </a>
     <a
       routerLink="/courier/history"
       routerLinkActive="is-active"
       class="courier-shell__tab"
     >
-      ისტორია
+      {{ 'courier.navHistory' | t }}
     </a>
   </nav>
 
@@ -64,7 +64,7 @@
       type="button"
       class="courier-shell__scroll-top"
       (click)="scrollToTop()"
-      aria-label="ზემოთ აწევა"
+      [attr.aria-label]="'courier.scrollTopAria' | t"
     >
       <svg
         class="courier-shell__scroll-top-icon"

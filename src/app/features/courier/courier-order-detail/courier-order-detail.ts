@@ -6,10 +6,12 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import i18next from 'i18next';
 import { DatePipe } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Order, PaymentMethod } from '../../../core/models/order.model';
+import { TranslatePipe } from '../../../core/pipes/t.pipe';
 import { CourierRealtimeService } from '../../../core/services/courier-realtime.service';
 import { CourierService } from '../../../core/services/courier.service';
 import {
@@ -23,7 +25,7 @@ import {
 
 @Component({
   selector: 'app-courier-order-detail',
-  imports: [DatePipe, RouterLink],
+  imports: [DatePipe, RouterLink, TranslatePipe],
   templateUrl: './courier-order-detail.html',
   styleUrl: './courier-order-detail.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -70,7 +72,7 @@ export class CourierOrderDetail implements OnInit {
   async ngOnInit(): Promise<void> {
     const id = Number(this.route.snapshot.paramMap.get('id'));
     if (!Number.isFinite(id)) {
-      this.errorMessage.set('არასწორი შეკვეთა');
+      this.errorMessage.set(i18next.t('courier.invalidOrder'));
       this.loading.set(false);
       return;
     }
@@ -94,7 +96,7 @@ export class CourierOrderDetail implements OnInit {
     const { data, error } = await this.courierService.getOrderById(id);
     if (error || !data) {
       this.order.set(null);
-      this.errorMessage.set(error ?? 'შეკვეთა ვერ მოიძებნა');
+      this.errorMessage.set(error ?? i18next.t('courier.orderNotFound'));
       this.loading.set(false);
       return;
     }
@@ -131,7 +133,7 @@ export class CourierOrderDetail implements OnInit {
       );
 
       if (error || !data) {
-        this.errorMessage.set(error ?? 'აღება ვერ მოხერხდა');
+        this.errorMessage.set(error ?? i18next.t('courier.pickupFailed'));
         if (error?.includes('სესია არ არის აქტიური')) {
           await this.router.navigateByUrl('/login');
         }
@@ -139,10 +141,10 @@ export class CourierOrderDetail implements OnInit {
       }
 
       this.order.set({ ...current, ...data });
-      this.successMessage.set('შეკვეთა აღებულია');
+      this.successMessage.set(i18next.t('courier.orderPickedUp'));
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
-      this.errorMessage.set(`აღება ვერ მოხერხდა: ${message}`);
+      this.errorMessage.set(i18next.t('courier.pickupFailedWithReason', { message }));
     } finally {
       this.saving.set(false);
     }
@@ -154,7 +156,7 @@ export class CourierOrderDetail implements OnInit {
 
     const payment = this.paymentMethod();
     if (!payment) {
-      this.errorMessage.set('აირჩიეთ გადახდის მეთოდი — ქეში ან ბარათი.');
+      this.errorMessage.set(i18next.t('courier.paymentRequired'));
       return;
     }
 
@@ -171,7 +173,7 @@ export class CourierOrderDetail implements OnInit {
       );
 
       if (error || !data) {
-        this.errorMessage.set(error ?? 'ჩაბარება ვერ მოხერხდა');
+        this.errorMessage.set(error ?? i18next.t('courier.deliverFailed'));
         if (error?.includes('სესია არ არის აქტიური')) {
           await this.router.navigateByUrl('/login');
         }
@@ -179,11 +181,11 @@ export class CourierOrderDetail implements OnInit {
       }
 
       this.order.set({ ...current, ...data });
-      this.successMessage.set('შეკვეთა ჩაბარდა');
+      this.successMessage.set(i18next.t('courier.orderDelivered'));
       await this.router.navigateByUrl('/courier/history');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
-      this.errorMessage.set(`ჩაბარება ვერ მოხერხდა: ${message}`);
+      this.errorMessage.set(i18next.t('courier.deliverFailedWithReason', { message }));
     } finally {
       this.saving.set(false);
     }
@@ -218,7 +220,7 @@ export class CourierOrderDetail implements OnInit {
       .map((value) => String(value ?? '').trim())
       .find((value) => value.length > 0) ?? '';
     if (!reason) {
-      this.cancelReasonError.set('გთხოვთ მიუთითოთ გაუქმების მიზეზი');
+      this.cancelReasonError.set(i18next.t('courier.pickupCancelReasonRequired'));
       this.errorMessage.set(null);
       return;
     }
@@ -241,7 +243,7 @@ export class CourierOrderDetail implements OnInit {
       );
 
       if (error || !data) {
-        this.errorMessage.set(error ?? 'გაუქმება ვერ მოხერხდა');
+        this.errorMessage.set(error ?? i18next.t('courier.cancelFailed'));
         if (error?.includes('სესია არ არის აქტიური')) {
           await this.router.navigateByUrl('/login');
         }
@@ -251,11 +253,11 @@ export class CourierOrderDetail implements OnInit {
       this.confirmingCancel.set(false);
       this.cancelReasonDraft.set('');
       this.order.set({ ...current, ...data });
-      this.successMessage.set('შეკვეთა გაუქმდა');
+      this.successMessage.set(i18next.t('courier.orderCancelled'));
       await this.router.navigateByUrl('/courier/history');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
-      this.errorMessage.set(`გაუქმება ვერ მოხერხდა: ${message}`);
+      this.errorMessage.set(i18next.t('courier.cancelFailedWithReason', { message }));
     } finally {
       this.saving.set(false);
     }

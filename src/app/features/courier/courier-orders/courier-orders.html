@@ -5,22 +5,22 @@
 >
   <div class="courier-active__heading">
     <div>
-      <h2>მიმდინარე შეკვეთები</h2>
+      <h2>{{ 'courier.activeOrdersTitle' | t }}</h2>
       @if (!loading() && orders().length > 0) {
-        <p class="courier-active__count">• {{ orders().length }} აქტიური</p>
+        <p class="courier-active__count">• {{ 'courier.activeCount' | t: { count: orders().length } }}</p>
       }
     </div>
     @if (reordering()) {
-      <span class="courier-active__saving">ინახება...</span>
+      <span class="courier-active__saving">{{ 'ui.saving' | t }}</span>
     }
   </div>
 
-  <div class="courier-active__toolbar" role="toolbar" aria-label="სიის კონტროლი">
-    <span class="courier-active__toolbar-count">აქტიური {{ orders().length }}</span>
+  <div class="courier-active__toolbar" role="toolbar" [attr.aria-label]="'courier.toolbarLabel' | t">
+    <span class="courier-active__toolbar-count">{{ 'courier.activeLabel' | t: { count: orders().length } }}</span>
 
     @if (isSortMode()) {
       <button type="button" class="courier-active__tool-btn" (click)="exitSortMode()" [disabled]="reordering()">
-        დასრულება
+        {{ 'courier.complete' | t }}
       </button>
       <button
         type="button"
@@ -28,7 +28,7 @@
         (click)="moveSelectedToFront()"
         [disabled]="reordering() || selectedSortCount() === 0"
       >
-        პირველ რიგში{{ selectedSortCount() ? ` (${selectedSortCount()})` : '' }}
+        {{ 'courier.moveFirst' | t }}{{ selectedSortCount() ? ` (${selectedSortCount()})` : '' }}
       </button>
     } @else {
       <button
@@ -37,27 +37,27 @@
         (click)="enterSortMode()"
         [disabled]="reordering() || orders().length < 2"
       >
-        დალაგება
+        {{ 'courier.sort' | t }}
       </button>
       <button
         type="button"
         class="courier-active__tool-btn"
         (click)="setViewMode(isCompact() ? 'classic' : 'compact')"
       >
-        {{ isCompact() ? 'კლასიკური' : 'კომპაქტური' }}
+        {{ isCompact() ? ('courier.classic' | t) : ('courier.compact' | t) }}
       </button>
     }
   </div>
 
   @if (!isSortMode() && orders().length > 0) {
-    <div class="courier-active__filters" role="group" aria-label="სწრაფი ფილტრი">
+    <div class="courier-active__filters" role="group" [attr.aria-label]="'courier.quickFilter' | t">
       <button
         type="button"
         class="courier-active__chip"
         [class.is-active]="quickFilter() === 'all'"
         (click)="setQuickFilter('all')"
       >
-        ყველა
+        {{ 'courier.all' | t }}
       </button>
       <button
         type="button"
@@ -65,7 +65,7 @@
         [class.is-active]="quickFilter() === 'today'"
         (click)="setQuickFilter('today')"
       >
-        დღეს
+        {{ 'courier.today' | t }}
       </button>
       <button
         type="button"
@@ -73,7 +73,7 @@
         [class.is-active]="quickFilter() === 'big_amount'"
         (click)="setQuickFilter('big_amount')"
       >
-        დიდი თანხა
+        {{ 'courier.largeAmount' | t }}
       </button>
       <button
         type="button"
@@ -86,23 +86,23 @@
     </div>
   }
 
-  <section class="courier-active__summary" aria-label="დღის შეჯამება">
-    <h3 class="courier-active__summary-title">დღის შეჯამება</h3>
+  <section class="courier-active__summary" [attr.aria-label]="'courier.daySummary' | t">
+    <h3 class="courier-active__summary-title">{{ 'courier.daySummary' | t }}</h3>
     <div class="courier-active__summary-card">
       <div>
-        <span>ქეში</span>
+        <span>{{ 'ui.cash' | t }}</span>
         <strong>{{ summary().cashTotal }} ₾</strong>
       </div>
       <div>
-        <span>ბარათი</span>
+        <span>{{ 'ui.card' | t }}</span>
         <strong>{{ summary().cardTotal }} ₾</strong>
       </div>
       <div>
-        <span>სულ</span>
+        <span>{{ 'courier.total' | t }}</span>
         <strong>{{ summary().grandTotal }} ₾</strong>
       </div>
       <div>
-        <span>ჩაბარებული</span>
+        <span>{{ 'courier.delivered' | t }}</span>
         <strong>{{ summary().deliveredCount }}</strong>
       </div>
     </div>
@@ -117,16 +117,16 @@
   }
 
   @if (pickupTasks().length > 0) {
-    <section class="courier-pickup" aria-label="აღების დავალებები">
+    <section class="courier-pickup" [attr.aria-label]="'courier.pickupTasksTitle' | t">
       <div class="courier-pickup__heading">
-        <h2>🟠 აღების დავალებები</h2>
-        <p>{{ pickupTasks().length }} დავალება</p>
+        <h2>🟠 {{ 'courier.pickupTasksTitle' | t }}</h2>
+        <p>{{ 'courier.pickupTasksCount' | t: { count: pickupTasks().length } }}</p>
       </div>
 
       <div class="courier-pickup__list">
         @for (task of pickupTasks(); track task.id) {
           <article class="courier-pickup__card">
-            <p class="courier-pickup__badge">🟠 აღების დავალება</p>
+            <p class="courier-pickup__badge">🟠 {{ 'courier.pickupTaskBadge' | t }}</p>
 
             <dl class="courier-pickup__fields">
               <div>
@@ -177,7 +177,7 @@
                 (click)="completePickupTask(task)"
               >
                 {{
-                  completingPickupId() === task.id ? 'ინახება…' : '🟢 აღება შესრულებულია'
+                  completingPickupId() === task.id ? ('courier.savingEllipsis' | t) : ('courier.pickupCompleteGreen' | t)
                 }}
               </button>
               <button
@@ -186,7 +186,7 @@
                 [disabled]="completingPickupId() === task.id || cancellingPickupId() === task.id"
                 (click)="openPickupCancel(task)"
               >
-                🔴 აღების გაუქმება
+                🔴 {{ 'courier.pickupCancel' | t }}
               </button>
             </div>
           </article>
@@ -198,14 +198,14 @@
   @if (pickupCancelTask(); as cancelTask) {
     <div class="courier-pickup__modal" (click)="closePickupCancel()">
       <div class="courier-pickup__modal-panel" (click)="$event.stopPropagation()">
-        <h3>აღების დავალების გაუქმება</h3>
-        <p>მიუთითეთ, რატომ ვერ აიღეთ ამანათი.</p>
+        <h3>{{ 'courier.pickupCancelTitle' | t }}</h3>
+        <p>{{ 'courier.pickupCancelLead' | t }}</p>
         <label>
-          <span class="visually-hidden">მიზეზი</span>
+          <span class="visually-hidden">{{ 'ui.reason' | t }}</span>
           <textarea
             rows="4"
             maxlength="500"
-            placeholder="მიზეზი..."
+            placeholder="{{ 'ui.reasonPlaceholder' | t }}"
             #pickupCancelReasonInput
             [value]="pickupCancelReason()"
             (input)="pickupCancelReason.set($any($event.target).value)"
@@ -216,7 +216,7 @@
         }
         <div class="courier-pickup__modal-actions">
           <button type="button" class="courier-pickup__modal-back" (click)="closePickupCancel()">
-            უკან
+            {{ 'ui.back' | t }}
           </button>
           <button
             type="button"
@@ -225,7 +225,7 @@
             (click)="confirmPickupCancel()"
           >
             {{
-              cancellingPickupId() === cancelTask.id ? 'ინახება…' : 'გაუქმების დადასტურება'
+              cancellingPickupId() === cancelTask.id ? ('courier.savingEllipsis' | t) : ('courier.confirmCancel' | t)
             }}
           </button>
         </div>
@@ -235,13 +235,13 @@
 
   <!-- Delivery orders (separate from pickupTasks) -->
   @if (loading()) {
-    <p class="courier-active__muted">იტვირთება...</p>
+    <p class="courier-active__muted">{{ 'courier.loading' | t }}</p>
   } @else if (orders().length === 0 && pickupTasks().length === 0) {
-    <p class="courier-active__muted">მიმდინარე შეკვეთები არ არის.</p>
+    <p class="courier-active__muted">{{ 'courier.noActiveOrders' | t }}</p>
   } @else if (orders().length === 0) {
-    <p class="courier-active__muted">მიწოდების შეკვეთები არ არის — მხოლოდ აღების დავალებები.</p>
+    <p class="courier-active__muted">{{ 'courier.onlyPickupTasks' | t }}</p>
   } @else if (displayOrders().length === 0) {
-    <p class="courier-active__muted">ფილტრში შეკვეთები არ მოიძებნა.</p>
+    <p class="courier-active__muted">{{ 'courier.filterEmpty' | t }}</p>
   } @else {
     <div
       class="courier-active__list"
@@ -284,7 +284,7 @@
                   type="button"
                   class="courier-card__handle courier-card__handle--dense"
                   cdkDragHandle
-                  aria-label="გადაადგილება"
+                  [attr.aria-label]="'courier.move' | t"
                   (click)="$event.stopPropagation()"
                 >
                   ⋮⋮
@@ -301,7 +301,7 @@
                   autocomplete="off"
                   [id]="'pos-edit-' + order.id"
                   [value]="positionDraft()"
-                  [attr.aria-label]="'პოზიცია, მაქს ' + orders().length"
+                  [attr.aria-label]="'courier.positionMax' | t: { max: orders().length }"
                   (click)="$event.stopPropagation()"
                   (input)="onPositionDraftInput($event)"
                   (keydown.enter)="confirmPositionEdit(order.id, $event)"
@@ -313,7 +313,7 @@
                   type="button"
                   class="courier-card__pos"
                   [disabled]="!canEditPosition()"
-                  [attr.aria-label]="'პოზიცია ' + orderPosition(order.id) + ' — შეცვლა'"
+                  [attr.aria-label]="'courier.positionChange' | t: { pos: orderPosition(order.id) }"
                   (click)="startPositionEdit(order.id, $event)"
                 >
                   {{ orderPosition(order.id) }}
@@ -325,7 +325,7 @@
                   <span class="courier-card__id">#{{ order.id }}</span>
                   <span class="courier-card__dense-name">{{ order.recipient_name || '—' }}</span>
                   @if (order.is_fragile) {
-                    <span class="courier-card__fragile-dot" title="მსხვრევადი">⚠</span>
+                    <span class="courier-card__fragile-dot" [attr.title]="'courier.fragile' | t">⚠</span>
                   }
                   <span [class]="statusClass(order.status)" class="courier-card__dense-status">{{
                     statusLabel(order.status)
@@ -345,7 +345,7 @@
                   class="courier-card__call-icon courier-card__call-icon--dense"
                   [href]="telHref(order.recipient_phone)"
                   (click)="$event.stopPropagation()"
-                  [attr.aria-label]="'დარეკვა: ' + formatPhone(order.recipient_phone)"
+                  [attr.aria-label]="'courier.callPhone' | t: { phone: formatPhone(order.recipient_phone) }"
                 >
                   <svg class="courier-card__call-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <path
@@ -359,7 +359,7 @@
                   class="courier-card__first-btn"
                   (click)="moveToFront(order.id, $event)"
                   [disabled]="reordering() || orderPosition(order.id) === 1"
-                  title="პირველად"
+                  [attr.title]="'courier.moveFirstShort' | t"
                 >
                   ↑1
                 </button>
@@ -390,7 +390,7 @@
                     type="button"
                     class="courier-card__handle"
                     cdkDragHandle
-                    aria-label="გადაადგილება"
+                    [attr.aria-label]="'courier.move' | t"
                     (click)="$event.stopPropagation()"
                   >
                     ⋮⋮
@@ -407,7 +407,7 @@
                     autocomplete="off"
                     [id]="'pos-edit-' + order.id"
                     [value]="positionDraft()"
-                    [attr.aria-label]="'პოზიცია, მაქს ' + orders().length"
+                    [attr.aria-label]="'courier.positionMax' | t: { max: orders().length }"
                     (click)="$event.stopPropagation()"
                     (input)="onPositionDraftInput($event)"
                     (keydown.enter)="confirmPositionEdit(order.id, $event)"
@@ -419,7 +419,7 @@
                     type="button"
                     class="courier-card__pos courier-card__pos--classic"
                     [disabled]="!canEditPosition()"
-                    [attr.aria-label]="'პოზიცია ' + orderPosition(order.id) + ' — შეცვლა'"
+                    [attr.aria-label]="'courier.positionChange' | t: { pos: orderPosition(order.id) }"
                     (click)="startPositionEdit(order.id, $event)"
                   >
                     {{ orderPosition(order.id) }}
@@ -435,7 +435,7 @@
                     (click)="moveToFront(order.id, $event)"
                     [disabled]="reordering() || orderPosition(order.id) === 1"
                   >
-                    პირველად
+                    {{ 'courier.moveFirstShort' | t }}
                   </button>
                 }
 
@@ -447,7 +447,7 @@
               </div>
 
               @if (order.is_fragile) {
-                <p class="courier-card__fragile" role="status">⚠ მსხვრევადი</p>
+                <p class="courier-card__fragile" role="status">⚠ {{ 'courier.fragile' | t }}</p>
               }
 
               <div class="courier-card__body">
@@ -457,7 +457,7 @@
                     class="courier-card__call-icon"
                     [href]="telHref(order.recipient_phone)"
                     (click)="$event.stopPropagation()"
-                    [attr.aria-label]="'დარეკვა: ' + formatPhone(order.recipient_phone)"
+                    [attr.aria-label]="'courier.callPhone' | t: { phone: formatPhone(order.recipient_phone) }"
                   >
                     <svg class="courier-card__call-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                       <path
@@ -476,7 +476,7 @@
                 <div class="courier-card__meta">
                   <span class="courier-card__qty">
                     <span aria-hidden="true">📦</span>
-                    რაოდენობა: {{ order.parcel_count }} ერთეული
+                    {{ 'courier.quantityUnits' | t: { count: order.parcel_count } }}
                   </span>
                   <strong class="courier-card__amount">
                     {{ formatGel(order.amount_to_collect) }} ₾
@@ -492,7 +492,7 @@
                     (click)="toggleDetails(order.id)"
                     [attr.aria-expanded]="false"
                   >
-                    დეტალურად
+                    {{ 'courier.moreDetails' | t }}
                   </button>
                 </div>
               }
@@ -503,12 +503,12 @@
           @if (isExpanded(order.id) && !isSortMode()) {
             <div class="courier-card__details" (click)="$event.stopPropagation()">
               <header class="courier-card__details-head">
-                <h4 class="courier-card__details-title">დეტალები</h4>
+                <h4 class="courier-card__details-title">{{ 'ui.details' | t }}</h4>
                 <button
                   type="button"
                   class="courier-card__details-close"
                   (click)="closeDetails()"
-                  aria-label="დეტალების დახურვა"
+                  [attr.aria-label]="'courier.closeDetails' | t"
                 >
                   ×
                 </button>
@@ -516,33 +516,33 @@
 
               <dl class="courier-card__info">
                 <div>
-                  <dt>გადასაცემი ერთეულების რაოდენობა</dt>
+                  <dt>{{ 'courier.parcelCount' | t }}</dt>
                   <dd>{{ order.parcel_count }}</dd>
                 </div>
                 <div>
-                  <dt>მიწოდების თარიღი</dt>
+                  <dt>{{ 'ui.deliveryDate' | t }}</dt>
                   <dd>
                     {{ order.delivery_date ? (order.delivery_date | date: 'd MMM y') : '—' }}
                   </dd>
                 </div>
                 <div>
-                  <dt>ქალაქი</dt>
+                  <dt>{{ 'ui.city' | t }}</dt>
                   <dd>{{ order.delivery_city || '—' }}</dd>
                 </div>
                 <div>
-                  <dt>უბანი</dt>
+                  <dt>{{ 'ui.district' | t }}</dt>
                   <dd>{{ order.delivery_district || '—' }}</dd>
                 </div>
                 <div>
-                  <dt>შენიშვნა</dt>
+                  <dt>{{ 'ui.note' | t }}</dt>
                   <dd>{{ order.notes || '—' }}</dd>
                 </div>
                 <div>
-                  <dt>გადახდის მეთოდი</dt>
-                  <dd>{{ selectedPayment(order.id) === 'cash' ? 'ქეში' : selectedPayment(order.id) === 'card' ? 'ბარათი' : '—' }}</dd>
+                  <dt>{{ 'ui.paymentMethod' | t }}</dt>
+                  <dd>{{ selectedPayment(order.id) === 'cash' ? ('ui.cash' | t) : selectedPayment(order.id) === 'card' ? ('ui.card' | t) : '—' }}</dd>
                 </div>
                 <div>
-                  <dt>აღებული თანხა</dt>
+                  <dt>{{ 'ui.collectedAmount' | t }}</dt>
                   <dd>{{ formatGel(order.collected_amount) }} ₾</dd>
                 </div>
               </dl>
@@ -555,11 +555,11 @@
                     [disabled]="savingId() === order.id"
                     (click)="markPickedUp(order)"
                   >
-                    {{ savingId() === order.id ? 'ინახება...' : 'აღებულია' }}
+                    {{ savingId() === order.id ? ('ui.saving' | t) : ('courier.pickedUpAction' | t) }}
                   </button>
                 } @else {
-                  <p class="courier-card__complete-label">გადახდა:</p>
-                  <div class="courier-card__pay-toggle" role="group" aria-label="გადახდის მეთოდი">
+                  <p class="courier-card__complete-label">{{ 'courier.paymentLabel' | t }}</p>
+                  <div class="courier-card__pay-toggle" role="group" [attr.aria-label]="'courier.paymentMethod' | t">
                     <button
                       type="button"
                       class="courier-card__pay-btn"
@@ -567,7 +567,7 @@
                       [disabled]="savingId() === order.id"
                       (click)="selectPayment(order.id, 'cash')"
                     >
-                      ქეში
+                      {{ 'ui.cash' | t }}
                     </button>
                     <button
                       type="button"
@@ -576,7 +576,7 @@
                       [disabled]="savingId() === order.id"
                       (click)="selectPayment(order.id, 'card')"
                     >
-                      ბარათი
+                      {{ 'ui.card' | t }}
                     </button>
                   </div>
 
@@ -586,13 +586,13 @@
                     [disabled]="savingId() === order.id"
                     (click)="markDelivered(order)"
                   >
-                    {{ savingId() === order.id ? 'ინახება...' : 'ჩაბარებულია' }}
+                    {{ savingId() === order.id ? ('ui.saving' | t) : ('courier.deliveredAction' | t) }}
                   </button>
 
                   @if (confirmingCancelId() === order.id) {
                     <div class="courier-card__cancel-confirm">
                       <label class="courier-card__cancel-label" [attr.for]="'cancel-reason-' + order.id">
-                        გაუქმების მიზეზი
+                        {{ 'courier.cancelReason' | t }}
                       </label>
                       <textarea
                         class="courier-card__cancel-reason"
@@ -601,7 +601,7 @@
                         rows="3"
                         maxlength="500"
                         [disabled]="savingId() === order.id"
-                        placeholder="მიუთითეთ გაუქმების მიზეზი..."
+                        [attr.placeholder]="'courier.cancelReasonPlaceholder' | t"
                         (input)="onCancelReasonInput($event)"
                       ></textarea>
                       @if (cancelReasonError()) {
@@ -614,7 +614,7 @@
                           [disabled]="savingId() === order.id"
                           (click)="confirmCancel(order, cancelReasonInput.value)"
                         >
-                          {{ savingId() === order.id ? 'ინახება...' : 'დიახ' }}
+                          {{ savingId() === order.id ? ('ui.saving' | t) : ('ui.yes' | t) }}
                         </button>
                         <button
                           type="button"
@@ -622,7 +622,7 @@
                           [disabled]="savingId() === order.id"
                           (click)="dismissCancel()"
                         >
-                          არა
+                          {{ 'ui.no' | t }}
                         </button>
                       </div>
                     </div>
@@ -633,7 +633,7 @@
                       [disabled]="savingId() === order.id"
                       (click)="requestCancel(order)"
                     >
-                      გაუქმება
+                      {{ 'courier.cancelAction' | t }}
                     </button>
                   }
                 }

@@ -1,9 +1,10 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '../../core/pipes/t.pipe';
 
 @Component({
   selector: 'app-delivery-footer',
-  imports: [TranslatePipe],
+  imports: [RouterLink, TranslatePipe],
   templateUrl: './delivery-footer.html',
   styleUrl: './delivery-footer.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

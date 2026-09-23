@@ -7,6 +7,7 @@ import {
   CourierStatus,
 } from '../models/order.model';
 import { UserRole } from '../models/profile.model';
+import i18next from 'i18next';
 
 /** Visual tone keys shared by Admin filters, badges, and status selects. */
 export type StatusTone = 'pending' | 'office' | 'active' | 'delivered' | 'cancelled' | 'all';
@@ -61,7 +62,7 @@ const ORDER_STATUS_TONE: Record<OrderStatus, Exclude<StatusTone, 'all'>> = {
   cancelled: 'cancelled',
 };
 
-/** @deprecated Prefer STATUS_STYLES — kept for labelKa lookup compatibility. */
+/** @deprecated Prefer STATUS_STYLES + orderStatusLabelKey — labelKa kept for legacy callers. */
 export const ORDER_STATUS_UI = {
   pending: {
     labelKa: 'მოლოდინში',
@@ -339,21 +340,21 @@ export function formatPhoneDisplay(phone: string): string {
 }
 
 export function courierStatusLabel(status: OrderStatus | string): string {
-  return ORDER_STATUS_UI[resolveStatusKey(status)].labelKa;
+  return i18next.t(orderStatusLabelKey(status));
 }
 
 export function auditRoleLabelKa(role: string | null | undefined): string {
   switch (role) {
     case 'admin':
-      return 'ადმინი';
+      return i18next.t('ui.roleAdmin');
     case 'courier':
-      return 'კურიერი';
+      return i18next.t('ui.roleCourier');
     case 'user':
-      return 'მომხმარებელი';
+      return i18next.t('ui.roleUser');
     case 'system':
-      return 'სისტემა';
+      return i18next.t('ui.roleSystem');
     default:
-      return 'უცნობი';
+      return i18next.t('ui.roleUnknown');
   }
 }
 
@@ -401,8 +402,8 @@ export function formatTbilisiDotDateTime(iso: string | null | undefined): string
 }
 
 export function paymentMethodLabel(method: PaymentMethod | null | undefined): string {
-  if (method === 'cash') return 'ქეში';
-  if (method === 'card') return 'ბარათი';
+  if (method === 'cash') return i18next.t('ui.cash');
+  if (method === 'card') return i18next.t('ui.card');
   return '—';
 }
 

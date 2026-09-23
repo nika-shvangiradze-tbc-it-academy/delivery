@@ -4,7 +4,7 @@
   <div class="delivery-footer__inner">
     <div class="delivery-footer__grid">
       <div class="delivery-footer__brand">
-        <a class="delivery-footer__logo" href="#" [attr.aria-label]="'footer.homeLabel' | t">
+        <a class="delivery-footer__logo" routerLink="/" [attr.aria-label]="'footer.homeLabel' | t">
           <img
             src="/assets/header/location.svg"
             alt=""
@@ -22,11 +22,11 @@
       <div class="delivery-footer__col">
         <h2 class="delivery-footer__heading">{{ 'footer.explore' | t }}</h2>
         <ul class="delivery-footer__links">
-          <li><a href="#home">{{ 'nav.home' | t }}</a></li>
-          <li><a href="#pricing">{{ 'nav.pricing' | t }}</a></li>
-          <li><a href="#cities">{{ 'nav.cities' | t }}</a></li>
-          <li><a href="#about">{{ 'nav.about' | t }}</a></li>
-          <li><a href="#contact">{{ 'nav.contact' | t }}</a></li>
+          <li><a routerLink="/" fragment="home">{{ 'nav.home' | t }}</a></li>
+          <li><a routerLink="/" fragment="pricing">{{ 'nav.pricing' | t }}</a></li>
+          <li><a routerLink="/" fragment="cities">{{ 'nav.cities' | t }}</a></li>
+          <li><a routerLink="/" fragment="about">{{ 'nav.about' | t }}</a></li>
+          <li><a routerLink="/" fragment="contact">{{ 'nav.contact' | t }}</a></li>
         </ul>
       </div>
 
@@ -99,9 +99,9 @@
         © {{ currentYear }} Location. {{ 'footer.allRightsReserved' | t }}
       </p>
       <nav class="delivery-footer__legal" aria-label="Legal">
-        <a href="#">{{ 'footer.privacy' | t }}</a>
+        <a routerLink="/privacy">{{ 'footer.privacy' | t }}</a>
         <span class="delivery-footer__dot" aria-hidden="true">·</span>
-        <a href="#">{{ 'footer.terms' | t }}</a>
+        <a routerLink="/terms">{{ 'footer.terms' | t }}</a>
       </nav>
     </div>
   </div>

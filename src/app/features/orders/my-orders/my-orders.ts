@@ -7,6 +7,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import i18next from 'i18next';
 import { DatePipe } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
@@ -63,19 +64,19 @@ const EMPTY_ANALYTICS: UserDeliveredAnalytics = {
   amount_to_collect: 0,
 };
 
-const GEORGIAN_MONTHS: ReadonlyArray<{ value: number; label: string }> = [
-  { value: 1, label: 'იანვარი' },
-  { value: 2, label: 'თებერვალი' },
-  { value: 3, label: 'მარტი' },
-  { value: 4, label: 'აპრილი' },
-  { value: 5, label: 'მაისი' },
-  { value: 6, label: 'ივნისი' },
-  { value: 7, label: 'ივლისი' },
-  { value: 8, label: 'აგვისტო' },
-  { value: 9, label: 'სექტემბერი' },
-  { value: 10, label: 'ოქტომბერი' },
-  { value: 11, label: 'ნოემბერი' },
-  { value: 12, label: 'დეკემბერი' },
+const MONTH_OPTIONS: ReadonlyArray<{ value: number; labelKey: string }> = [
+  { value: 1, labelKey: 'months.january' },
+  { value: 2, labelKey: 'months.february' },
+  { value: 3, labelKey: 'months.march' },
+  { value: 4, labelKey: 'months.april' },
+  { value: 5, labelKey: 'months.may' },
+  { value: 6, labelKey: 'months.june' },
+  { value: 7, labelKey: 'months.july' },
+  { value: 8, labelKey: 'months.august' },
+  { value: 9, labelKey: 'months.september' },
+  { value: 10, labelKey: 'months.october' },
+  { value: 11, labelKey: 'months.november' },
+  { value: 12, labelKey: 'months.december' },
 ];
 
 function amountNonNegativeValidator(control: AbstractControl): ValidationErrors | null {
@@ -97,7 +98,7 @@ export class MyOrders implements OnInit {
   private readonly fb = inject(FormBuilder);
 
   readonly pageSize = MY_ORDERS_PAGE_SIZE;
-  readonly months = GEORGIAN_MONTHS;
+  readonly months = MONTH_OPTIONS;
 
   readonly orders = signal<Order[]>([]);
   readonly listTotal = signal(0);
@@ -422,7 +423,7 @@ export class MyOrders implements OnInit {
         originalValue: order.delivery_date,
       })
     ) {
-      this.editError.set('მიწოდების თარიღი უნდა იყოს ხვალ ან უფრო გვიან.');
+      this.editError.set(i18next.t('validation.deliveryDateTomorrow'));
       return;
     }
 
@@ -454,24 +455,24 @@ export class MyOrders implements OnInit {
     this.saving.set(false);
 
     if (error || !data) {
-      this.editError.set(error ?? 'შენახვა ვერ მოხერხდა');
+      this.editError.set(error ?? i18next.t('ui.saveFailed'));
       return;
     }
 
     this.orders.update((list) => list.map((item) => (item.id === data.id ? data : item)));
-    this.successMessage.set(`შეკვეთა #${data.id} წარმატებით განახლდა`);
+    this.successMessage.set(i18next.t('ordersUi.updatedSuccess', { id: data.id }));
     this.closeEdit();
   }
 
   private firstValidationMessage(): string {
     const c = this.editForm.controls;
     if (c.amount_to_collect.hasError('amountInvalid')) {
-      return 'ასაღები თანხა უნდა იყოს 0 ან მეტი.';
+      return i18next.t('validation.amountMinZeroShort');
     }
     if (c.parcel_count.invalid) {
-      return 'გადასაცემი ერთეულების რაოდენობა უნდა იყოს 1 ან მეტი.';
+      return i18next.t('validation.parcelCountMinShort');
     }
-    return 'გთხოვთ შეავსოთ ყველა სავალდებულო ველი.';
+    return i18next.t('validation.requiredFields');
   }
 
   private async onRealtimeChange(change: {

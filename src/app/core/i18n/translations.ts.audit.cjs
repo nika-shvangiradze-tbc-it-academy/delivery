@@ -1,13 +1,8 @@
-import { legalTranslationsEn, legalTranslationsKa } from './legal-translations';
-import { uiTranslationsEn, uiTranslationsKa } from './ui-translations';
 
-export type AppLanguage = 'en' | 'ka';
 
 export const translationResources = {
   en: {
     translation: {
-      ...uiTranslationsEn,
-      ...legalTranslationsEn,
       app: {
         languageLabel: 'Language',
       },
@@ -228,7 +223,7 @@ export const translationResources = {
         cta: 'Contact Us',
         trustFast: 'Fast',
         trustSafe: 'Safe',
-        trustGeorgia: 'Organised',
+        trustGeorgia: 'Across Georgia',
         statusPickup: 'Pickup',
         statusTransit: 'In transit',
         statusDone: 'Delivered',
@@ -245,10 +240,10 @@ export const translationResources = {
         body:
           'We handle your deliveries with care, giving you more time to focus on the most important aspects of your business. Our service operates nationwide, powered by modern, technology-driven solutions that help you save both time and resources.\n\nWith fast processing, reliable logistics, and dedicated support, we ensure your parcels reach their destination safely and on time. We are committed to making delivery simple, efficient, and stress-free for every customer.',
         companiesTitle: '300+ Companies',
-        companiesText: 'Uses our platform.',
+        companiesText: 'Trusted for fast and reliable delivery services.',
         priceTitle: 'From 5 GEL',
         priceText: 'Lowest price in Georgia.',
-        speedTitle: '24 Hours',
+        speedTitle: 'Max 48 Hours',
         speedText: 'Delivery of goods to cities and regions of Georgia.',
       },
       items: {
@@ -378,15 +373,13 @@ export const translationResources = {
         follow: 'Follow us',
         followHint: 'Updates, promos, and behind the scenes.',
         allRightsReserved: 'All rights reserved.',
-        privacy: 'Privacy Policy',
-        terms: 'Terms & Conditions',
+        privacy: 'Privacy',
+        terms: 'Terms',
       },
     },
   },
   ka: {
     translation: {
-      ...uiTranslationsKa,
-      ...legalTranslationsKa,
       app: {
         languageLabel: 'ენა',
       },
@@ -611,7 +604,7 @@ export const translationResources = {
         trustGeorgia: 'ორგანიზებული',
         statusPickup: 'აღება',
         statusTransit: 'გზაშია',
-        statusDone: 'ჩაბარებული',
+        statusDone: 'მიწოდებული',
         modalTitle: 'მოდით ვისაუბროთ',
         modalLead:
           'გაქვთ კითხვები მარშრუტებზე, ფასებზე ან პარტნიორობაზე? დაგვიკავშირდით პირდაპირ - ჩვეულებრივ, იმავე დღეს გპასუხობთ.',
@@ -623,9 +616,9 @@ export const translationResources = {
         title: 'ჩვენ შესახებ',
         highlight: 'ჩვენ ვაძლიერებთ მცირე და საშუალო ბიზნესს მიწოდების გამარტივებით.',
         body:
-          'თქვენს გზავნილებს ყურადღებით ვმართავთ, რათა თქვენ მეტი დრო დაგრჩეთ თქვენი ბიზნესისთვის. ჩვენი სერვისი მოქმედებს მთელი საქართველოს მასშტაბით და ეფუძნება თანამედროვე ტექნოლოგიურ გადაწყვეტილებებს, რომლებიც ზოგავს დროსა და რესურსს.\n\nსწრაფი დამუშავებით, სანდო ლოჯისტიკითა და მუდმივი მხარდაჭერით ვუზრუნველყოფთ, რომ ამანათები უსაფრთხოდ და დროულად მივიდეს დანიშნულებამდე. ჩვენი მიზანია მიწოდება გავხადოთ მარტივი და ეფექტური თითოეული მომხმარებლისთვის.',
+          'თქვენს გზავნილებს ყურადღებით ვმართავთ, რათა თქვენ მეტი დრო დაგრჩეთ თქვენი ბიზნესისთვის. ჩვენი სერვისი მოქმედებს მთელი საქართველოს მასშტაბით და ეფუძნება თანამედროვე ტექნოლოგიურ გადაწყვეტილებებს, რომლებიც ზოგავს დროსა და რესურსს.\n\nსწრაფი დამუშავებით, სანდო ლოგისტიკითა და მუდმივი მხარდაჭერით ვუზრუნველყოფთ, რომ ამანათები უსაფრთხოდ და დროულად მივიდეს დანიშნულებამდე. ჩვენი მიზანია მიწოდება გავხადოთ მარტივი და ეფექტური თითოეული მომხმარებლისთვის.',
         companiesTitle: '300+ კომპანია',
-        companiesText: 'იყენებს ჩვენს პლატფორმას.',
+        companiesText: 'იყენბს ჩვენს პლატფორმას .',
         priceTitle: '5 ლარიდან',
         priceText: 'ერთ-ერთი ყველაზე დაბალი ფასი საქართველოში.',
         speedTitle: '24 საათი',
@@ -758,9 +751,10 @@ export const translationResources = {
         follow: 'გამოგვყევით',
         followHint: 'სიახლეები იხილეთ მითითებულ პლატფორმებზე.',
         allRightsReserved: 'ყველა უფლება დაცულია.',
-        privacy: 'კონფიდენციალურობის პოლიტიკა',
-        terms: 'წესები და პირობები',
+        privacy: 'კონფიდენციალურობა',
+        terms: 'წესები',
       },
     },
   },
 } as const;
+; module.exports = translationResources;

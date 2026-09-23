@@ -2,6 +2,7 @@ import * as XLSX from 'xlsx';
 import { GEORGIAN_CITIES, isDeliveryDateAllowed, toDateInputValue } from '../constants/cities';
 import { CreateOrderPayload } from '../models/order.model';
 import { centsToNumber, toCents } from './order-status.util';
+import i18next from 'i18next';
 
 /** Excel column headers expected in the customer template. */
 export const ORDER_EXCEL_HEADERS = [
@@ -481,7 +482,7 @@ export async function parseExcelFile(file: File): Promise<OrderExcelParseResult>
   const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
   const sheetName = workbook.SheetNames[0];
   if (!sheetName) {
-    throw new Error('Excel ფაილში ფურცელი არ მოიძებნა');
+    throw new Error(i18next.t('excel.sheetMissing'));
   }
 
   const sheet = workbook.Sheets[sheetName];
@@ -492,7 +493,7 @@ export async function parseExcelFile(file: File): Promise<OrderExcelParseResult>
   });
 
   if (!matrix.length) {
-    throw new Error('Excel ფაილი ცარიელია');
+    throw new Error(i18next.t('excel.emptyFile'));
   }
 
   const headerRow = matrix[0] ?? [];
@@ -505,7 +506,7 @@ export async function parseExcelFile(file: File): Promise<OrderExcelParseResult>
   });
 
   if (columnMap.size === 0) {
-    throw new Error('Excel-ში საჭირო სვეტები ვერ მოიძებნა. ჩამოტვირთეთ ნიმუში.');
+    throw new Error(i18next.t('excel.columnsMissing'));
   }
 
   const rows: ParsedExcelOrderRow[] = [];
@@ -524,7 +525,7 @@ export async function parseExcelFile(file: File): Promise<OrderExcelParseResult>
   }
 
   if (rows.length === 0) {
-    throw new Error('Excel-ში მონაცემების სტრიქონები არ მოიძებნა');
+    throw new Error(i18next.t('excel.noDataRows'));
   }
 
   if (rows.length > MAX_BULK_IMPORT_ORDERS) {
@@ -583,44 +584,44 @@ export function validateImportedOrder(
   const pickupAddress = pickupLocation || pickupAddressBase;
 
   if (!senderName || !senderPhone || !pickupCity || !pickupDistrict || !pickupAddress) {
-    return fail('შეავსეთ გამგზავნის/აღების ველები ფორმაში Excel იმპორტამდე');
+    return fail(i18next.t('excel.fillSenderFields'));
   }
   if (!isPhoneValid(senderPhone)) {
-    return fail('გამგზავნის ტელეფონი არასწორია (ფორმაში)');
+    return fail(i18next.t('excel.senderPhoneInvalidForm'));
   }
   if (!(GEORGIAN_CITIES as readonly string[]).includes(pickupCity)) {
-    return fail('აღების ქალაქი არასწორია (ფორმაში)');
+    return fail(i18next.t('excel.pickupCityInvalidForm'));
   }
 
   if (!customerName) {
-    return fail('მიმღების სახელი აუცილებელია');
+    return fail(i18next.t('excel.recipientNameRequired'));
   }
   if (!phone) {
-    return fail('ტელეფონის ნომერი აუცილებელია');
+    return fail(i18next.t('excel.phoneRequired'));
   }
   if (!isPhoneValid(phone)) {
-    return fail('მიუთითეთ სწორი ტელეფონის ნომერი');
+    return fail(i18next.t('excel.phoneInvalid'));
   }
   if (!address) {
-    return fail('მისამართი აუცილებელია');
+    return fail(i18next.t('excel.addressRequired'));
   }
   if (!cityNormalized) {
-    return fail('ქალაქი აუცილებელია ან არასწორია');
+    return fail(i18next.t('excel.cityRequiredOrInvalid'));
   }
   if (!deliveryDate) {
-    return fail('არასწორი თარიღი');
+    return fail(i18next.t('excel.dateInvalid'));
   }
   if (!isDeliveryDateAllowed(deliveryDate)) {
-    return fail('მიწოდების თარიღი უნდა იყოს ხვალ ან უფრო გვიან');
+    return fail(i18next.t('excel.deliveryDateTomorrow'));
   }
   if (!quantityParsed.ok) {
-    return fail('რაოდენობა უნდა იყოს მინიმუმ 1');
+    return fail(i18next.t('excel.quantityMin'));
   }
   if (!amountParsed.ok) {
-    return fail('თანხა უნდა იყოს 0 ან მეტი');
+    return fail(i18next.t('excel.amountMinZero'));
   }
   if (fragileParsed === null) {
-    return fail('მსხვრევადობის მნიშვნელობა არასწორია');
+    return fail(i18next.t('excel.fragileInvalid'));
   }
 
   const payload: CreateOrderPayload = {
@@ -728,19 +729,20 @@ export function downloadOrderExcelTemplate(): void {
   }));
   XLSX.utils.book_append_sheet(wb, dataSheet, 'Orders');
 
+  const cities = GEORGIAN_CITIES.join(', ');
   const instructions = XLSX.utils.aoa_to_sheet([
-    ['ინსტრუქცია / Instructions'],
+    [i18next.t('excel.instrTitle')],
     [''],
-    ['1. შეავსეთ Orders ფურცელი. პირველი სტრიქონი არის სათაურები — ნუ წაშლით.'],
-    ['2. customer_name = მიმღების სახელი'],
-    ['3. phone = მიმღების ტელეფონი (მინ. 6 ციფრი)'],
-    ['4. recipient_address / city / district = მიწოდების მისამართი'],
-    [`5. city უნდა იყოს ერთ-ერთი: ${GEORGIAN_CITIES.join(', ')}`],
-    ['6. delivery_date = ხვალ ან უფრო გვიან (YYYY-MM-DD)'],
-    ['7. quantity ცარიელი → 1; amount_to_collect ცარიელი → 0'],
-    ['8. fragile: true/false, Yes/No, კი/არა, 1/0'],
-    ['9. pickup_location არასავალდებულოა — თუ ცარიელია, გამოიყენება ფორმის აღების მისამართი'],
-    ['10. გამგზავნის მონაცემები აღებულია შეკვეთის შექმნის ფორმიდან'],
+    [i18next.t('excel.instr1')],
+    [i18next.t('excel.instr2')],
+    [i18next.t('excel.instr3')],
+    [i18next.t('excel.instr4')],
+    [i18next.t('excel.instr5', { cities })],
+    [i18next.t('excel.instr6')],
+    [i18next.t('excel.instr7')],
+    [i18next.t('excel.instr8')],
+    [i18next.t('excel.instr9')],
+    [i18next.t('excel.instr10')],
   ]);
   instructions['!cols'] = [{ wch: 90 }];
   XLSX.utils.book_append_sheet(wb, instructions, 'Instructions');
